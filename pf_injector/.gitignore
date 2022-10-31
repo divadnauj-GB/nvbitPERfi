@@ -1,0 +1,7 @@
+*.o
+*.csv
+*.so
+*.txt
+.vscode/
+logs/
+__pycache__/
