@@ -1,7 +1,10 @@
-*.o
-*.csv
-*.so
-*.txt
-.vscode/
-logs/
-__pycache__/
+*
+
+!.gitignore
+!*.cu
+!*.h
+!*.hpp
+!*.cpp
+!*.c
+!Makefile
+
