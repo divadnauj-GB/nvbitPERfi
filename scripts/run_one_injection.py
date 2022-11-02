@@ -25,6 +25,7 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
+from concurrent.futures import thread
 import os, sys, re, string, operator, math, datetime, time, signal, subprocess, shutil, glob, pkgutil
 import params as p
 import common_functions as cf 
@@ -34,7 +35,7 @@ import common_functions as cf
 ###############################################################################
 
 def print_usage():
-	print ("Usage: run_one_injection.py <inj_mode, igid, bfm, app, kernel_name, kcount, instID, opID, bitID, injection_count>")
+	print ("Usage: run_one_injection.py <inj_mode, app, line, injection_count>")
 
 def get_seconds(td):
 	return (td.microseconds + (td.seconds + td.days * 24 * 3600) * 10**6) / float(10**6)
@@ -43,18 +44,12 @@ def get_seconds(td):
 # Set enviroment variables for run_script
 ###############################################################################
 [stdout_fname, stderr_fname, injection_seeds_file, new_directory] = ["", "", "", ""]
-def set_env_variables(inj_mode, app, igid, bfm, icount): # Set directory paths 
-	if inj_mode == p.RF_MODE:
-		p.rf_inst = "rf"
-	elif inj_mode == p.INST_VALUE_MODE:
-		p.rf_inst = "inst_value"
-	else:
-		p.rf_inst = "inst_address"
+def set_env_variables(inj_mode, app, error_model, icount): # Set directory paths 
 
 	p.set_paths() # update paths 
 	global stdout_fname, stderr_fname, injection_seeds_file, new_directory
 	
-	new_directory = p.NVBITFI_HOME + "/logs/" + app + "/" + app + "-group" + igid + "-model" + bfm + "-icount" + icount
+	new_directory = p.NVBITFI_HOME + "/test-apps/logs/" + app + "/" + "logs/" + app + "-mode" + inj_mode + "-icount" + icount
 	stdout_fname = new_directory + "/" + p.stdout_file 
 	stderr_fname = new_directory + "/" + p.stderr_file
 	injection_seeds_file = new_directory + "/" + p.injection_seeds
@@ -67,10 +62,18 @@ def set_env_variables(inj_mode, app, igid, bfm, icount): # Set directory paths
 # Record result in to a common file. This function uses file-locking such that
 # mutliple parallel jobs can run safely write results to the file
 ###############################################################################
-def record_result(inj_mode, igid, bfm, app, kname, kcount, iid, opid, bid, cat, pc, inst_type, tid, injBID, runtime, dmesg, value_str, icount):
-	res_fname = p.app_log_dir[app] + "/results-mode" + inj_mode + "-igid" + str(igid) + ".bfm" + str(bfm) + "." + str(p.NUM_INJECTIONS) + ".txt"
-	result_str = icount + ";" + kname + ";" + kcount + ";" + iid + ";" + opid 
-	result_str += ";" + bid + ":" + str(pc) + ":" + str(inst_type) + ":" +  str(tid) 
+def record_result(inj_mode, app, error_model, cat, pc, inst_type, tid, injBID, runtime, dmesg, value_str, icount):
+	
+	res_fname = p.app_log_dir[app] + "/results-mode" + inj_mode + str(p.NUM_INJECTIONS) + ".txt"
+	
+	result_str=inj_mode+';'
+	loc=""
+	for i in range(0,len(error_model)):
+		result_str+=error_model[i]+';'
+
+	#result_str = icount + ";" + kname + ";" + kcount + ";" + iid + ";" + opid 
+	#result_str += ";" + bid + ":" + str(pc) + ":" + str(inst_type) + ":" +  str(tid) 
+	result_str += ":" + str(pc) + ":" + str(inst_type) + ":" +  str(tid) 
 	result_str += ":" + str(injBID) + ":" + str(runtime) + ":" + str(cat) + ":" + str(dmesg)
 	result_str += ":" + str(value_str) + "\n"
 	if p.verbose:
@@ -97,19 +100,42 @@ def record_result(inj_mode, igid, bfm, app, kname, kcount, iid, opid, bid, cat, 
 		if not os.path.isdir(p.app_log_dir[app] + "/sdcs"): os.system("mkdir -p " + p.app_log_dir[app] + "/sdcs") # create directory to store sdcs 
 		full_sdc_dir = p.app_log_dir[app] + "/sdcs/sdc-" + app + "-icount" +  icount
 		os.system("mkdir -p " + full_sdc_dir) # create directory to store sdc
-		map((lambda x: shutil.copy(x, full_sdc_dir)), [stdout_fname, stderr_fname, injection_seeds_file, new_directory + "/" + p.output_diff_log]) # copy stdout, stderr injection seeds, output diff
+		shutil.copytree(new_directory,full_sdc_dir,dirs_exist_ok=True)
 		shutil.make_archive(full_sdc_dir, 'gztar', full_sdc_dir) # archieve the outputs
 		shutil.rmtree(full_sdc_dir, True) # remove the directory
+		if p.verbose:
+			print("stdout: "+stdout_fname)
+			print("stderr: "+stderr_fname)
+			print("inj_file: "+injection_seeds_file)
+			print("newdir: "+new_directory+"/" + p.output_diff_log)
+			print("sdc_dir: "+full_sdc_dir)
 
 ###############################################################################
 # Create params file. The contents of this file will be read by the injection run.
 ###############################################################################
-def create_p_file(p_filename, igid, bfm, kname, kcount, iid, opid, bid):
+def create_p_file(p_filename, inj_mode, error_mode):
 	outf = open(p_filename, "w")
-	if igid == "rf":
-		outf.write(bfm + "\n" + kname + "\n" + kcount + "\n" + iid + "\n" + opid + "\n" + bid)
+
+	if inj_mode=='ICOC':
+		print('Sorry! This error model is not implemented yet, give us a hand ;)')
+	elif inj_mode=='IRA':
+		if len(error_mode)==5:
+			threadID=error_mode[0]
+			reg=error_mode[1]
+			mask=error_mode[2]
+			SM=error_mode[3]
+			stuck_at=error_mode[4]
+			outf.write(threadID + "\n" + reg + "\n" + mask + "\n" + SM + "\n" + stuck_at + "\n")
+		else:
+			print("Ops... it seems the error descriptor has missing arguments  :(")
+		
+	elif inj_mode=='IR':
+		print('Sorry! This error model is not implemented yet, give us a hand ;)')
+	elif inj_mode=='IIO':
+		print('Sorry! This error model is not implemented yet, give us a hand ;)')
 	else:
-		outf.write(igid + "\n" + bfm + "\n" + kname + "\n" + kcount + "\n" + iid + "\n" + opid + "\n" + bid)
+		print(f"Ops.. the {inj_mode} error model does not exist, perhaps it is a new model you can implement in the future ;)")	
+
 	outf.close()
 
 ###############################################################################
@@ -133,17 +159,16 @@ def get_inj_info():
 	if os.path.isfile(p.inj_run_log): 
 		logf = open(p.inj_run_log, "r")
 		for line in logf:
-                        if "beforeVal" in line:
-                            value_str = line.strip().replace("beforeVal: ", "value_before").replace(";afterVal: ", ":value_after")
-                        if "opcode" in line:
-                            inst_type = line.split(":")[1].strip()
-                        if "pcOffset" in line:
-                            pc = line.split(":")[1].strip()
-                        if "tid" in line:
-                            tid = line.split(":")[1].strip()
-                        if "mask" in line:
-                            injBID = line.split(":")[1].strip()
-
+			if "beforeVal" in line:
+				value_str = line.strip().replace("beforeVal: ", "value_before").replace(";afterVal: ", ":value_after")
+			if "opcode" in line:
+				inst_type = line.split(":")[1].strip()
+			if "pcOffset" in line:
+				pc = line.split(":")[1].strip()
+			if "tid" in line:
+				tid = line.split(":")[1].strip()
+			if "mask" in line:
+				injBID = line.split(":")[1].strip()
 		logf.close()
 	return [value_str, pc, inst_type, tid, injBID]
 
@@ -151,7 +176,8 @@ def get_inj_info():
 # Classify error injection result based on stdout, stderr, application output,
 # exit status, etc.
 ###############################################################################
-def classify_injection(app, igid, kname, kcount, iid, opid, bid, retcode, dmesg_delta):
+def classify_injection(app, inj_mode, error_model, retcode, dmesg_delta):
+	#inj_mode, error_mode,
 	[found_line, found_error, found_skip] = [False, False, False]
 
 	stdout_str = "" 
@@ -170,12 +196,16 @@ def classify_injection(app, igid, kname, kcount, iid, opid, bid, retcode, dmesg_
 	if os.path.isfile(p.inj_run_log): 
 		inj_log_str = str(open(p.inj_run_log, "r").read())
 	
-	if "ERROR FAIL Detected Signal SIGKILL" in inj_log_str: 
-		if p.verbose: print ("Detected SIGKILL: %s, %s, %s, %s, %s, %s" %(igid, kname, kcount, iid, opid, bid))
+	loc=""
+	for i in range(0,len(error_model)):
+		loc+=error_model[i]+','
+
+	if "ERROR FAIL Detected Signal SIGKILL" in inj_log_str: 		
+		if p.verbose: print (f"Detected SIGKILL: {loc}")
 		return p.OTHERS
 	if "Error not injected" in inj_log_str or "ERROR FAIL in kernel execution; Expected reg value doesn't match;" in inj_log_str: 
 		print (inj_log_str)
-		if p.verbose: print ("Error Not Injected: %s, %s, %s, %s, %s, %s" %(igid, kname, kcount, iid, opid, bid))
+		if p.verbose: print (f"Error Not Injected: {loc}" )
 		return p.OTHERS
 	if "Error: misaligned address" in stdout_str: 
 		return p.STDOUT_ERROR_MESSAGE
@@ -264,13 +294,14 @@ def get_dmesg_delta(dm_before, dm_after):
 ###############################################################################
 # Run the actual injection run 
 ###############################################################################
-def run_one_injection_job(inj_mode, igid, bfm, app, kname, kcount, iid, opid, bid, icount):
+def run_one_injection_job(inj_mode, app, error_model, icount):
 	start = datetime.datetime.now() # current time
 	[pc, inst_type, tid, injBID, ret_vat] = ["", "", -1, -1, -1]
 
 	shutil.rmtree(new_directory, True)
 	os.system("mkdir -p " + new_directory) # create directory to store temp_results
-	create_p_file(injection_seeds_file, igid, bfm, kname, kcount, iid, opid, bid)
+
+	create_p_file(injection_seeds_file, inj_mode, error_model)
 
 	dmesg_before = cmdline("dmesg")
 
@@ -298,18 +329,19 @@ def run_one_injection_job(inj_mode, igid, bfm, app, kname, kcount, iid, opid, bi
 		ret_cat = p.TIMEOUT 
 	else:
 		[value_str, pc, inst_type, tid, injBID] = get_inj_info()
-		ret_cat = classify_injection(app, igid, kname, kcount, iid, opid, bid, retcode, dmesg_delta)
+	
+	ret_cat = classify_injection(app, inj_mode, error_model, retcode, dmesg_delta)
 	
 	os.chdir(cwd) # return to the main dir
 	# print (ret_cat)
 
 	elapsed = datetime.datetime.now() - start
-	record_result(inj_mode, igid, bfm, app, kname, kcount, iid, opid, bid, ret_cat, pc, inst_type, tid, injBID, get_seconds(elapsed), dmesg_delta, value_str, icount)
+	record_result(inj_mode, app, error_model, ret_cat, pc, inst_type, tid, injBID, get_seconds(elapsed), dmesg_delta, value_str, icount)
 
 	if get_seconds(elapsed) < 0.5: time.sleep(0.5)
 	if not p.keep_logs:
 		shutil.rmtree(new_directory, True) # remove the directory once injection job is done
-
+	print(ret_cat)
 	return ret_cat
 
 ###############################################################################
@@ -321,13 +353,18 @@ def main():
 	if not os.path.isdir(p.NVBITFI_HOME): print ("Error: Regression dir not found!")
 	if not os.path.isdir(p.NVBITFI_HOME + "/logs/results"): os.system("mkdir -p " + p.NVBITFI_HOME + "/logs/results") # create directory to store summary
 
-	if len(sys.argv) == 11:
+	if len(sys.argv) == 5:
 		start= datetime.datetime.now()
-		[inj_mode, igid, bfm, app, kname, kcount, iid, opid, bid, icount] = sys.argv[1:]
-		set_env_variables(inj_mode, app, igid, bfm, icount) 
-		err_cat = run_one_injection_job(inj_mode, igid, bfm, app, kname, kcount, iid, opid, bid, icount) 
+		#[inj_mode, igid, bfm, app, kname, kcount, iid, opid, bid, icount] = sys.argv[1:]
+
+		[app, inj_mode, line, icount]=sys.argv[1:]
+
+		error_model=line.strip().split()
+
+		set_env_variables(inj_mode, app, error_model, icount) 
+		err_cat = run_one_injection_job(inj_mode, app, error_model, icount) 
 		elapsed = datetime.datetime.now() - start
-		print ("Inj_count=%s, App=%s, Mode=%s, Group=%s, EM=%s, Time=%f, Outcome: %s" %(icount, app, inj_mode, igid, bfm, get_seconds(elapsed), p.CAT_STR[err_cat-1]))
+		print ("Inj_count=%s, App=%s, Mode=%s, Time=%f, Outcome: %s" %(icount, app, inj_mode, get_seconds(elapsed), p.CAT_STR[err_cat-1]))
 	else:
 		print_usage()
 

@@ -53,7 +53,7 @@ def print_heart_beat(nj):
 		before = datetime.datetime.now()
 
 def get_log_name(app, inj_mode, igid, bfm):
-	return p.app_log_dir[app] + "results-mode" + str(inj_mode) + "-igid" + str(igid) + ".bfm" + str(bfm) + "." + str(p.NUM_INJECTIONS) + ".txt"
+	return p.app_log_dir[app] + "results-mode" + str(inj_mode) + str(p.NUM_INJECTIONS) + ".txt"
 
 ############################################################################
 # Clear log conent. Default is to append, but if the user requests to clear
@@ -137,6 +137,34 @@ def run_multiple_injections_igid(app, inj_mode, igid, where_to_run):
 				print ("Line doesn't have enough params:%s" %line)
 			print_heart_beat(total_jobs)
 
+#JD ADDED
+###############################################################################
+# Run Multiple injection experiments
+###############################################################################
+def run_multiple_pf_injections(app, inj_mode, where_to_run):
+	#print "App: %s, IGID: %s, EM: %s" %(app, p.IGID_STR[igid], p.EM_STR[bfm])
+	total_jobs = 0
+	inj_list_filename = p.app_log_dir[app] + "/injection-list/mode" + inj_mode + str(p.NUM_INJECTIONS) + ".txt"
+
+	inf = open(inj_list_filename, "r")
+	for linepf in inf: # for each injection site 
+		total_jobs += 1
+		#if total_jobs > p.THRESHOLD_JOBS: 
+			#break; # no need to run more jobs
+		line =linepf.strip()
+		line="\""+line+"\""
+
+		if line != "":		
+			cmd = f"{p.PYTHON_P} {p.NVBITFI_HOME}/scripts/run_one_injection.py {app} {inj_mode} {line} {total_jobs}"
+			if p.verbose: print (cmd)
+			os.system(cmd)
+			if p.verbose: 
+				print ("done injection run ")
+		else:
+			print ("Line doesn't have enough params:%s" %line)
+		print_heart_beat(total_jobs)
+	inf.close()
+
 
 ###############################################################################
 # wrapper function to call either RF injections or instruction level injections
@@ -152,6 +180,22 @@ def run_multiple_injections(app, inj_mode, where_to_run):
             igid_list = p.inst_address_igid_bfm_map
         for igid in igid_list: 
             run_multiple_injections_igid(app, inj_mode, igid, where_to_run)
+
+#JD ADDED
+###############################################################################
+# wrapper function to call either RF injections or instruction level injections
+###############################################################################
+#def run_multiple_pf_injections(app, inj_mode, where_to_run):
+#	if inj_mode=='ICOC':
+#		print('Warning| This error model is not implemented yet, give us a hand ;)')
+#	elif inj_mode=='IRA':
+#		run_multiple_pf_injections_IRA(app, inj_mode, where_to_run)
+#	elif inj_mode=='IR':
+#		print('Warning| This error model is not implemented yet, give us a hand ;)')
+#	elif inj_mode=='IIO':
+#		print('Warning| This error model is not implemented yet, give us a hand ;)')
+#	else:
+#		print(f"{inj_mode} error model does not exist, perhaps it is a new model you can implement in the future ;)")	
 
 ###############################################################################
 # Starting point of the execution
@@ -172,8 +216,8 @@ def main():
 			if len(sys.argv) == 3: 
 				if sys.argv[2] == "clean":
 					clear_results_file(app) # clean log files only if asked for
-	
-			run_multiple_injections(app, "inst_value", where_to_run)
+			
+			run_multiple_pf_injections(app, os.environ['nvbitPERfi'], where_to_run)
 	
 	else:
 		print_usage()

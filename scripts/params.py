@@ -28,14 +28,14 @@ import os, sys
 
 PYTHON_P = "python"
 
-TIMEOUT_THRESHOLD = 400 # 100X usual runtime 
+TIMEOUT_THRESHOLD = 10 # 10X usual runtime 
 
 if 'NVBITFI_HOME' not in os.environ:
 	print ("Error: Please set NVBITFI_HOME environment variable")
 	sys.exit(-1)
 NVBITFI_HOME = os.environ['NVBITFI_HOME']
 
-#verbose = True
+# verbose = True
 verbose = False
 
 detectors = True
@@ -62,7 +62,7 @@ keep_logs = True
 # per instruction group (IGID) and bit-flip model (BFM).
 # 
 # NUM_INJECTIONS = 644
-NUM_INJECTIONS = 10000
+NUM_INJECTIONS = 1000
 
 # Specify how many injections you want to perform per IGID and BFM combination. 
 # Only the first THRESHOLD_JOBS will be selected from the generated NUM_INJECTIONS.
@@ -70,7 +70,7 @@ NUM_INJECTIONS = 10000
 # THRESHOLD_JOBS = 384
 THRESHOLD_JOBS = 1000
 # THRESHOLD_JOBS = 1
-THRESHOLD_JOBS = 10
+THRESHOLD_JOBS = 25
 
 # THRESHOLD_JOBS sould be <= NUM_INJECTIONS
 assert THRESHOLD_JOBS <= NUM_INJECTIONS
@@ -79,8 +79,9 @@ assert THRESHOLD_JOBS <= NUM_INJECTIONS
 #######################################################################
 # Specify library paths
 #######################################################################
-INJECTOR_LIB = os.environ['NVBITFI_HOME'] + "/pf_injector/pf_injector.so" 
+INJECTOR_LIB = os.environ['NVBITFI_HOME'] + "/injector/injector.so"
 PROFILER_LIB = os.environ['NVBITFI_HOME'] + "/profiler/profiler.so"
+INJECTOR_PF_RF = os.environ['NVBITFI_HOME'] + "/pf_injector_register_file/pf_injector.so"
 
 
 #######################################################################
@@ -120,6 +121,10 @@ EM_STR = [ "FLIP_SINGLE_BIT", "FLIP_TWO_BITS", "RANDOM_VALUE", "ZERO_VALUE"]
 
 rf_inst = ""
 
+
+
+
+
 #######################################################################
 # Categories of error injection outcomes
 #######################################################################
@@ -152,13 +157,6 @@ APP_SPECIFIC_CHECK_FAIL= 18
 OTHERS = 19
 NUM_CATS = 20
 
-SAFE = 20
-CRITICAL = 21 
-
-misalignedADDR = 22
-
-CUDAERROR = 23
-
 CAT_STR = ["Masked: Error was never read", "Masked: Write before read",
 "Masked: other reasons", "DUE: Timeout", "DUE: Non Zero Exit Status", 
 "Pot DUE: Masked but Kernel Error", "Pot DUE: SDC but Kernel Error", 
@@ -169,9 +167,7 @@ CAT_STR = ["Masked: Error was never read", "Masked: Write before read",
 "Pot DUE: App specific check failed, but dmesg recorded",
 "Pot DUE: Xid 43 recorded in dmesg",
 "SDC: Standard output is different", "SDC: Output file is different", 
-"SDC: App specific check failed", "Uncategorized", 
-"SDC-SAFE:Same outcome but with different percentages","SDC-CRITICAL:Different Outcome",
-"DUE: misaligned address", "DUE: illegal memory access was encountered"]
+"SDC: App specific check failed", "Uncategorized"]
 
 
 #########################################################################
@@ -210,70 +206,13 @@ inst_value_igid_bfm_map = {
 # golden output files should also be in the workload directory
 #########################################################################
 apps = {
-	#'simple_add': [
-	#		NVBITFI_HOME + '/test-apps/simple_add', # workload directory
-	#		'simple_add', # binary name
-	#		NVBITFI_HOME + '/test-apps/simple_add/', # path to the binary file
-	#		1, # expected runtime
-	#		"" # additional parameters to the run.sh
-	#	],
-	#'vector_addition': [
-	#		NVBITFI_HOME + '/test-apps/vector_addition', # workload directory
-	#		'vector_addition', # binary name
-	#		NVBITFI_HOME + '/test-apps/vector_addition/', # path to the binary file
-	#		1, # expected runtime
-	#		"" # additional parameters to the run.sh
-	#	],
-	#'dot_product': [
-	#		NVBITFI_HOME + '/test-apps/dot_product', # workload directory
-	#		'dot_product', # binary name
-	#		NVBITFI_HOME + '/test-apps/dot_product/', # path to the binary file
-	#		1, # expected runtime
-	#		"" # additional parameters to the run.sh
-	#	],	
-	#'convolution': [
-	#		NVBITFI_HOME + '/test-apps/convolution', # workload directory
-	#		'convolution', # binary name
-	#		NVBITFI_HOME + '/test-apps/convolution/', # path to the binary file
-	#		1, # expected runtime
-	#		"" # additional parameters to the run.sh
-	#	],
-	#'convolution2d': [
-	#		NVBITFI_HOME + '/test-apps/convolution2d', # workload directory
-	#		'convolution2d', # binary name
-	#		NVBITFI_HOME + '/test-apps/convolution2d/', # path to the binary file
-	#		1, # expected runtime
-	#		"" # additional parameters to the run.sh
-	#	],	
-	#'matrixmul': [
-	#		NVBITFI_HOME + '/test-apps/matrixmul', # workload directory
-	#		'matrixmul', # binary name
-	#		NVBITFI_HOME + '/test-apps/matrixmul/', # path to the binary file
-	#		1, # expected runtime
-	#		"" # additional parameters to the run.sh
-	#	],
-	#'histogram': [
-	#		NVBITFI_HOME + '/test-apps/histogram', # workload directory
-	#		'histogram', # binary name
-	#		NVBITFI_HOME + '/test-apps/histogram/', # path to the binary file
-	#		1, # expected runtime
-	#		"" # additional parameters to the run.sh
-	#	],
-	#'edge': [
-	#		NVBITFI_HOME + '/test-apps/edge', # workload directory
-	#		'edge', # binary name
-	#		NVBITFI_HOME + '/test-apps/edge/', # path to the binary file
-	#		1, # expected runtime
-	#		"" # additional parameters to the run.sh
-	#	],
-	'darknet': [
-			NVBITFI_HOME + '/test-apps/LeNet', # workload directory
-			'darknet', # binary name
-			NVBITFI_HOME + '/test-apps/LeNet/', # path to the binary file
-			1, # expected runtime
+	'VectorAdd': [
+			NVBITFI_HOME + '/test-apps/VectorAdd', # workload directory
+			'vectorAdd', # binary name
+			NVBITFI_HOME + '/test-apps/VectorAdd/', # path to the binary file
+			1, # expected runtime secs
 			"" # additional parameters to the run.sh
 		],
-
 }
 
 #########################################################################
@@ -291,16 +230,22 @@ script_dir = {}
 bin_dir = {}
 app_dir = {}
 app_data_dir = {}
+app_bin = {}
+app_args = {}
+app_time = {}
 def set_paths(): 
 	merged_apps = apps # merge the two dictionaries 
 	merged_apps.update(parse_apps) 
 	
 	for app in merged_apps:
-		app_log_dir[app] = NVBITFI_HOME + "/logs/" + app + "/"
+		app_log_dir[app] = NVBITFI_HOME + "/test-apps/logs/" + app
 		bin_dir[app] = merged_apps[app][2]
 		app_dir[app] = merged_apps[app][0]
 		script_dir[app] = merged_apps[app][0]
 		app_data_dir[app] = merged_apps[app][0]
+		app_bin[app]=merged_apps[app][1]
+		app_args[app] = merged_apps[app][4]
+		app_time[app] = merged_apps[app][3]
 
 set_paths()
 
@@ -308,23 +253,15 @@ set_paths()
 # Parameterizing file names
 #########################################################################
 run_script = "run.sh"
-run_script_pf = "run_pf.sh"
-sdc_check_pf = "sdc_check_pf.sh"
 nvbit_profile_log = "nvbitfi-igprofile.txt"
-profile_pf = "run_pf_profile.sh" 
-nvbit_profile_log_RF = "nvbitfi-profile.txt"
 injection_seeds = "nvbitfi-injection-info.txt"
-injection_HW = "nvbitfi-injection-infoHW.txt"
 inj_run_log = "nvbitfi-injection-log-temp.txt"
 stdout_file = "stdout.txt"
-golden_stdout_file = "golden_stdout.txt"
 stderr_file = "stderr.txt"
 output_diff_log = "diff.log"
 stdout_diff_log = "stdout_diff.log"
 stderr_diff_log = "stderr_diff.log"
 special_sdc_check_log = "special_check.log"
-report = "report.txt"
-op_report ="op_report.txt"
 
 #########################################################################
 # Number of gpus to use for error injection runs
@@ -332,3 +269,4 @@ op_report ="op_report.txt"
 NUM_GPUS = 1
 
 use_filelock = False
+

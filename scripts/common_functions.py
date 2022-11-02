@@ -47,7 +47,7 @@ def read_inst_counts(d, app):
 		cl = line.split(';')[5].split(',')
 		countList.append([kname, int(kcount), int(icount)])
 		for e in cl:
-			if e is not "":
+			if e != "":
 				countList[-1].append(e.split(':')[1])
 	f.close()
 
@@ -92,11 +92,12 @@ def set_env(app, is_profiler):
 	os.environ['BIN_DIR'] = p.bin_dir[app]
 	os.environ['BIN_PATH'] = p.bin_dir[app]
 	os.environ['APP_DIR'] = p.app_dir[app]
+	os.environ['APP_BIN'] = p.app_bin[app]
 	os.environ['DATASET_DIR'] = p.app_data_dir[app]
 	if is_profiler: 
 		os.environ['PRELOAD_FLAG'] = "LD_PRELOAD=" + p.PROFILER_LIB
 	else:
-		os.environ['PRELOAD_FLAG'] = "LD_PRELOAD=" + p.INJECTOR_LIB 
+		os.environ['PRELOAD_FLAG'] = "LD_PRELOAD=" + p.INJECTOR_PF_RF 
 	if p.verbose: print ("BIN_DIR=%s" %(os.environ['BIN_DIR']))
 	if p.verbose: print ("PRELOAD_FLAG=%s" %(os.environ['PRELOAD_FLAG']))
 	if p.verbose: print ("RODINIA=%s" %(os.environ['RODINIA']))

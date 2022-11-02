@@ -36,11 +36,12 @@ import common_functions as cf
 ###############################################################################
 def main(): 
 	for app in p.apps: 
-	 	print (app)
-	 	cf.set_env(app, True) # is profiler run
-		cmd = "cd " + p.script_dir[app] + ";./" + p.profile_pf	 	
+		print (app)
+		os.system("mkdir -p " + p.app_log_dir[app])
+		cf.set_env(app, True) # is profiler run
+		cmd = "cd " + p.script_dir[app] + ";./" + p.run_script + " " + p.apps[app][4] + "; mv " + p.inj_run_log + " " + p.app_log_dir[app] + p.nvbit_profile_log  + ";cd -;"
 		print ("-" + cmd + "-")
-	 	os.system(cmd)
+		os.system(cmd)
 
 if __name__ == "__main__":
     main()

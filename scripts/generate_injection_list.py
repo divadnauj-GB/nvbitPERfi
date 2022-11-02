@@ -85,97 +85,6 @@ def gen_lists(app, countList, inj_mode):
 			for bfm in p.inst_address_igid_bfm_map[igid]: 
 				write_injection_list_file(app, inj_mode, igid, bfm, MAX_INJ, total_icounts[igid - p.NUM_INST_GROUPS], countList)
 
-
-##############LUIGI GALASSO
-def read_profile(file_name):
-	[maxregs, kn, num_threads, n_devices] = ["", "", "", ""]
-	if os.path.isfile(file_name): 
-		logf = open(file_name, "r")
-		for line in logf:
-			#if "ctas" in line:		
-			#		cta = line.split(';')[3].split('ctas: ')[1].strip()
-			if "maxregs" in line:		
-					maxregs = line.split(';')[2].split('maxregs: ')[1].split('(')[0].strip()
-			if "kernel_name" in line:
-					kn = line.split(';')[2].split('kernel_name: ')[1].strip()
-			if "num_threads" in line:
-					num_threads = line.split(';')[4].split('num_threads: ')[1].strip()
-			if "n_devices" in line:
-					n_devices = line.split(';')[5].split('n_devices: ')[1].strip()
-		logf.close()		
-		maxregs = int(maxregs)
-		num_threads = int(num_threads)
-		n_devices = int(n_devices)
-		Nfaults = 2 * 32 * maxregs * num_threads * n_devices 
-		string = "n_faultsRF = " + 	str(Nfaults)
-		logf = open(file_name, "a")
-		logf.write(string + "\n")
-		logf.close()
-	return [maxregs, kn, num_threads, n_devices]
-
-##########LUIGI GALASSO
-def generate_fault_list(app, num_injections, maxregs, kn, num_threads, n_devices):
-	maxregs = int(maxregs)
-	num_threads = int(num_threads)
-	n_devices = int(n_devices)
-	#cta = int(cta)
-
-	fName = p.script_dir[app] + "/injectionsRF" +  ".txt"
-	print (fName)
-	logf = open(fName, "w")
-	
-	
-	
-	i = 0
-	reg = 0
-	while  reg < maxregs: 
-			
-		#threadID = random.randint(0, num_threads -1)
-		#threadID = 16
-		
-		#reg = random.randint(0, maxregs -1)
-		#while reg < maxregs:		
-			
-			#if reg == maxregs:
-			#	reg = 0
-			threadID = 0
-			while threadID < num_threads:
-					
-				#if threadID == num_threads:
-				#	threadID = 0	
-			#ninj = ((MAX_INJ+ maxregs -1)/maxregs)
-		
-			
-			#ctaID = random.randint(0, cta -1)
-				#mask = random.randint(0, 1<<31) 
-				if i == 31:
-					i = 0 		
-				mask = 1<<i 
-				i = i + 1
-				
-				#mask = 0x1	
-				device = random.randint(0, n_devices -1)
-				stuck_at = 0
-				while num_injections > 0 and stuck_at < 2:
-					
-					#stuck_at = 1
-					selected_str = kn + " " + str(threadID) +  " " + str(reg) + " " + str(mask) + " " + str(device) + " " + str(stuck_at)
-					#if verbose:
-					sel_str = kn+" Threadid "+str(threadID)+" REG "+ str(reg)+" MASK "+str(mask)+" SM "+str(device)+" STUCKAT "+ str(stuck_at)
-					print ("%d/%d: Selected: %s" %(num_injections,MAX_INJ, sel_str))
-					logf.write(selected_str + "\n") # print injection site information
-					stuck_at = stuck_at + 1
-					#if stuck_at == 2:
-					#	stuck_at = 0
-					num_injections = num_injections - 1
-				
-				threadID = threadID +1
-			reg = reg + 1
-			#num_injections -= 1	
-	logf.close()
-	
-
-
 #################################################################
 # Starting point of the script
 #################################################################
@@ -191,20 +100,16 @@ def main():
 	# actual code that generates list per app is here
 	for app in p.apps:
 		print ("\nCreating list for %s ... " %(app))
-		#os.system("mkdir -p %s/injection-list" %p.app_log_dir[app]) # create directory to store injection list
+		os.system("mkdir -p %s/injection-list" %p.app_log_dir[app]) # create directory to store injection list
 	
-		#countList =  cf.read_inst_counts(p.app_log_dir[app], app)
-		#total_count = cf.get_total_insts(countList, True) if inj_mode == p.RF_MODE else cf.get_total_insts(countList, False)
-		#if total_count == 0:
-		#	print ("Something is not right. Total instruction count = 0\n")
-		#	sys.exit(-1)
+		countList =  cf.read_inst_counts(p.app_log_dir[app], app)
+		total_count = cf.get_total_insts(countList, True) if inj_mode == p.RF_MODE else cf.get_total_insts(countList, False)
+		if total_count == 0:
+			print ("Something is not right. Total instruction count = 0\n")
+			sys.exit(-1)
 	
-		#gen_lists(app, countList, inj_mode)
-		#print ("Output: Check %s" %(p.app_log_dir[app] + "/injection-list/"))
-		profile_name_file = p.script_dir[app] + "/" + p.nvbit_profile_log_RF		
-		[maxregs, kn, num_threads, n_devices] = read_profile(profile_name_file)
-		
-		print ("\nFound for %s ... number of reg %s kernel name %s number of threads %s number of used SMs %s" %(app, maxregs, kn, num_threads, n_devices))
-		generate_fault_list(app, MAX_INJ, maxregs, kn, num_threads, n_devices)
+		gen_lists(app, countList, inj_mode)
+		print ("Output: Check %s" %(p.app_log_dir[app] + "/injection-list/"))
+
 if __name__ == "__main__":
     main()
