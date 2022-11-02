@@ -1,12 +1,13 @@
-# How to use this environmet?
-run the following command. the `VectorAdd parameter is the application folder
+# TOWARDS DSN :). How to use this environmet?
+run the following command. the `VectorAdd` parameter is the application folder where the executable binary is located
 
 ```console
 ./runPERfi.sh VectorAdd > log.log
 
 ```
-you will get a file called `log.log` with something like the below dpm result. if not, probably the target register is not in the SASS file, so change the second colum of the fault list file `modeIRA1000.txt` located in `test-apps/logs/VectorAdd/injection-list` 
+you will get a file called `log.log` with something like the below dump results. if not, probably the target register is not in the SASS file, so change the second colum of the fault list file `modeIRA1000.txt` located in `test-apps/logs/VectorAdd/injection-list` 
 
+If everything was working as it suposed to be, here the results. 
 ```console
 Current working directory: /home/juancho/Documents/GitHub/Ampere_NVBit/nvbit_release/tools/nvbitPERfi
 
