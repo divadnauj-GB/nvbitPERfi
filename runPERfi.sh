@@ -90,7 +90,7 @@ cd $CWD
 printf "\nStep 0 (4): Run and collect output without instrumentation\n"
 cd ${APP_DIR}
 make 2> stderr.txt
-${APP_DIR}/vectorAdd> golden_stdout.txt 2> golden_stderr.txt
+#${APP_DIR}/vectorAdd> golden_stdout.txt 2> golden_stderr.txt
 cd $CWD
 
 ###############################################################################

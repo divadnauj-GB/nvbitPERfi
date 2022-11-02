@@ -341,7 +341,7 @@ def run_one_injection_job(inj_mode, app, error_model, icount):
 	if get_seconds(elapsed) < 0.5: time.sleep(0.5)
 	if not p.keep_logs:
 		shutil.rmtree(new_directory, True) # remove the directory once injection job is done
-	print(ret_cat)
+	#print(ret_cat)
 	return ret_cat
 
 ###############################################################################

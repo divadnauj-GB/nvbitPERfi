@@ -216,7 +216,12 @@ def main():
 			if len(sys.argv) == 3: 
 				if sys.argv[2] == "clean":
 					clear_results_file(app) # clean log files only if asked for
-			
+			#run the golden application
+			cmd = p.bin_dir[app] + "/" + p.app_bin[app] + " " + p.app_args[app]+" > "+ p.app_dir[app]+"/golden_stdout.txt "+"2> "+ p.app_dir[app]+"/golden_stderr.txt"
+			if p.verbose: print (cmd)
+			pr = subprocess.Popen(cmd, shell=True, executable='/bin/bash', preexec_fn=os.setsid) # run the injection job
+
+
 			run_multiple_pf_injections(app, os.environ['nvbitPERfi'], where_to_run)
 	
 	else:
