@@ -3,4 +3,12 @@
 *
 #Except for this file 
 !.gitignore
+!VectorAdd/Makefile
+!VectorAdd/run.sh
+!VectorAdd/sdc_check.sh
+!VectorAdd/vectorAdd.cu
+!common
+!logs/VectorAdd/injection-list/modeIRA1000.txt
+
+
 
