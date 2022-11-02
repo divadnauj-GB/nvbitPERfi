@@ -1,3 +1,65 @@
+# How to use this environmet?
+run the following command. the `VectorAdd parameter is the application folder
+
+```console
+./runPERfi.sh VectorAdd > log.log
+
+```
+you will get a file called `log.log` with something like the below dpm result. if not, probably the target register is not in the SASS file, so change the second colum of the fault list file `modeIRA1000.txt` located in `test-apps/logs/VectorAdd/injection-list` 
+
+```console
+Current working directory: /home/juancho/Documents/GitHub/Ampere_NVBit/nvbit_release/tools/nvbitPERfi
+
+Step 0 (2): Setting environment variables
+
+Step 0 (3): Build the nvbitfi injector and profiler tools
+rm -f *.so *.o
+nvcc -ccbin=`which gcc` -D_FORCE_INLINES -I../../../core -I../common -maxrregcount=16 -Xptxas -astoolspatch --keep-device-functions -arch=sm_86 -DDUMMY=0 -Xcompiler -Wall -Xcompiler -fPIC -c inject_funcs.cu -o inject_funcs.o
+#nvcc -ccbin=`which gcc` -D_FORCE_INLINES -I../../../core -I../common -maxrregcount=16 -Xptxas -arch=sm_86 -DDUMMY=0 -Xcompiler -Wall -Xcompiler -fPIC -c inject_funcs.cu -o inject_funcs.o
+nvcc -ccbin=`which gcc` -D_FORCE_INLINES -dc -c -std=c++11 -I../../../core -I../common -Xptxas -cloning=no -Xcompiler -Wall -arch=sm_86 -O3 -Xcompiler -fPIC pf_injector.cu -o pf_injector.o
+nvcc -ccbin=`which gcc` -D_FORCE_INLINES -arch=sm_86 -O3 inject_funcs.o pf_injector.o -L../../../core -lnvbit -L/usr/local/cuda/lib64 -lcuda -lcudart_static -shared -o pf_injector.so
+make: Nothing to be done for 'all'.
+
+Step 0 (4): Run and collect output without instrumentation
+>>> GCC Version is greater or equal to 5.1.0 <<<
+make: Nothing to be done for 'all'.
+
+Step 2: Run the error injection campaign
+Inj_count=1, App=VectorAdd, Mode=IRA, Time=0.894535, Outcome: SDC: Standard output is different
+Inj_count=2, App=VectorAdd, Mode=IRA, Time=0.536717, Outcome: Masked: other reasons
+Inj_count=3, App=VectorAdd, Mode=IRA, Time=0.914253, Outcome: SDC: Standard output is different
+Inj_count=4, App=VectorAdd, Mode=IRA, Time=0.879296, Outcome: SDC: Standard output is different
+Inj_count=5, App=VectorAdd, Mode=IRA, Time=0.890800, Outcome: SDC: Standard output is different
+Inj_count=6, App=VectorAdd, Mode=IRA, Time=0.890167, Outcome: SDC: Standard output is different
+Inj_count=7, App=VectorAdd, Mode=IRA, Time=0.887980, Outcome: SDC: Standard output is different
+Inj_count=8, App=VectorAdd, Mode=IRA, Time=0.891328, Outcome: SDC: Standard output is different
+Inj_count=9, App=VectorAdd, Mode=IRA, Time=0.892257, Outcome: SDC: Standard output is different
+Inj_count=10, App=VectorAdd, Mode=IRA, Time=0.909858, Outcome: SDC: Standard output is different
+Inj_count=11, App=VectorAdd, Mode=IRA, Time=0.887454, Outcome: SDC: Standard output is different
+Inj_count=12, App=VectorAdd, Mode=IRA, Time=0.923082, Outcome: SDC: Standard output is different
+Inj_count=13, App=VectorAdd, Mode=IRA, Time=0.907690, Outcome: SDC: Standard output is different
+Inj_count=14, App=VectorAdd, Mode=IRA, Time=0.916286, Outcome: SDC: Standard output is different
+Inj_count=15, App=VectorAdd, Mode=IRA, Time=0.892563, Outcome: SDC: Standard output is different
+Inj_count=16, App=VectorAdd, Mode=IRA, Time=0.535005, Outcome: Masked: other reasons
+Inj_count=17, App=VectorAdd, Mode=IRA, Time=0.890140, Outcome: SDC: Standard output is different
+Inj_count=18, App=VectorAdd, Mode=IRA, Time=0.884540, Outcome: SDC: Standard output is different
+Inj_count=19, App=VectorAdd, Mode=IRA, Time=0.901644, Outcome: SDC: Standard output is different
+Inj_count=20, App=VectorAdd, Mode=IRA, Time=0.535725, Outcome: Masked: other reasons
+Inj_count=21, App=VectorAdd, Mode=IRA, Time=0.905243, Outcome: SDC: Standard output is different
+Inj_count=22, App=VectorAdd, Mode=IRA, Time=0.535942, Outcome: Masked: other reasons
+Inj_count=23, App=VectorAdd, Mode=IRA, Time=0.904790, Outcome: SDC: Standard output is different
+Inj_count=24, App=VectorAdd, Mode=IRA, Time=0.902430, Outcome: SDC: Standard output is different
+Inj_count=25, App=VectorAdd, Mode=IRA, Time=0.912683, Outcome: SDC: Standard output is different
+Inj_count=26, App=VectorAdd, Mode=IRA, Time=0.537524, Outcome: Masked: other reasons
+Inj_count=27, App=VectorAdd, Mode=IRA, Time=0.535737, Outcome: Pot DUE: Standard output is different, but dmesg recorded
+
+VectorAdd
+
+```
+
+thus it, now you can continue having fun|
+
+
 # NVBitFI: An Architecture-level Fault Injection Tool for GPU Application Resilience Evaluations
 
 NVBitFI provides an automated framework to perform error injection campaigns for GPU application resilience evaluation.  NVBitFI builds on top of [**NV**IDIA **Bi**nary **I**nstrumentation **T**ool (NVBit)](https://github.com/NVlabs/NVbit), which is a research prototype of a dynamic binary instrumentation library for NVIDIA GPUs. NVBitFI offers functionality that is similar to a prior tool called [SASSIFI](https://github.com/NVlabs/sassifi).  
