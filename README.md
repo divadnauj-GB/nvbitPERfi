@@ -60,7 +60,10 @@ VectorAdd
 
 Now you should have two new folders `logs`, `sdcs` and one report file `results-modeIRA1000.txt` inside `test-apps/logs/VectorAdd`
 
-that's it, now you can continue having fun|
+that's it, now you can continue having fun. 
+
+PS. there might have been bugs, so don't blame me :) 
+
 
 
 # NVBitFI: An Architecture-level Fault Injection Tool for GPU Application Resilience Evaluations
