@@ -11,6 +11,6 @@ export CUDA_BASE_DIR=/usr/local/cuda
 export PATH=$PATH:$CUDA_BASE_DIR/bin
 export LD_LIBRARY_PATH=$CUDA_BASE_DIR/lib64/:$CUDA_BASE_DIR/extras/CUPTI/lib64/
 
-eval LD_PRELOAD=../../pf_injector_icoc/pf_injector.so ./gemm
+eval LD_PRELOAD=../../pf_injector_icoc/pf_injector.so ./gemm float
 
 
