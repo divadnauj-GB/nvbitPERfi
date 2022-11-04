@@ -207,14 +207,15 @@ void instrument_function_if_needed(CUcontext ctx, CUfunction func) {
                          * Edit: trying to load all the inst input vals
                          * **************************************************************************/
                         // Add all registers to the function call stack
-                        std::vector<int> input_reg_num_vector;
+                        // Put always 4 registers
+                        std::vector<int> input_reg_num_vector(4, 0);
                         /* iterate on the operands */
                         for (auto operand_i = 0; operand_i < i->getNumOperands(); operand_i++) {
                             /* get the operand_i "i" */
                             const InstrType::operand_t *op = i->getOperand(operand_i);
                             switch (op->type) {
                                 case InstrType::OperandType::REG:
-                                    input_reg_num_vector.push_back(op->u.reg.num);
+                                    input_reg_num_vector[operand_i] = op->u.reg.num;
                                     break;
                                 case InstrType::OperandType::IMM_UINT64:
                                     std::cout << "IMM_UINT64 OP:";
@@ -229,12 +230,7 @@ void instrument_function_if_needed(CUcontext ctx, CUfunction func) {
                                     i->print();
                                     break;
                                 case InstrType::OperandType::UREG:
-                                    std::cout << "UREG OP:";
-                                    i->print();
-                                    break;
                                 case InstrType::OperandType::UPRED:
-                                    std::cout << "UPRED OP:";
-                                    i->print();
                                     break;
                                 case InstrType::OperandType::CBANK:
                                     std::cout << "CBANK OP:";

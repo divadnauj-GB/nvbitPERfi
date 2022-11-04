@@ -1,3 +1,5 @@
+#include <cstdarg>
+
 #include "nvbit_reg_rw.h"
 #include "utils/utils.h"
 #include "pf_injector.h"
@@ -14,7 +16,7 @@ void assert_gpu_(bool condition, const char *message, bool verbose, const char *
 #define assert_gpu(condition, message, verbose) assert_gpu_(condition, message, verbose, __FILE__, __LINE__)
 
 DEVICE_FUNCTION_
-bool is_fault_injection_necessary_here(const InjectionInfo *inj_info, bool verbose) {
+bool is_fault_injection_necessary(const InjectionInfo *inj_info) {
 
     //TODO: Change this function to select if thread is eligible to fault injection
     //      based on the RTL fault types
@@ -27,20 +29,6 @@ bool is_fault_injection_necessary_here(const InjectionInfo *inj_info, bool verbo
     if ((warp_id % 4) != inj_info->warp_group) {
         return false;
     }
-
-//    auto lane_id = get_laneid();
-//    // This is not the selected Lane ID. No need to proceed.
-//    if (lane_id != inj_info->lane_id)
-//        return false;
-
-//    // warp synch, if the code is running here, the bool parameter is always true
-//    if (__any_sync(__activemask(), 1) == 0){
-//
-//    }
-//    if (verbose) {
-//        printf("SMID %d WARP ID %d LANEID %d\n", sm_id, warp_id, get_laneid());
-//    }
-
     return true;
 }
 
@@ -70,22 +58,25 @@ int32_t define_opcode_behavior_32bits(InstructionType instruction_type, int32_t 
 extern "C" __device__ __noinline__
 void inject_error(uint64_t injection_info_ptr, uint64_t verbose_device_ptr,
                   int dest_GPR_num, int reg_val, int num_dest_GPRs, int max_regs,
-                  int input_registers_num ...) {
+                  int input_registers_num, ...) {
     auto *inj_info = (InjectionInfo *) injection_info_ptr;
     uint32_t verbose_device = *((uint32_t *) verbose_device_ptr);
-    assert(num_dest_GPRs > 0);
+    assert_gpu(num_dest_GPRs > 0, "num_dest_GPRs equals to 0", verbose_device);
+    assert_gpu(input_registers_num != 4, "More than 4 input registers not managed", verbose_device);
 
     int32_t dest_reg_before_val = nvbit_read_reg(dest_GPR_num); // read the register value
     // FIXME: get the instrumentation regs here
-    int32_t r1 = 0;
-    int32_t r2 = 0;
-    int32_t r3 = 0;
-    int32_t r4 = 0;
-    assert_gpu(input_registers_num > 4, "More than 4 input registers not managed", verbose_device);
+    va_list vl;
+    va_start(vl, input_registers_num);
+    int32_t r1 = va_arg(vl, int32_t);
+    int32_t r2 = va_arg(vl, int32_t);
+    int32_t r3 = va_arg(vl, int32_t);
+    int32_t r4 = va_arg(vl, int32_t);
+    va_end(vl);
 
     uint32_t dest_reg_after_val = dest_reg_before_val;
 
-    if (is_fault_injection_necessary_here(inj_info, verbose_device)) {
+    if (is_fault_injection_necessary(inj_info)) {
         switch (inj_info->icoc_subpartition) {
             case ICOCSubpartition::SCHEDULER: {
                 dest_reg_after_val = define_opcode_behavior_32bits(
