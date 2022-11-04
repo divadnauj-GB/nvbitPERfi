@@ -80,6 +80,7 @@ uint64_t get_inst_count(bool profiler=false) {
 		for (int i=0; i<NUM_ISA_INSTRUCTIONS; i++) {
 			sum1 += counters[i];
 		}
+		//printf("sum1 %d; sum2 %d\n",sum1, sum2);
 		assert (sum1 == sum2);
 	}
 
@@ -307,6 +308,8 @@ int getOpGroupNum(int opcode) {
 	if (checkOpType(opcode, noDestInst, sizeof(noDestInst)/sizeof(int))) 
 		return G_NODEST;
 	if (checkOpType(opcode, otherInst, sizeof(otherInst)/sizeof(int))) 
+		return G_OTHERS;
+	else
 		return G_OTHERS;
 	return NUM_INST_GROUPS+1; // not a valid group number
 }

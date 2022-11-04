@@ -19,6 +19,12 @@
 #define PF_INJECTOR_H
 
 #define MAX_KNAME_SIZE 1000
+#define WARP_PER_SM 48
+#define THREAD_PER_WARP 32
+
+
+
+
 
 typedef struct {
   uint32_t injSMID; // 0 - max SMs
@@ -34,5 +40,32 @@ typedef struct {
   uint64_t injNumActivations;
   bool errorInjected;
 } inj_info_t; 
+
+
+typedef struct {
+  uint32_t injSMID; // 0 - max SMs
+  uint32_t injScheduler; // 0 - 3
+  uint32_t injWarpMaskH;
+  uint32_t injWarpMaskL; //
+  uint32_t injThreadMask; //0-32
+  uint32_t injMaskSeed;
+  uint32_t injRegID; // injection mask
+  uint32_t injInstType; // instruction type 
+  uint32_t injRegOriginal;
+  uint32_t injRegReplacement;
+  uint64_t injNumActivations;
+  bool errorInjected;
+} inj_info_error_t; 
+
+
+typedef struct {
+    uint32_t *warp_thread_mask;
+    uint32_t *Warp_thread_active;
+    uint32_t *register_tmp_recovery;
+    uint32_t counter;
+    uint32_t num_threads;
+} muliple_ptr_t;
+
+
 
 #endif

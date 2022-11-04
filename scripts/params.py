@@ -28,11 +28,11 @@ import os, sys
 
 PYTHON_P = "python"
 
-TIMEOUT_THRESHOLD = 10 # 10X usual runtime 
+TIMEOUT_THRESHOLD = 100 # 10X usual runtime 
 
 if 'NVBITFI_HOME' not in os.environ:
-	print ("Error: Please set NVBITFI_HOME environment variable")
-	sys.exit(-1)
+    print ("Error: Please set NVBITFI_HOME environment variable")
+    sys.exit(-1)
 NVBITFI_HOME = os.environ['NVBITFI_HOME']
 
 # verbose = True
@@ -62,7 +62,7 @@ keep_logs = True
 # per instruction group (IGID) and bit-flip model (BFM).
 # 
 # NUM_INJECTIONS = 644
-NUM_INJECTIONS = 1000
+NUM_INJECTIONS = 100
 
 # Specify how many injections you want to perform per IGID and BFM combination. 
 # Only the first THRESHOLD_JOBS will be selected from the generated NUM_INJECTIONS.
@@ -125,6 +125,7 @@ rf_inst = ""
 
 
 
+
 #######################################################################
 # Categories of error injection outcomes
 #######################################################################
@@ -182,7 +183,7 @@ CAT_STR = ["Masked: Error was never read", "Masked: Write before read",
 # Used for instruction output-level value injection runs 
 # G_GPPR and G_GP should be equivalent because we do not inject into predicate regiters in this release. 
 inst_value_igid_bfm_map = {
-	G_GP: [FLIP_SINGLE_BIT]
+    G_GP: [FLIP_SINGLE_BIT]
 
 #  Supported models
 # 	G_GP: [FLIP_SINGLE_BIT, FLIP_TWO_BITS, RANDOM_VALUE, ZERO_VALUE]
@@ -206,13 +207,13 @@ inst_value_igid_bfm_map = {
 # golden output files should also be in the workload directory
 #########################################################################
 apps = {
-	'VectorAdd': [
-			NVBITFI_HOME + '/test-apps/VectorAdd', # workload directory
-			'vectorAdd', # binary name
-			NVBITFI_HOME + '/test-apps/VectorAdd/', # path to the binary file
-			1, # expected runtime secs
-			"" # additional parameters to the run.sh
-		],
+    'VectorAdd': [
+        NVBITFI_HOME + '/test-apps/VectorAdd', # workload directory
+        'vectorAdd', # binary name
+        NVBITFI_HOME + '/test-apps/VectorAdd', # path to the binary file
+        1, # expected runtime secs
+        "" # additional parameters to the run.sh
+        ],
 }
 
 #########################################################################
@@ -234,18 +235,18 @@ app_bin = {}
 app_args = {}
 app_time = {}
 def set_paths(): 
-	merged_apps = apps # merge the two dictionaries 
-	merged_apps.update(parse_apps) 
-	
-	for app in merged_apps:
-		app_log_dir[app] = NVBITFI_HOME + "/test-apps/logs/" + app
-		bin_dir[app] = merged_apps[app][2]
-		app_dir[app] = merged_apps[app][0]
-		script_dir[app] = merged_apps[app][0]
-		app_data_dir[app] = merged_apps[app][0]
-		app_bin[app]=merged_apps[app][1]
-		app_args[app] = merged_apps[app][4]
-		app_time[app] = merged_apps[app][3]
+    merged_apps = apps # merge the two dictionaries 
+    merged_apps.update(parse_apps) 
+    
+    for app in merged_apps:
+        app_log_dir[app] = NVBITFI_HOME + "/test-apps/logs/" + app
+        bin_dir[app] = merged_apps[app][2]
+        app_dir[app] = merged_apps[app][0]
+        script_dir[app] = merged_apps[app][0]
+        app_data_dir[app] = merged_apps[app][0]
+        app_bin[app]=merged_apps[app][1]
+        app_args[app] = merged_apps[app][4]
+        app_time[app] = merged_apps[app][3]
 
 set_paths()
 

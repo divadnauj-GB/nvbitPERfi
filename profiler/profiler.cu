@@ -40,6 +40,8 @@ int verbose = 0;
 
 std::string line_buffer;
 bool enable_instrumentation = false;
+int max_regcount=0;
+int max_reg_operands=0;
 
 std::string get_profiled_details(std::string kname) {
 #ifdef SKIP_PROFILED_KERNELS
@@ -57,6 +59,16 @@ std::string get_profiled_details(std::string kname) {
     }
 #endif
     return "";
+}
+
+
+
+int get_maxregs(CUfunction func) {
+        int maxregs = -1;
+        cuFuncGetAttribute(&maxregs, CU_FUNC_ATTRIBUTE_NUM_REGS, func);
+                
+        //cuFuncGetAttribute();
+        return maxregs;
 }
 
 
@@ -90,7 +102,8 @@ void instrument_function_if_needed(CUcontext ctx, CUfunction func) {
 
     /* add kernel itself to the related function vector */
     related_functions.push_back(func);
-
+    max_regcount=0;
+    max_reg_operands=0;
     /* iterate on function */
     for (auto f : related_functions) {
         /* "recording" function was instrumented, if set insertion failed
@@ -107,17 +120,31 @@ void instrument_function_if_needed(CUcontext ctx, CUfunction func) {
         if (verbose) {
             printf("inspecting %s - num instrs %ld\n",
                    nvbit_get_func_name(ctx, f), instrs.size());
+            printf("num counters %d\n",NUM_COUNTERS);
         }
 
+        max_regcount=get_maxregs(f);
         /* We iterate on the vector of instruction */
         for (auto i : instrs) {
-            if (verbose == 2) {
+            if (verbose==2) {
                 printf("begin..\n");
             }
             // printf("instruction: %s\n", i.sass.c_str());
             std::string opcode = i->getOpcode();
-            std::string instType = extractInstType(opcode);
+            std::string instType = i->getOpcodeShort();
 
+            int cnt = 0;
+            for (int idx = 0; idx < i->getNumOperands(); idx++) {
+                const InstrType::operand_t *op = i->getOperand(idx);
+                if(op->type == InstrType::OperandType::REG){
+                    cnt++; 
+                }                      
+            }
+
+            if(max_reg_operands<cnt){
+                max_reg_operands=cnt;
+            }
+            
             if (verbose) {
                 i->print();
                 printf("extracted instType: %s\n", instType.c_str());
@@ -182,16 +209,22 @@ void nvbit_at_cuda_event(CUcontext ctx, int is_exit, nvbit_api_cuda_t cbid, cons
                 exit(1);
             }
             int num_ctas = 0;
+            int num_threads=0;
             if (cbid == API_CUDA_cuLaunchKernel_ptsz ||
                 cbid == API_CUDA_cuLaunchKernel) {
                 cuLaunchKernel_params *p2 = (cuLaunchKernel_params *) params;
                 num_ctas = p2->gridDimX * p2->gridDimY * p2->gridDimZ;
+                num_threads  = p2->gridDimX * p2->gridDimY * p2->gridDimZ * p2->blockDimX * p2->blockDimY * p2->blockDimZ;
             }
             assert(fout.good());
             std::string kname = removeSpaces(nvbit_get_func_name(ctx, p->f)).c_str();
             // std::cout << "; kernel_name: " << kname << " " << nvbit_get_func_name(ctx, p->f) << "\n";
             fout << "NVBit-igprofile; index: " << kernel_id++ << "; kernel_name: " << kname
-                 << "; ctas: " << num_ctas;
+                 << "; ctas: " << num_ctas
+                 << "; num_threads: " << num_threads
+                 << "; max_regcount: " << max_regcount
+                 << "; max_reg_operands: " << max_reg_operands;
+                 
             if (enable_instrumentation) {
                 fout << "; instrs: " << get_inst_count(true) << ";";
                 for (int i = 0; i < NUM_COUNTERS; i++) {

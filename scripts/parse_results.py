@@ -66,24 +66,24 @@ def check_and_create_nested_dict(dict_name, k1, k2, k3, k4="", k5="", k6=""):
 # Add the injection result to the results*table dictionary 
 ###############################################################################
 def add(app, kname, kiid, igid, bfm, outcome, runtime):
-	check_and_create_nested_dict(results_app_table, app, igid, bfm, outcome)
-	results_app_table[app][igid][bfm][outcome] += 1
+    check_and_create_nested_dict(results_app_table, app, igid, bfm, outcome)
+    results_app_table[app][igid][bfm][outcome] += 1
 
-	check_and_create_nested_dict(num_injections_app_table, app, igid, bfm)
-	num_injections_app_table[app][igid][bfm] += 1
+    check_and_create_nested_dict(num_injections_app_table, app, igid, bfm)
+    num_injections_app_table[app][igid][bfm] += 1
 
-	check_and_create_nested_dict(runtime_app_table, app, igid, bfm)
-	runtime_app_table[app][igid][bfm] += runtime
+    check_and_create_nested_dict(runtime_app_table, app, igid, bfm)
+    runtime_app_table[app][igid][bfm] += runtime
 
-	if outcome != p.TIMEOUT: 
-		check_and_create_nested_dict(runtime_app_nt_table, app, igid, bfm)
-		runtime_app_nt_table[app][igid][bfm] += runtime
+    if outcome != p.TIMEOUT: 
+        check_and_create_nested_dict(runtime_app_nt_table, app, igid, bfm)
+        runtime_app_nt_table[app][igid][bfm] += runtime
 
-	check_and_create_nested_dict(results_kname_table, app, kname, igid, bfm, outcome)
-	results_kname_table[app][kname][igid][bfm][outcome] += 1
+    check_and_create_nested_dict(results_kname_table, app, kname, igid, bfm, outcome)
+    results_kname_table[app][kname][igid][bfm][outcome] += 1
 
-	check_and_create_nested_dict(results_kiid_table, app, kname, kiid, igid, bfm, outcome)
-	results_kiid_table[app][kname][kiid][igid][bfm][outcome] += 1
+    check_and_create_nested_dict(results_kiid_table, app, kname, kiid, igid, bfm, outcome)
+    results_kiid_table[app][kname][kiid][igid][bfm][outcome] += 1
 
 
 ###############################################################################
@@ -93,13 +93,12 @@ def add(app, kname, kiid, igid, bfm, outcome, runtime):
 inst_fraction = {}
 inst_count = {}
 def populate_inst_fraction():
-	global inst_fraction
-	for app in results_app_table:
-		inst_counts = cf.get_total_counts(cf.read_inst_counts(p.app_log_dir[app], app))
-		total = cf.get_total_insts(cf.read_inst_counts(p.app_log_dir[app], app), False)
-		inst_fraction[app] = [total] + [1.0*i/total for i in inst_counts]
-		inst_count[app] = inst_counts 
-
+    global inst_fraction
+    for app in results_app_table:
+        inst_counts = cf.get_total_counts(cf.read_inst_counts(p.app_log_dir[app], app))
+        total = cf.get_total_insts(cf.read_inst_counts(p.app_log_dir[app], app), False)
+        inst_fraction[app] = [total] + [1.0*i/total for i in inst_counts]
+        inst_count[app] = inst_counts         
 ###############################################################################
 # Print instruction distribution to a txt file
 ###############################################################################

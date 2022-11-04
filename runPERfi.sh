@@ -70,7 +70,8 @@ export RODINIA=""
 #IIO
 #IPP
 export nvbitPERfi=IRA
-
+export SMID=0
+export SCHID=0
 
 ###############################################################################
 # Step 0 (3): Build the nvbitfi injector and profiler tools
@@ -80,6 +81,7 @@ cd pf_injector_register_file
 make clean 
 make
 cd ../profiler/
+make clean 
 make
 cd $CWD
 
@@ -101,15 +103,15 @@ cd $CWD
 # (2) Generate injection list for architecture-level error injections for the
 # selected error injection model. 
 ###############################################################################
-#cd scripts/
-#printf "\nStep 1 (1): Profile the application\n"
-#python run_profiler.py
-#rm -f stdout.txt stderr.txt ### cleanup
-#cd -
+cd scripts/
+printf "\nStep 1 (1): Profile the application\n"
+python run_profiler.py
+rm -f stdout.txt stderr.txt ### cleanup
+cd -
 
 cd scripts/
-#printf "\nStep 1 (2): Generate injection list for instruction-level error injections\n"
-#python generate_injection_list.py 
+printf "\nStep 1 (2): Generate injection list for instruction-level error injections\n"
+python generate_injection_list.py 
 
 ################################################
 # Step 2: Run the error injection campaign 
