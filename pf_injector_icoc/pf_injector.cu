@@ -141,18 +141,19 @@ void instrument_function_if_needed(CUcontext ctx, CUfunction func) {
         /* Get the vector of instruction composing the loaded CUFunction "func" */
         const std::vector<Instr *> &instrs = nvbit_get_instrs(ctx, f);
 
-        int maxregs = get_max_regs(f);
+        int max_regs = get_max_regs(f);
         assert_condition(fout.good(), "Output file " + inj_output_filename + " not opened");
-        fout << "Inspecting: " << kname << ";num_static_instrs: " << instrs.size() << ";maxregs: " << maxregs << "("
-             << maxregs << ")" << std::endl;
+        fout << "Inspecting: " << kname << ";num_static_instrs: " << instrs.size() << ";max_regs: " << max_regs << "("
+             << max_regs << ")" << std::endl;
         for (auto i: instrs) {
             std::string opcode = i->getOpcode();
             std::string inst_type_str = extractInstType(opcode);
-            int instType = instTypeNameMap[inst_type_str];
-            verbose_printf("extracted instType: ", inst_type_str, " index of instType: ",
+            int inst_type = instTypeNameMap[inst_type_str];
+            verbose_printf("extracted inst_type: ", inst_type_str, " index of inst_type: ",
                            instTypeNameMap[inst_type_str], "\n");
 
-            if ((uint32_t) instType == inj_info.instruction_type || inj_info.instruction_type == NUM_ISA_INSTRUCTIONS) {
+//            if (inst_type == inj_info.instruction_type_in || inj_info.instruction_type_in == NUM_ISA_INSTRUCTIONS)
+            {
                 verbose_printf("instruction selected for instrumentation: ");
                 if (verbose) {
                     i->print();
@@ -176,16 +177,16 @@ void instrument_function_if_needed(CUcontext ctx, CUfunction func) {
                     }
 
                     // Parse the first operand - this is the first destination
-                    int regnum1 = -1;
-                    int regtype = extractRegNo(tokens[start], regnum1);
+                    int reg_num_1 = -1;
+                    int regtype = extractRegNo(tokens[start], reg_num_1);
                     if (regtype == 0) { // GPR reg
-                        dest_GPR_num = regnum1;
-                        num_dest_GPRs = (getOpGroupNum(instType) == G_FP64) ? 2 : 1;
+                        dest_GPR_num = reg_num_1;
+                        num_dest_GPRs = (getOpGroupNum(inst_type) == G_FP64) ? 2 : 1;
 
-                        int szStr = extractSize(opcode);
-                        if (szStr == 128) {
+                        int sz_str = extractSize(opcode);
+                        if (sz_str == 128) {
                             num_dest_GPRs = 4;
-                        } else if (szStr == 64) {
+                        } else if (sz_str == 64) {
                             num_dest_GPRs = 2;
                         }
 
@@ -201,7 +202,62 @@ void instrument_function_if_needed(CUcontext ctx, CUfunction func) {
                         }
                         nvbit_add_call_arg_const_val32(i, num_dest_GPRs); // number of destination GPR registers
 
-                        nvbit_add_call_arg_const_val32(i, maxregs); // max regs used by the inst info
+                        nvbit_add_call_arg_const_val32(i, max_regs); // max regs used by the inst info
+                        /**************************************************************************
+                         * Edit: trying to load all the inst input vals
+                         * **************************************************************************/
+                        // Add all registers to the function call stack
+                        std::vector<int> input_reg_num_vector;
+                        /* iterate on the operands */
+                        for (auto operand_i = 0; operand_i < i->getNumOperands(); operand_i++) {
+                            /* get the operand_i "i" */
+                            const InstrType::operand_t *op = i->getOperand(operand_i);
+                            switch (op->type) {
+                                case InstrType::OperandType::REG:
+                                    input_reg_num_vector.push_back(op->u.reg.num);
+                                    break;
+                                case InstrType::OperandType::IMM_UINT64:
+                                    std::cout << "IMM_UINT64 OP:";
+                                    i->print();
+                                    break;
+                                case InstrType::OperandType::IMM_DOUBLE:
+                                    std::cout << "IMM_DOUBLE OP:";
+                                    i->print();
+                                    break;
+                                case InstrType::OperandType::PRED:
+                                    std::cout << "PRED OP:";
+                                    i->print();
+                                    break;
+                                case InstrType::OperandType::UREG:
+                                    std::cout << "UREG OP:";
+                                    i->print();
+                                    break;
+                                case InstrType::OperandType::UPRED:
+                                    std::cout << "UPRED OP:";
+                                    i->print();
+                                    break;
+                                case InstrType::OperandType::CBANK:
+                                    std::cout << "CBANK OP:";
+                                    i->print();
+                                    break;
+                                case InstrType::OperandType::MREF:
+                                    std::cout << "MREF OP:";
+                                    i->print();
+                                    break;
+                                case InstrType::OperandType::GENERIC:
+                                    std::cout << "GENERIC OP:";
+                                    i->print();
+                                    break;
+                            }
+                        }
+                        //  put the size of the operands at the end of the var list
+                        nvbit_add_call_arg_const_val32(i, input_reg_num_vector.size());
+                        //REGs FIRST as I will read them before the cbank values
+                        for (int num: input_reg_num_vector) {
+                            /* last parameter tells it is a variadic parameter passed to
+                             * the instrument function record_reg_val() */
+                            nvbit_add_call_arg_reg_val(i, num, true);
+                        }
 
                     }
                     // If an instruction has two destination registers, not handled!! (TODO: Fix later)
@@ -264,11 +320,12 @@ void nvbit_at_cuda_event(CUcontext ctx, int is_exit, nvbit_api_cuda_t cbid,
                 fout << "index: " << kernel_id << ";";
                 fout << "kernel_name: " << kname << ";";
                 fout << "ctas: " << num_ctas << ";";
-                fout << "selected SM: " << inj_info.sm_id << ";";
-                fout << "selected Lane: " << inj_info.lane_id << ";";
-                fout << "selected Mask: " << inj_info.mask << ";";
-                fout << "selected InstType: " << inj_info.instruction_type << ";";
-                fout << "num_activations: " << inj_info.num_activations << std::endl;
+                fout << inj_info << std::endl;
+//                fout << "selected SM: " << inj_info.sm_id << ";";
+//                fout << "selected Lane: " << inj_info.lane_id << ";";
+//                fout << "selected Mask: " << inj_info.mask << ";";
+//                fout << "selected InstType: " << inj_info.instruction_type_in << ";";
+//                fout << "num_activations: " << inj_info.num_activations << std::endl;
 
                 if (cudaSuccess != le) {
                     assert_condition(fout.good(), "Output file " + inj_output_filename + " not opened");

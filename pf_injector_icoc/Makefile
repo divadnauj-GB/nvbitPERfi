@@ -27,7 +27,7 @@ all: $(NVBIT_TOOL)
 $(NVBIT_TOOL): $(OBJECTS) $(NVBIT_PATH)/libnvbit.a
 	$(NVCC) $(ARCH) -O3 $(OBJECTS) $(LIBS) $(NVCC_PATH) -lcuda -lcudart_static -shared -o $@
 
-%.o: %.cu
+%.o: %.cu pf_injector.h
 	$(NVCC) -dc -c -std=c++17 $(INCLUDES) -Xptxas -cloning=no -Xcompiler -Wall $(ARCH) -O3 -Xcompiler -fPIC $< -o $@
 
 inject_funcs.o: inject_funcs.cu pf_injector.h

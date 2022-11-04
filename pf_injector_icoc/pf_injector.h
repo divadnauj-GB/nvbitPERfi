@@ -52,70 +52,99 @@ enum ICOCSubpartition {
  */
 struct InjectionInfo {
     uint32_t sm_id; // 0 - max SMs
-    uint32_t lane_id; // 0 - 32
-    uint32_t mask; // injection mask
-    uint32_t instruction_type; // instruction type
+//    uint32_t lane_id; // 0 - 32
+//    uint32_t mask; // injection mask
+    uint32_t warp_group;
+    InstructionType instruction_type_in; // instruction type in
+    InstructionType instruction_type_out; // instruction type in
     // subpartition type
     ICOCSubpartition icoc_subpartition;
 
     // updated during/after error injection
     uint64_t num_activations;
-    bool error_injected;
+//    bool error_injected;
 
     HOST_FUNCTION_
     void reset_injection_info() {
-        this->instruction_type = 0;
+        this->instruction_type_in = static_cast<InstructionType>(0);
         this->sm_id = 0;
-        this->lane_id = 0;
-        this->mask = 0;
+//        this->lane_id = 0;
+//        this->mask = 0;
         this->num_activations = 0;
-        this->error_injected = false;
+        this->warp_group = 0;
+//        this->error_injected = false;
+        icoc_subpartition = ICOCSubpartition::SCHEDULER;
     }
 
     // print info for debug
-//    HOST_FUNCTION_
-//    std::string to_string() const {
-//        return "InstType=" + std::to_string(this->instruction_type) +
-//               ", SMID=" + std::to_string(this->sm_id) +
-//               ", LaneID=" + std::to_string(this->lane_id) +
-//               ", Mask=" + std::to_string(this->mask);
-//    }
+    DEVICE_FUNCTION_
+    void print() const {
+        printf("InstType=%d, SMID=%d, ICOCSubpartition=%d, warp group %d\n", this->instruction_type_in,
+               this->sm_id, this->icoc_subpartition, this->warp_group);
+    }
+
+    // print info
     HOST_FUNCTION_
-    friend std::ostream &operator<<(std::ostream &os, const InjectionInfo &dt) {
+    friend std::ostream &operator<<(std::ostream &os, const InjectionInfo &inj_info) {
+        os << "selected SM: " << inj_info.sm_id << ";";
+//        os << "selected Lane: " << inj_info.lane_id << ";";
+//        os << "selected Mask: " << inj_info.mask << ";";
+        os << "selected InstType: " << inj_info.instruction_type_in << ";";
+        os << "selected WarpGroup: " << inj_info.warp_group << ";";
+        os << "selected ICOCSubpartition: " << inj_info.icoc_subpartition << ";";
+        os << "num_activations: " << inj_info.num_activations << ";";
         return os;
     }
+
 
     // Parse error injection site info from a file. This should be done on host side.
     HOST_FUNCTION_
     void parse_params(const std::string &filename, bool verbose) {
         static bool parse_flag = false; // file will be parsed only once - performance enhancement
+        auto message_str = filename + " should contain enough information about the fault site to perform a"
+                                      " permanent error injection run:\nSM ID (int), Instruction type in (int),"
+                                      " Instruction type out (int), ICOC subpartition (int), warp group (int).\n";
         if (!parse_flag) {
             parse_flag = true;
             this->reset_injection_info();
 
             std::ifstream ifs(filename);
-            assert_condition(ifs.good(), " File " + filename +
-                                         " does not exist!\n"
-                                         "This file should contain enough information"
-                                         " about the fault site to perform a permanent error injection run:\n"
-                                         "(1) SM ID, (2) Lane ID (within a warp), (3) 32-bit mask (as int32),"
-                                         " (4) Instruction type (as integer, see maxwell_pascal.h). \n");
+            assert_condition(ifs.good(), " File " + filename + " does not exist!\n" + message_str);
             ifs >> this->sm_id;
-            assert_condition(this->sm_id <= 1000, "Invalid sm id. We don't have a 1000 SM system yet.");
+            assert_condition(this->sm_id <= 1000, "Invalid sm id. We don't have a 1000 SM system yet.\n" + message_str);
 
-            ifs >> this->lane_id;
-            assert_condition(this->lane_id < 32, "Invalid warp lane id, must be 0 <= warp id < 32");
+//            ifs >> this->lane_id;
+//            assert_condition(this->lane_id < 32, "Invalid warp lane id, must be 0 <= warp id < 32");
 
-            ifs >> this->mask;
+//            ifs >> this->mask;
 
-            ifs >> this->instruction_type; // instruction type
+            auto inst_type_in = 0, inst_type_out = 0;
+            ifs >> inst_type_in; // instruction type
+            ifs >> inst_type_out; // instruction type
+
+            this->instruction_type_in = static_cast<InstructionType>(inst_type_in);
             // ensure that the value is in the expected range
-            assert_condition(this->instruction_type < NUM_ISA_INSTRUCTIONS, "Invalid instruction type");
+            assert_condition(this->instruction_type_in < NUM_ISA_INSTRUCTIONS,
+                             std::to_string(this->instruction_type_in) + " Invalid instruction type.\n" + message_str);
+
+            this->instruction_type_out = static_cast<InstructionType>(inst_type_out);
+            // ensure that the value is in the expected range
+            assert_condition(this->instruction_type_out < NUM_ISA_INSTRUCTIONS,
+                             std::to_string(this->instruction_type_out) + " Invalid instruction type.\n" + message_str);
+
             // Read the syndrome type
-            uint32_t subpartition;
-            ifs >> subpartition;
-            assert_condition(subpartition < ICOCSubpartition::NUM_ICOC_SUBPARTITIONS, "Invalid syndrome type");
-            this->icoc_subpartition = (ICOCSubpartition) subpartition;
+            auto subpart = 0;
+            ifs >> subpart;
+            this->icoc_subpartition = static_cast<ICOCSubpartition>(subpart);
+            assert_condition(this->icoc_subpartition < ICOCSubpartition::NUM_ICOC_SUBPARTITIONS,
+                             std::to_string(this->icoc_subpartition) + " Invalid syndrome type");
+
+            // Read the warp group
+            ifs >> this->warp_group;
+            assert_condition(this->warp_group < 4,
+                             std::to_string(this->icoc_subpartition) + " Invalid warp group must be 0 <= wg < 4.\n" +
+                             message_str);
+
             if (verbose) {
                 std::cout << this << std::endl;
             }
