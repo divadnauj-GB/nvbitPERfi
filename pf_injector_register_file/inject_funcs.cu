@@ -230,7 +230,7 @@ extern "C" __device__ __noinline__ void inject_error_IRA_dst(uint64_t piinfo, ui
 			uint32_t injAfterVal = 0; 
 			uint32_t injBeforeVal = nvbit_read_reg((uint64_t)inj_info->injRegOriginal); // read the register value
 			if(inj_info->injSMID == smid && inj_info->injScheduler == (WID%4)){	
-				if (DUMMY || destGPRNum != inj_info->injRegOriginal ) { 
+				if (DUMMY || inj_info->injRegReplacement == inj_info->injRegOriginal ) { 
 								injAfterVal = injBeforeVal;
 				} else {
 				if(inj_struct->Warp_thread_active[kidx]==1){

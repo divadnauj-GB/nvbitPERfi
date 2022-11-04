@@ -22,7 +22,7 @@ set -e
 # set -x 
 
 # Automatize the process
-BENCHMARK=$1
+export BENCHMARK=$1
 
 CWD=`pwd`
 echo "Current working directory: $CWD"

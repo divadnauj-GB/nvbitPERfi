@@ -194,22 +194,23 @@ def main():
     inj_mode = os.environ['nvbitPERfi']     
     # actual code that generates list per app is here
     for app in p.apps:
-        print ("\nCreating list for %s ... " %(app))
-        os.system("mkdir -p %s/injection-list" %p.app_log_dir[app]) # create directory to store injection list
+        if(app==os.environ['BENCHMARK']): 
+            print ("\nCreating list for %s ... " %(app))
+            os.system("mkdir -p %s/injection-list" %p.app_log_dir[app]) # create directory to store injection list
 
-        if inj_mode=='ICOC':
-            print('Sorry! This error model is not implemented yet, give us a hand ;)')
-        elif inj_mode=='IRA' or 'IR':
-            regcount =  get_MaxRegPerThread(app)
-            opercount = get_MaxRegOper(app) 
-            gen_IRA_fault_list(app,inj_mode,p.NUM_INJECTIONS,regcount,opercount)
+            if inj_mode=='ICOC':
+                print('Sorry! This error model is not implemented yet, give us a hand ;)')
+            elif inj_mode=='IRA' or 'IR':
+                regcount =  get_MaxRegPerThread(app)
+                opercount = get_MaxRegOper(app) 
+                gen_IRA_fault_list(app,inj_mode,p.NUM_INJECTIONS,regcount,opercount)
 
-        elif inj_mode=='IIO':
-            print('Sorry! This error model is not implemented yet, give us a hand ;)')
-        else:
-            print(f"Ops.. the {inj_mode} error model does not exist, perhaps it is a new model you can implement in the future ;)")	
+            elif inj_mode=='IIO':
+                print('Sorry! This error model is not implemented yet, give us a hand ;)')
+            else:
+                print(f"Ops.. the {inj_mode} error model does not exist, perhaps it is a new model you can implement in the future ;)")	
 
-        print ("Output: Check %s" %(p.app_log_dir[app] + "/injection-list/"))
+            print ("Output: Check %s" %(p.app_log_dir[app] + "/injection-list/"))
 
 if __name__ == "__main__":
     main()

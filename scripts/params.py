@@ -214,6 +214,13 @@ apps = {
         1, # expected runtime secs
         "" # additional parameters to the run.sh
         ],
+    'gemm_cublas': [
+        NVBITFI_HOME + '/test-apps/gemm_cublas', # workload directory
+        'gemm', # binary name
+        NVBITFI_HOME + '/test-apps/gemm_cublas', # path to the binary file
+        1, # expected runtime secs
+        "float" # additional parameters to the run.sh
+        ],
 }
 
 #########################################################################

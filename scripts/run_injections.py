@@ -213,20 +213,20 @@ def main():
                 sys.exit(-1)
     
         sorted_apps = [app for app, value in sorted(p.apps.items(), key=lambda e: e[1][3])] # sort apps according to expected runtimes
-        for app in sorted_apps: 
-            print ("\n" + app)
-            
-            if not os.path.isdir(p.app_log_dir[app]): os.system("mkdir -p " + p.app_log_dir[app]) # create directory to store summary
-            if len(sys.argv) == 3: 
-                if sys.argv[2] == "clean":
-                    clear_results_file(app) # clean log files only if asked for
-            #run the golden application
-            cmd = p.bin_dir[app] + "/" + p.app_bin[app] + " " + p.app_args[app]+" > "+ p.app_dir[app]+"/golden_stdout.txt "+"2> "+ p.app_dir[app]+"/golden_stderr.txt"
-            if p.verbose: print (cmd)
-            pr = subprocess.Popen(cmd, shell=True, executable='/bin/bash', preexec_fn=os.setsid) # run the injection job
+        for app in sorted_apps:
+            if(app==os.environ['BENCHMARK']): 
+                print ("\n" + app)
+                
+                if not os.path.isdir(p.app_log_dir[app]): os.system("mkdir -p " + p.app_log_dir[app]) # create directory to store summary
+                if len(sys.argv) == 3: 
+                    if sys.argv[2] == "clean":
+                        clear_results_file(app) # clean log files only if asked for
+                #run the golden application
+                cmd = p.bin_dir[app] + "/" + p.app_bin[app] + " " + p.app_args[app]+" > "+ p.app_dir[app]+"/golden_stdout.txt "+"2> "+ p.app_dir[app]+"/golden_stderr.txt"
+                if p.verbose: print (cmd)
+                pr = subprocess.Popen(cmd, shell=True, executable='/bin/bash', preexec_fn=os.setsid) # run the injection job
 
-
-            run_multiple_pf_injections(app, os.environ['nvbitPERfi'], where_to_run)
+                run_multiple_pf_injections(app, os.environ['nvbitPERfi'], where_to_run)
             
     else:
         print_usage()
