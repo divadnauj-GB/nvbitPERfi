@@ -329,8 +329,7 @@ def run_one_injection_job(inj_mode, app, error_model, icount):
         ret_cat = p.TIMEOUT 
     else:
         [value_str, pc, inst_type, tid, injBID] = get_inj_info()
-    
-    ret_cat = classify_injection(app, inj_mode, error_model, retcode, dmesg_delta)
+        ret_cat = classify_injection(app, inj_mode, error_model, retcode, dmesg_delta)
     
     os.chdir(cwd) # return to the main dir
     # print (ret_cat)

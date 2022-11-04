@@ -58,6 +58,7 @@ bool read_file=false;
 
 int num_threads;
 int max_regcount=0;
+std::string kname;
 
 //inj_info_t inj_info;
 
@@ -181,9 +182,28 @@ int get_maxregs(CUfunction func) {
 
 void INThandler(int sig) {
         signal(sig, SIG_IGN); // disable Ctrl-C
-
+        fout << "=================================================================================" << endl;
+        fout << "Report for: " << kname << "; kernel Index: "<< kernel_id <<  endl;
+        fout << "=================================================================================" << endl;
         fout << ":::NVBit-inject-error; ERROR FAIL Detected Singal SIGKILL;";
-        fout << " injNumActivations: " << inj_error_info.injNumActivations << ":::";
+        fout << " injNumActivations: " << inj_error_info.injNumActivations << ":::"  << endl;
+        fout << "=================================================================================" << endl;
+        fout << "Final Report" <<  endl;
+        fout << "=================================================================================" << endl;
+        fout << "Report_Summary: "
+                << "; Target_SM: " << inj_error_info.injSMID
+                << "; Target_Scheduler: " << inj_error_info.injScheduler
+                << "; Target_reg_field: " << inj_error_info.injRegID
+                << "; Max_reg_count: " << max_regcount
+                << "; Original_register: " << inj_error_info.injRegOriginal
+                <<"; Replacement_register: " << inj_error_info.injRegReplacement
+                << "; Error Mask: " << inj_error_info.injMaskSeed
+                <<"; Total_Num_Error_Activations: " << inj_info.injNumActivations+inj_error_info.injNumActivations;
+                if (max_regcount < inj_error_info.injRegReplacement){
+                        fout << "; error register outside the limits..";
+                }else{
+                        fout << "; error register inside the limits..";
+                }
         fout.flush();
         exit(-1);
 }
@@ -551,7 +571,7 @@ void nvbit_at_cuda_event(CUcontext ctx, int is_exit, nvbit_api_cuda_t cbid,
 
                                 cudaError_t le = cudaGetLastError();
 
-                                std::string kname = removeSpaces(nvbit_get_func_name(ctx,p->f));
+                                kname = removeSpaces(nvbit_get_func_name(ctx,p->f));
                                 //int num_ctas = 0;
                                 //int num_threads = 0;//added
                                 if ( cbid == API_CUDA_cuLaunchKernel_ptsz ||
