@@ -44,6 +44,17 @@ bool write_to_file(std::string &path, std::vector<T> &array) {
 }
 
 template<typename real_t>
+bool read_from_file(const std::string &file_path, std::vector<real_t> &vector) {
+    std::ifstream file(file_path, std::ios::binary);
+    if (file.good()) {
+        file.read(CHAR_CAST(vector.data()), vector.size() * sizeof(real_t));
+        return true;
+    }
+    return false;
+}
+
+
+template<typename real_t>
 void generate_inputs(size_t size, std::vector<real_t> &a_vector,
                      std::vector<real_t> &b_vector, std::string &a_file_path, std::string &b_file_path) {
     std::random_device rd; //Will be used to obtain a seed for the random number engine
@@ -64,9 +75,16 @@ template<typename real_t>
 void perform_gemm(size_t dim, std::string &a_path, std::string &b_path, std::string &golden_file_path, bool generate) {
     auto size = dim * dim;
     std::cout << "Size of the array:" << size << std::endl;
-    std::vector<real_t> v1(size), v2(size);
+    std::vector<real_t> v1(size), v2(size), golden_vector(size);
     if (generate) {
         generate_inputs(size, v1, v2, a_path, b_path);
+    } else {
+        if (!read_from_file(a_path, v1) ||
+            !read_from_file(b_path, v2) ||
+            !read_from_file(golden_file_path, golden_vector)) {
+            std::throw_with_nested(
+                    std::runtime_error("Couldn't open " + a_path + ", " + golden_file_path + ", or " + b_path));
+        }
     }
     DeviceVector<real_t> v1_dev = v1;
     DeviceVector<real_t> v2_dev = v2;
@@ -86,15 +104,6 @@ void perform_gemm(size_t dim, std::string &a_path, std::string &b_path, std::str
 
     auto output = output_dev.to_vector();
     if (!generate) {
-        auto golden_vector = output;
-
-        std::ifstream golden_file(golden_file_path, std::ios::binary);
-        if (golden_file.good()) {
-            golden_file.read(CHAR_CAST(golden_vector.data()), golden_vector.size() * sizeof(real_t));
-        } else {
-            std::throw_with_nested(std::runtime_error("Couldn't open " + golden_file_path));
-        }
-
         for (auto i = 0; i < output.size(); i++) {
             auto out = output[i];
             auto gold = golden_vector[i];
@@ -122,6 +131,12 @@ int main(int argc, char *argv[]) {
     auto b_path = std::string(argv[3]);
     auto c_path = std::string(argv[4]);
     auto generate = bool(std::stoi(argv[5]));
+    std::cout << "Precision:" << precision << std::endl
+              << "A path:" << a_path << std::endl
+              << "B path:" << b_path << std::endl
+              << "Golden path:" << c_path << std::endl
+              << "Generate:" << generate << std::endl;
+
 
     auto size = 1024;
 //    if (precision == "half") {
