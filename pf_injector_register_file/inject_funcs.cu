@@ -314,7 +314,7 @@ extern "C" __device__ __noinline__ void inject_error_IAT(uint64_t piinfo, uint64
                 inj_info->injInstPC=InstOffset;
                 inj_info->injRegOriginal=destGPRNum;
                 injBeforeVal = nvbit_read_reg(destGPRNum); 
-                if(injBeforeVal>(blokDimm-32)){
+                if(injBeforeVal==blokDimm){
                     injAfterVal = 0;
                 }else{
                     injAfterVal = blokDimm;
