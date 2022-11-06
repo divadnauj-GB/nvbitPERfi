@@ -49,7 +49,7 @@ def set_env_variables(inj_mode, app, error_model, icount): # Set directory paths
     p.set_paths() # update paths 
     global stdout_fname, stderr_fname, injection_seeds_file, new_directory
     
-    new_directory = p.NVBITFI_HOME + "/test-apps/logs/" + app + "/" + "logs/" + app + "-mode" + inj_mode + "-icount" + icount
+    new_directory = p.app_log_dir[app] + "/logs/" + app + "-mode" + inj_mode + "-icount" + icount
     stdout_fname = new_directory + "/" + p.stdout_file 
     stderr_fname = new_directory + "/" + p.stderr_file
     injection_seeds_file = new_directory + "/" + p.injection_seeds
@@ -66,16 +66,17 @@ def record_result(inj_mode, app, error_model, cat, pc, inst_type, tid, injBID, r
     
     res_fname = p.app_log_dir[app] + "/results-mode" + inj_mode + str(p.NUM_INJECTIONS) + ".txt"
     
-    result_str=inj_mode+';'
+    result_str=inj_mode+':'
     loc=""
     for i in range(0,len(error_model)):
-        result_str+=error_model[i]+';'
+        result_str+=':'+error_model[i]
 
     #result_str = icount + ";" + kname + ";" + kcount + ";" + iid + ";" + opid 
     #result_str += ";" + bid + ":" + str(pc) + ":" + str(inst_type) + ":" +  str(tid) 
-    result_str += ":" + str(pc) + ":" + str(inst_type) + ":" +  str(tid) 
-    result_str += ":" + str(injBID) + ":" + str(runtime) + ":" + str(cat) + ":" + ": Outcome (" + p.CAT_STR[cat-1] + "): " + str(dmesg)
-    result_str += ":" + str(value_str) + "\n"
+    result_str += "$" + str(pc) + "$" + str(inst_type) + "$" +  str(tid) 
+    result_str += "$" + str(injBID) + "$" + str(runtime) + "$" + str(cat) + "$" + "Outcome (" + p.CAT_STR[cat-1] + ")"
+    result_str += "$" + str(value_str) 
+    result_str += "$" + str(dmesg) + "\n"
     if p.verbose:
         print (result_str)
 
@@ -118,7 +119,7 @@ def create_p_file(p_filename, inj_mode, error_mode):
 
     if inj_mode=='ICOC':
         print('Sorry! This error model is not implemented yet, give us a hand ;)')
-    elif inj_mode=='IRA' or 'IR':
+    elif inj_mode=='IRA' or inj_mode=='IR':
         if len(error_mode)==7:
             #threadID=error_mode[0]
             #reg=error_mode[1]
@@ -130,7 +131,12 @@ def create_p_file(p_filename, inj_mode, error_mode):
                 outf.write(fields+"\n")
         else:
             print("Ops... it seems the error descriptor has missing arguments  :(")
-
+    elif inj_mode=='IAT' or inj_mode=='IAW':
+        if len(error_mode)==5:
+            for fields in error_mode:
+                outf.write(fields+"\n")
+        else:
+            print("Ops... it seems the error descriptor has missing arguments  :(")
     elif inj_mode=='IIO':
         print('Sorry! This error model is not implemented yet, give us a hand ;)')
     else:
@@ -154,22 +160,29 @@ def create_p_file(p_filename, inj_mode, error_mode):
 #  pcOffset: 0x90
 #  tid: 1201956
 ###############################################################################
-def get_inj_info():
+def get_inj_info(inj_mode):
     [value_str, pc, inst_type, tid, injBID] = ["", "", "", -1, -1]
     if os.path.isfile(p.inj_run_log): 
         logf = open(p.inj_run_log, "r")
-        for line in logf:
-            if "beforeVal" in line:
-                value_str = line.strip().replace("beforeVal: ", "value_before").replace(";afterVal: ", ":value_after")
-            if "opcode" in line:
-                inst_type = line.split(":")[1].strip()
-            if "pcOffset" in line:
-                pc = line.split(":")[1].strip()
-            if "tid" in line:
-                tid = line.split(":")[1].strip()
-            if "mask" in line:
-                injBID = line.split(":")[1].strip()
+        if inj_mode=='ICOC':
+                print('Sorry! This error model is not implemented yet, give us a hand ;)')
+        elif inj_mode=='IRA' or inj_mode=='IR' or inj_mode=='IAT' or inj_mode=='IAW':
+            for line in logf:
+                if "Report_Summary:" in line:
+                    value_str=line.replace("Report_Summary: ;","").strip()
+                fields=line.strip().split(';')
+                for field in fields:
+                    if "LastPCOffset:" in field:
+                        pc=field.strip().split(':')[1].strip()
+                    if "LastOpcode:" in field:
+                        inst_type=field.strip().split(':')[1].strip()
+        elif inj_mode=='IIO':
+            print('Sorry! This error model is not implemented yet, give us a hand ;)')
+        else:
+            print(f"Ops.. the {inj_mode} error model does not exist, perhaps it is a new model you can implement in the future ;)")	
+
         logf.close()
+
     return [value_str, pc, inst_type, tid, injBID]
 
 ###############################################################################
@@ -325,10 +338,10 @@ def run_one_injection_job(inj_mode, app, error_model, icount):
     
     value_str = ""
     if timeout_flag:
-        [value_str, pc, inst_type, tid, injBID] = get_inj_info()
+        [value_str, pc, inst_type, tid, injBID] = get_inj_info(inj_mode)
         ret_cat = p.TIMEOUT 
     else:
-        [value_str, pc, inst_type, tid, injBID] = get_inj_info()
+        [value_str, pc, inst_type, tid, injBID] = get_inj_info(inj_mode)
         ret_cat = classify_injection(app, inj_mode, error_model, retcode, dmesg_delta)
     
     os.chdir(cwd) # return to the main dir
@@ -359,7 +372,7 @@ def main():
         [app, inj_mode, line, icount]=sys.argv[1:]
 
         error_model=line.strip().split()
-
+        #print(error_model, len(error_model))
         set_env_variables(inj_mode, app, error_model, icount) 
         err_cat = run_one_injection_job(inj_mode, app, error_model, icount) 
         elapsed = datetime.datetime.now() - start

@@ -54,6 +54,16 @@ typedef struct {
   uint32_t injRegOriginal;
   uint32_t injRegReplacement;
   uint64_t injNumActivations;
+  uint64_t injNumActivAcc;
+  uint32_t injInstrIdx;
+  uint32_t injInstPC;
+  uint32_t injInstOpcode;
+  uint32_t blockDimX;
+  uint32_t blockDimY;
+  uint32_t blockDimZ;
+  uint32_t gridDimX;
+  uint32_t gridDimY;
+  uint32_t gridDimZ;
   bool errorInjected;
 } inj_info_error_t; 
 

@@ -180,6 +180,53 @@ def gen_IRA_fault_list(app,inj_mode,num_injections,regcount,opercount):
                 f.write(error) # print injection site information
                 num_injections-=1
     f.close()
+
+def gen_IAT_fault_list(app,inj_mode,num_injections):
+    MaxWarpSize=48
+    NumSch=4
+    error_list=[]
+    
+
+    if verbose:
+        print ("num_injections = %d" %(num_injections))
+    fName = p.app_log_dir[app] + "/injection-list/mode" + inj_mode+str(num_injections) + ".txt"
+    print (fName)
+    f = open(fName, "w")
+    smid=int(os.environ['SMID'])
+    schid=int(os.environ['SCHID'])
+    
+    while num_injections>0:
+        Warps=[0]*MaxWarpSize
+        warp=random.randint(0,(MaxWarpSize-1))  
+        while((warp%4)!=schid):           
+            warp=random.randint(0,(MaxWarpSize-1))
+        Warps[warp]=1
+        
+        WarpH=0
+        WarpL=0
+
+        for i in range(0,32):
+            if(Warps[i]==1):
+                tmp=1
+                tmp=tmp<<i
+                WarpL=WarpL | tmp
+        for i in range(32,MaxWarpSize):
+            if(Warps[i]==1):
+                tmp=1
+                tmp=tmp<<(i-32)
+                WarpH=WarpH | tmp
+        Threads=(random.randint(1,0xffffffff))
+   
+        error =f"{smid} {schid} {WarpH} {WarpL} {Threads} \n"
+        #print(Warps,WarpH, WarpL, error)
+        
+        if error not in error_list:
+            error_list.append(error)
+            f.write(error) # print injection site information
+            num_injections-=1
+
+    f.close()
+
 #################################################################
 # Starting point of the script
 #################################################################
@@ -196,15 +243,16 @@ def main():
     for app in p.apps:
         if(app==os.environ['BENCHMARK']): 
             print ("\nCreating list for %s ... " %(app))
-            os.system("mkdir -p %s/injection-list" %p.app_log_dir[app]) # create directory to store injection list
+            os.system("mkdir -p %s/injection-list" %(p.app_log_dir[app])) # create directory to store injection list
 
             if inj_mode=='ICOC':
                 print('Sorry! This error model is not implemented yet, give us a hand ;)')
-            elif inj_mode=='IRA' or 'IR':
+            elif inj_mode=='IRA' or inj_mode=='IR':
                 regcount =  get_MaxRegPerThread(app)
                 opercount = get_MaxRegOper(app) 
                 gen_IRA_fault_list(app,inj_mode,p.NUM_INJECTIONS,regcount,opercount)
-
+            elif inj_mode=='IAT' or inj_mode=='IAW':
+                gen_IAT_fault_list(app,inj_mode,p.NUM_INJECTIONS)
             elif inj_mode=='IIO':
                 print('Sorry! This error model is not implemented yet, give us a hand ;)')
             else:

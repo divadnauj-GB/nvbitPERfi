@@ -53,21 +53,22 @@ def print_heart_beat(nj):
         before = datetime.datetime.now()
 
 def get_log_name(app, inj_mode, igid, bfm):
-    return p.app_log_dir[app] + "results-mode" + str(inj_mode) + str(p.NUM_INJECTIONS) + ".txt"
+    return p.app_log_dir[app] + "/results-mode" + str(inj_mode) + str(p.NUM_INJECTIONS) + ".txt"
 
 ############################################################################
 # Clear log conent. Default is to append, but if the user requests to clear
 # old logs, use this function.
 ############################################################################
-def clear_results_file(app):
-    for bfm in p.rf_bfm_list: 
-        open(get_log_name(app, p.RF_MODE, "rf", bfm)).close()
-    for igid in p.inst_value_igid_bfm_map:
-        for bfm in p.inst_value_igid_bfm_map[igid]:
-            open(get_log_name(app, p.INST_VALUE_MODE, igid, bfm)).close()
-    for igid in p.inst_address_igid_bfm_map:
-        for bfm in p.inst_address_igid_bfm_map[igid]:
-            open(get_log_name(app, p.INST_ADDRESS_MODE, igid, bfm)).close()
+def clear_results_file(app,inj_mode):
+    # for bfm in p.rf_bfm_list: 
+    #     open(get_log_name(app, p.RF_MODE, "rf", bfm)).close()
+    # for igid in p.inst_value_igid_bfm_map:
+    #     for bfm in p.inst_value_igid_bfm_map[igid]:
+    #         open(get_log_name(app, p.INST_VALUE_MODE, igid, bfm)).close()
+    # for igid in p.inst_address_igid_bfm_map:
+    #     for bfm in p.inst_address_igid_bfm_map[igid]:
+    #         open(get_log_name(app, p.INST_ADDRESS_MODE, igid, bfm)).close()
+    open(get_log_name(app, inj_mode, 0, 0),"w").close()
 
 ############################################################################
 # count how many jobs are done
@@ -220,12 +221,14 @@ def main():
                 if not os.path.isdir(p.app_log_dir[app]): os.system("mkdir -p " + p.app_log_dir[app]) # create directory to store summary
                 if len(sys.argv) == 3: 
                     if sys.argv[2] == "clean":
-                        clear_results_file(app) # clean log files only if asked for
+                        clear_results_file(app,os.environ['nvbitPERfi']) # clean log files only if asked for
                 #run the golden application
+                startTime = datetime.datetime.now()
                 cmd = p.bin_dir[app] + "/" + p.app_bin[app] + " " + p.app_args[app]+" > "+ p.app_dir[app]+"/golden_stdout.txt "+"2> "+ p.app_dir[app]+"/golden_stderr.txt"
                 if p.verbose: print (cmd)
                 pr = subprocess.Popen(cmd, shell=True, executable='/bin/bash', preexec_fn=os.setsid) # run the injection job
-
+                EndTime = datetime.datetime.now()
+                print(f"Golden_simulation_Time: {(startTime-EndTime).seconds} secs")
                 run_multiple_pf_injections(app, os.environ['nvbitPERfi'], where_to_run)
             
     else:

@@ -28,7 +28,7 @@ import os, sys
 
 PYTHON_P = "python"
 
-TIMEOUT_THRESHOLD = 100 # 10X usual runtime 
+TIMEOUT_THRESHOLD = 10 # 10X usual runtime 
 
 if 'NVBITFI_HOME' not in os.environ:
     print ("Error: Please set NVBITFI_HOME environment variable")
@@ -62,7 +62,7 @@ keep_logs = True
 # per instruction group (IGID) and bit-flip model (BFM).
 # 
 # NUM_INJECTIONS = 644
-NUM_INJECTIONS = 100
+NUM_INJECTIONS = 1000
 
 # Specify how many injections you want to perform per IGID and BFM combination. 
 # Only the first THRESHOLD_JOBS will be selected from the generated NUM_INJECTIONS.
@@ -70,7 +70,7 @@ NUM_INJECTIONS = 100
 # THRESHOLD_JOBS = 384
 THRESHOLD_JOBS = 1000
 # THRESHOLD_JOBS = 1
-THRESHOLD_JOBS = 25
+THRESHOLD_JOBS = 1
 
 # THRESHOLD_JOBS sould be <= NUM_INJECTIONS
 assert THRESHOLD_JOBS <= NUM_INJECTIONS
@@ -246,7 +246,7 @@ def set_paths():
     merged_apps.update(parse_apps) 
     
     for app in merged_apps:
-        app_log_dir[app] = NVBITFI_HOME + "/test-apps/logs/" + app
+        app_log_dir[app] = NVBITFI_HOME + "/test-apps/logs/" + app+"/"+os.environ['nvbitPERfi']
         bin_dir[app] = merged_apps[app][2]
         app_dir[app] = merged_apps[app][0]
         script_dir[app] = merged_apps[app][0]

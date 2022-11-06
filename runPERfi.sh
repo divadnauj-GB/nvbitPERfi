@@ -61,7 +61,7 @@ export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$CUDA_BASE_DIR/lib64/:$CUDA_BASE_DIR/ext
 # User defined paths
 ###############################################################################
 export APP=${BENCHMARK}
-export APP_DIR=${NVBITFI_HOME}/test-apps/${APP}
+APP_DIR=${NVBITFI_HOME}/test-apps/${APP}
 
 export RODINIA=""
 #ICOC
@@ -69,7 +69,7 @@ export RODINIA=""
 #IR
 #IIO
 #IPP
-export nvbitPERfi=IRA
+export nvbitPERfi=IAT
 export SMID=0
 export SCHID=0
 
@@ -117,7 +117,7 @@ python generate_injection_list.py
 # Step 2: Run the error injection campaign 
 ################################################
 printf "\nStep 2: Run the error injection campaign\n"
-python run_injections.py standalone # to run the injection campaign on a single machine with single gpu
+python run_injections.py standalone clean # to run the injection campaign on a single machine with single gpu
 
 ################################################
 # Step 3: Parse the results
