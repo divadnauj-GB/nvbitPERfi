@@ -132,7 +132,7 @@ def create_p_file(p_filename, inj_mode, error_mode):
         else:
             print("Ops... it seems the error descriptor has missing arguments  :(")
     elif inj_mode=='IAT' or inj_mode=='IAW':
-        if len(error_mode)==5:
+        if len(error_mode)==6:
             for fields in error_mode:
                 outf.write(fields+"\n")
         else:

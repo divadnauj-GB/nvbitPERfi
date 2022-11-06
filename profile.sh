@@ -16,13 +16,10 @@
 # 
 
 # stop after first error 
-set -e 
+#set -e 
 
 # Uncomment for verbose output
 # set -x 
-
-# Automatize the process
-export BENCHMARK=$1
 
 CWD=`pwd`
 echo "Current working directory: $CWD"
@@ -56,33 +53,18 @@ export NVBITFI_HOME=$CWD
 export CUDA_BASE_DIR=/usr/local/cuda
 export PATH=$PATH:$CUDA_BASE_DIR/bin
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$CUDA_BASE_DIR/lib64/:$CUDA_BASE_DIR/extras/CUPTI/lib64/
+export DARKNET_HOME=/home/juancho/Documents/GitHub/darknet_jd_v1
+
+# Change here the name of the application simple_add convolution2d
+#export APP=simple_add
 
 ###############################################################################
-# User defined paths
+# Step 0 (3): Build the nvbitfi injector 
 ###############################################################################
-export APP=${BENCHMARK}
-APP_DIR=${NVBITFI_HOME}/test-apps/${APP}
-
-export RODINIA=""
-#ICOC
-#IRA
-#IR
-#IIO
-#IPP
-export nvbitPERfi=IAT
-export SMID=0
-export SCHID=0
-
-###############################################################################
-# Step 0 (3): Build the nvbitfi injector and profiler tools
-###############################################################################
-printf "\nStep 0 (3): Build the nvbitfi injector and profiler tools\n"
-cd pf_injector_register_file 
-make clean 
-make
-cd ../profiler/
-make clean 
-make
+printf "\nStep 0 (3): Build the nvbitfi injector tool\n"
+cd profiler_CNN/
+#make clean 
+make all
 cd $CWD
 
 ###############################################################################
@@ -90,37 +72,22 @@ cd $CWD
 # stderr files. User must generate this before starting the injection campaign.
 ###############################################################################
 printf "\nStep 0 (4): Run and collect output without instrumentation\n"
-cd ${APP_DIR}
-make 2> stderr.txt
-#${APP_DIR}/vectorAdd> golden_stdout.txt 2> golden_stderr.txt
+
+
+cd test-apps/LeNet/
+rm *.txt
+
+LD_PRELOAD=/$NVBITFI_HOME/profiler_CNN/profiler.so $DARKNET_HOME/darknet classifier predict $DARKNET_HOME/LeNet/cfg/mnist.data $DARKNET_HOME/LeNet/cfg/mnist_lenet.cfg $DARKNET_HOME/LeNet/mnist_lenet.weights $DARKNET_HOME/LeNet/mnist_images/test/25045_One.png -t 10
+
+
+new_folder="$(date +%Y-%m-%d_%H-%M-%S)"
+mkdir -p $new_folder
+mv *.txt $new_folder
+#cuobjdump -sass $DARKNET_HOME/darknet > LeNet.sass
 cd $CWD
 
-###############################################################################
-# Step 1: Profile and generate injection list
-#
-# (1) Profile the workload and collect opcode counts. This needs to be done
-# just once for a workload.  
-# (2) Generate injection list for architecture-level error injections for the
-# selected error injection model. 
-###############################################################################
-cd scripts/
-printf "\nStep 1 (1): Profile the application\n"
-python run_profiler.py
-rm -f stdout.txt stderr.txt ### cleanup
-cd -
 
-cd scripts/
-printf "\nStep 1 (2): Generate injection list for instruction-level error injections\n"
-python generate_injection_list.py 
 
-################################################
-# Step 2: Run the error injection campaign 
-################################################
-printf "\nStep 2: Run the error injection campaign\n"
-python run_injections.py standalone remove # to run the injection campaign on a single machine with single gpu
 
-################################################
-# Step 3: Parse the results
-################################################
-#printf "\nStep 3: Parse results"
-#python parse_results.py
+
+

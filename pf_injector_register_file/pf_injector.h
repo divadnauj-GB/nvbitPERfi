@@ -64,6 +64,8 @@ typedef struct {
   uint32_t gridDimX;
   uint32_t gridDimY;
   uint32_t gridDimZ;
+  uint32_t maxregcount;
+  uint32_t num_threads;
   bool errorInjected;
 } inj_info_error_t; 
 

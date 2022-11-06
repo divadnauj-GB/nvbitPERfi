@@ -40,7 +40,8 @@ def print_usage():
     print ("Example1: \"run_injections.py standalone\" to run jobs on the current system")
     print ("Example2: \"run_injections.py standalone clean\" to launch jobs on the current system and clean all previous logs/results")
 
-
+def get_seconds(td):
+    return (td.microseconds + (td.seconds + td.days * 24 * 3600) * 10**6) / float(10**6)
 ############################################################################
 # Print progress every 10 minutes for jobs submitted to the cluster
 ############################################################################
@@ -166,7 +167,7 @@ def run_multiple_pf_injections(app, inj_mode, where_to_run):
         #print_heart_beat(total_jobs)
     inf.close()
     EndTime=datetime.datetime.now()
-    print (f"Total Simulated Errors: {total_jobs}; Simulation Time: {(EndTime-startTime).seconds} secs\n")
+    print (f"Total Simulated Errors: {total_jobs}; Simulation Time: {get_seconds(EndTime-startTime)} secs\n")
 
 
 
@@ -222,13 +223,22 @@ def main():
                 if len(sys.argv) == 3: 
                     if sys.argv[2] == "clean":
                         clear_results_file(app,os.environ['nvbitPERfi']) # clean log files only if asked for
+                    if sys.argv[2] == 'remove':
+                        logs=p.app_log_dir[app]+"/logs"
+                        sdcs=p.app_log_dir[app]+"/sdcs"
+                        if os.path.isdir(logs): 
+                            os.system("rm -rf " + logs) # delete previous simulation results 
+                        if os.path.isdir(sdcs): 
+                            os.system("rm -rf " + sdcs) # delete previous simulation results
+                        #os.system("mkdir -p " + p.app_log_dir[app]) # create directory to store summary
+                        clear_results_file(app,os.environ['nvbitPERfi'])
                 #run the golden application
                 startTime = datetime.datetime.now()
                 cmd = p.bin_dir[app] + "/" + p.app_bin[app] + " " + p.app_args[app]+" > "+ p.app_dir[app]+"/golden_stdout.txt "+"2> "+ p.app_dir[app]+"/golden_stderr.txt"
                 if p.verbose: print (cmd)
                 pr = subprocess.Popen(cmd, shell=True, executable='/bin/bash', preexec_fn=os.setsid) # run the injection job
                 EndTime = datetime.datetime.now()
-                print(f"Golden_simulation_Time: {(startTime-EndTime).seconds} secs")
+                print(f"Golden_simulation_Time: {get_seconds(startTime-EndTime)} secs")
                 run_multiple_pf_injections(app, os.environ['nvbitPERfi'], where_to_run)
             
     else:

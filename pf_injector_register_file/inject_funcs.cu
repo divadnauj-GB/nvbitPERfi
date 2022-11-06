@@ -173,8 +173,8 @@ extern "C" __device__ __noinline__ void inject_error_IRA_src_before(uint64_t pii
                                 //inj_struct->register_tmp_recovery[inj_struct->num_threads*instridx+i]=injBeforeVal+instridx;                            
                                 if(verbose_device)printf("BF: smID=%d, warpID=%d,target_register=%d, before=0x%x, after=0x%x, expected_after=0x%x, ReadReg =0x%x, InstrInst %d\n", smid, WID, destGPRNum, injBeforeVal, nvbit_read_reg(destGPRNum), injAfterVal, nvbit_read_reg(replGPRNum),instridx);                             
                                 //printf("BF: smID=%d, warpID=%d,target_register=%d, before=0x%x, after=0x%x, expected_after=0x%x, ReadReg =0x%x, InstrInst %d\n", smid, WID, destGPRNum, injBeforeVal, nvbit_read_reg(destGPRNum), injAfterVal, nvbit_read_reg(replGPRNum),instridx);                                     
-                                printf("BF$ smID: %d; schID: %d; warpID: %d; LaneID: %d; TargOpField: %d; OrgRegID: %d; RepRegID: %d; MskSeed: %d; InstErrID: %d; PCOffset: %d; InstType: %d$ RegID: %d; ValBefore: %d; ValAfter: %d; ExpectAfter: %d; ErrRegID: %d; ERegValBefore: %d; ERegValAfter: %d; ERegExpectAfter: %d \n",
-                                smid,inj_info->injScheduler, WID,LID,inj_info->injRegID,destGPRNum,replGPRNum,inj_info->injMaskSeed,instridx, InstOffset, InstOpcode, destGPRNum, injBeforeVal, nvbit_read_reg(destGPRNum), injAfterVal,replGPRNum,injAfterVal,nvbit_read_reg(replGPRNum),injAfterVal);
+                                printf("BF$ smID: %d; schID: %d; ctaID.x: %d; ctaID.y: %d; ctaID.z: %d; warpID: %d; LaneID: %d; TargOpField: %d; OrgRegID: %d; RepRegID: %d; MskSeed: %d; InstErrID: %d; PCOffset: %d; InstType: %d$ RegID: %d; ValBefore: %d; ValAfter: %d; ExpectAfter: %d; ErrRegID: %d; ERegValBefore: %d; ERegValAfter: %d; ERegExpectAfter: %d \n",
+                                smid,inj_info->injScheduler, ctaID.x,ctaID.y,ctaID.z, WID,LID,inj_info->injRegID,destGPRNum,replGPRNum,inj_info->injMaskSeed,instridx, InstOffset, InstOpcode, destGPRNum, injBeforeVal, nvbit_read_reg(destGPRNum), injAfterVal,replGPRNum,injAfterVal,nvbit_read_reg(replGPRNum),injAfterVal);
                                 //NumErrInstExeBefStop: 4294967295; Last_PC_Offset: 0xffffffff; Last_InstOpcode: NOP; Total_Num_Error_Activations: 0;RegStatus: register outside the limits; SimEndRes:::ERROR FAIL in kernel execution (an illegal instruction was encountered):
                                 //target_register=%d, before=0x%x, after=0x%x, expected_after=0x%x, ReadReg =0x%x, InstrInst %d\n", smid, WID, destGPRNum, injBeforeVal, nvbit_read_reg(destGPRNum), injAfterVal, nvbit_read_reg(replGPRNum),instridx);                             
                             }
@@ -226,8 +226,8 @@ extern "C" __device__ __noinline__ void inject_error_IRA_src_after(uint64_t piin
                             //nvbit_write_reg(destGPRNum, inj_struct->register_tmp_recovery[kidx]);										
                             if(verbose_device)printf("AF: smID=%d, warpID=%d,target_register=%d, before=0x%x, after=0x%x, expected_after=0x%x, ReadReg =0x%x, InstrInst %d\n", smid, WID, destGPRNum, injBeforeVal, nvbit_read_reg(destGPRNum), injAfterVal, nvbit_read_reg(replGPRNum),instridx);                             
                             //printf("AF: smID=%d, warpID=%d,target_register=%d, before=0x%x, after=0x%x, expected_after=0x%x, ReadReg =0x%x, InstrInst %d\n", smid, WID, destGPRNum, injBeforeVal, nvbit_read_reg(destGPRNum), injAfterVal, nvbit_read_reg(replGPRNum),instridx);                             
-                            printf("AF$ smID: %d; schID: %d; warpID: %d; LaneID: %d; TargOpField: %d; OrgRegID: %d; RepRegID: %d; MskSeed: %d; InstErrID: %d; PCOffset: %d; InstType: %d$ RegID: %d; ValBefore: %d; ValAfter: %d; ExpectAfter: %d; ErrRegID: %d; ERegValBefore: %d; ERegValAfter: %d; ERegExpectAfter: %d \n",
-                            smid,inj_info->injScheduler,WID,LID,inj_info->injRegID,destGPRNum,replGPRNum,inj_info->injMaskSeed, instridx, InstOffset, InstOpcode, destGPRNum, injBeforeVal, nvbit_read_reg(destGPRNum), injAfterVal, replGPRNum,nvbit_read_reg(replGPRNum),nvbit_read_reg(replGPRNum),nvbit_read_reg(replGPRNum));
+                            printf("AF$ smID: %d; schID: %d; ctaID.x: %d; ctaID.y: %d; ctaID.z: %d; warpID: %d; LaneID: %d; TargOpField: %d; OrgRegID: %d; RepRegID: %d; MskSeed: %d; InstErrID: %d; PCOffset: %d; InstType: %d$ RegID: %d; ValBefore: %d; ValAfter: %d; ExpectAfter: %d; ErrRegID: %d; ERegValBefore: %d; ERegValAfter: %d; ERegExpectAfter: %d \n",
+                            smid,inj_info->injScheduler,ctaID.x,ctaID.y,ctaID.z,WID,LID,inj_info->injRegID,destGPRNum,replGPRNum,inj_info->injMaskSeed, instridx, InstOffset, InstOpcode, destGPRNum, injBeforeVal, nvbit_read_reg(destGPRNum), injAfterVal, replGPRNum,nvbit_read_reg(replGPRNum),nvbit_read_reg(replGPRNum),nvbit_read_reg(replGPRNum));
                         }
                     }                     
                 }
@@ -276,8 +276,8 @@ extern "C" __device__ __noinline__ void inject_error_IRA_dst(uint64_t piinfo, ui
                         nvbit_write_reg(destGPRNum, (injAfterVal));                                            
                         if(verbose_device)printf("DST: smID=%d, warpID=%d,target_register=%d, before=0x%x, after=0x%x, expected_after=0x%x, ReadReg =0x%x, SMthread %d\n", smid, WID, destGPRNum, injBeforeVal, nvbit_read_reg(destGPRNum), nvbit_read_reg(replGPRNum),replGPRNum,instridx);                                            
                         //printf("DST: smID=%d, warpID=%d,target_register=%d, before=0x%x, after=0x%x, expected_after=0x%x, ReadReg =0x%x, SMthread %d\n", smid, WID, destGPRNum, injBeforeVal, nvbit_read_reg(destGPRNum), nvbit_read_reg(replGPRNum),replGPRNum,instridx);                                            
-                        printf("DST$ smID: %d; schID: %d; warpID: %d; LaneID: %d; TargOpField: %d; OrgRegID: %d; RepRegID: %d; MskSeed: %d; InstErrID: %d; PCOffset: %d; InstType: %d$ RegID: %d; ValBefore: %d; ValAfter: %d; ExpectAfter: %d; ErrRegID: %d; ERegValBefore: %d; ERegValAfter: %d; ERegExpectAfter: %d \n",
-                        smid,inj_info->injScheduler,WID,LID,inj_info->injRegID,destGPRNum,replGPRNum,inj_info->injMaskSeed, instridx, InstOffset, InstOpcode, destGPRNum, injBeforeVal, nvbit_read_reg(destGPRNum), injAfterVal, replGPRNum,injBeforeValrep,nvbit_read_reg(replGPRNum),injBeforeVal);
+                        printf("DST$ smID: %d; schID: %d; ctaID.x: %d; ctaID.y: %d; ctaID.z: %d; warpID: %d; LaneID: %d; TargOpField: %d; OrgRegID: %d; RepRegID: %d; MskSeed: %d; InstErrID: %d; PCOffset: %d; InstType: %d$ RegID: %d; ValBefore: %d; ValAfter: %d; ExpectAfter: %d; ErrRegID: %d; ERegValBefore: %d; ERegValAfter: %d; ERegExpectAfter: %d \n",
+                        smid,inj_info->injScheduler,ctaID.x,ctaID.y,ctaID.z,WID,LID,inj_info->injRegID,destGPRNum,replGPRNum,inj_info->injMaskSeed, instridx, InstOffset, InstOpcode, destGPRNum, injBeforeVal, nvbit_read_reg(destGPRNum), injAfterVal, replGPRNum,injBeforeValrep,nvbit_read_reg(replGPRNum),injBeforeVal);
                     }
                     //__threadfence();
                 }                 
@@ -298,6 +298,9 @@ extern "C" __device__ __noinline__ void inject_error_IAT(uint64_t piinfo, uint64
             auto WID=get_warpid();
             auto LID=get_laneid();
             auto kidx=WID*32+LID;
+            int ctaIDX =ctaID.x;
+            int ctaIDY =ctaID.y;
+            int ctaIDZ =ctaID.z;
             //check performed on the Straming Multiprocessor ID
             //printf("smid %d %d\n",smid, inj_info->injSMID );
             assert(numDestGPRs > 0);
@@ -311,10 +314,10 @@ extern "C" __device__ __noinline__ void inject_error_IAT(uint64_t piinfo, uint64
                 inj_info->injInstPC=InstOffset;
                 inj_info->injRegOriginal=destGPRNum;
                 injBeforeVal = nvbit_read_reg(destGPRNum); 
-                if(kidx<32){
-                    injAfterVal = blokDimm;
-                }else{
+                if(injBeforeVal>(blokDimm-32)){
                     injAfterVal = 0;
+                }else{
+                    injAfterVal = blokDimm;
                 } 
                 if (DUMMY ) { 
                                 injAfterVal = injBeforeVal;
@@ -326,8 +329,8 @@ extern "C" __device__ __noinline__ void inject_error_IAT(uint64_t piinfo, uint64
                         if(verbose_device)printf("DST: smID=%d, warpID=%d,target_register=%d, before=0x%x, after=0x%x, expected_after=0x%x, ReadReg =0x%x, SMthread %d\n", smid, WID, destGPRNum, injBeforeVal, nvbit_read_reg(destGPRNum), nvbit_read_reg(destGPRNum),destGPRNum,instridx);                                                                                            
                     //__threadfence();
                     
-                    printf("IAT$ smID: %d; schID: %d; warpID: %d; LaneID: %d; TargOpField: %d; OrgRegID: %d; BlockDim: %d; MskSeed: %d; InstErrID: %d; PCOffset: %d; InstType: %d$ RegID: %d; ValBefore: %d; ValAfter: %d; ExpectAfter: %d$ kindex: %d\n",
-                        smid,inj_info->injScheduler,WID,LID,0,destGPRNum,blokDimm,0, instridx, InstOffset, InstOpcode, destGPRNum, injBeforeVal, nvbit_read_reg(destGPRNum), injAfterVal,kidx);                    
+                    printf("IAT$ smID: %d; schID: %d; ctaID.x: %d; ctaID.y: %d; ctaID.z: %d; warpID: %d; LaneID: %d; TargOpField: %d; OrgRegID: %d; BlockDim: %d; MskSeed: %d; InstErrID: %d; PCOffset: %d; InstType: %d$ RegID: %d; ValBefore: %d; ValAfter: %d; ExpectAfter: %d$ kindex: %d\n",
+                        smid,inj_info->injScheduler,ctaID.x,ctaID.y,ctaID.z,WID,LID,0,destGPRNum,blokDimm,0, instridx, InstOffset, InstOpcode, destGPRNum, injBeforeVal, nvbit_read_reg(destGPRNum), injAfterVal,kidx);                    
                     }
                 }                 
             } 

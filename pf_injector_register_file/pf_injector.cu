@@ -58,8 +58,6 @@ __managed__ muliple_ptr_t Injection_masks;
 
 bool read_file=false;
 
-int num_threads;
-int max_regcount=0;
 std::string inj_mode;
 std::string kname;
 std::string SimEndRes;
@@ -87,6 +85,8 @@ void reset_inj_info() {
         inj_error_info.gridDimX=0;
         inj_error_info.gridDimY=0;
         inj_error_info.gridDimZ=0;
+        inj_error_info.maxregcount=0;
+        inj_error_info.num_threads=0;
         inj_error_info.errorInjected = false;
 }
 
@@ -136,9 +136,9 @@ void parse_paramsIRA(std::string filename) {
                 CUDA_SAFECALL(cudaMallocManaged(&(Injection_masks.Warp_thread_active),(WARP_PER_SM*THREAD_PER_WARP)*sizeof(uint32_t)));
                 CUDA_SAFECALL(cudaMallocManaged(&(Injection_masks.warp_thread_mask),(WARP_PER_SM*THREAD_PER_WARP)*sizeof(uint32_t)));
                 //CUDA_SAFECALL(cudaMallocManaged(&(Injection_masks.register_tmp_recovery),(WARP_PER_SM*THREAD_PER_WARP*MAX_KNAME_SIZE)*sizeof(uint32_t)));
-                CUDA_SAFECALL(cudaMallocManaged(&(Injection_masks.register_tmp_recovery),(num_threads*MAX_KNAME_SIZE)*sizeof(uint32_t)));
+                CUDA_SAFECALL(cudaMallocManaged(&(Injection_masks.register_tmp_recovery),(inj_error_info.num_threads*MAX_KNAME_SIZE)*sizeof(uint32_t)));
 
-                Injection_masks.num_threads=num_threads;
+                Injection_masks.num_threads=inj_error_info.num_threads;
 
                 srand(inj_error_info.injMaskSeed);
                 for(int i=0;i<(WARP_PER_SM*THREAD_PER_WARP);++i){
@@ -183,7 +183,8 @@ void parse_paramsIAT(std::string filename) {
                         ifs >> inj_error_info.injScheduler;
                         ifs >> inj_error_info.injWarpMaskH;
                         ifs >> inj_error_info.injWarpMaskL;
-                        ifs >> inj_error_info.injThreadMask;                        
+                        ifs >> inj_error_info.injThreadMask;
+                        ifs >> inj_error_info.injMaskSeed;  // 0: inactive thread 1: active thread                        
 
                         assert(inj_error_info.injSMID < 1000); 
                         inj_error_info.injNumActivations=0;
@@ -252,7 +253,7 @@ fout <<"Kernel name: "<<kname<<"; kernel Index: "<< kernel_id
 << "; WarpIDL: " << inj_error_info.injWarpMaskL
 << "; LaneID: " << inj_error_info.injThreadMask
 << "; RegField: " << inj_error_info.injRegID
-<< "; MaxRegCount: " << max_regcount
+<< "; MaxRegCount: " << inj_error_info.maxregcount
 << "; RegOrigNum: " << inj_error_info.injRegOriginal
 << "; RegRepNum: " << inj_error_info.injRegReplacement
 << "; MaskSeed: " << inj_error_info.injMaskSeed
@@ -273,7 +274,7 @@ fout << "Report_Summary: "
         << "; WarpIDL: " << inj_error_info.injWarpMaskL
         << "; LaneID: " << inj_error_info.injThreadMask
         << "; RegField: " << inj_error_info.injRegID
-        << "; MaxRegCount: " << max_regcount
+        << "; MaxRegCount: " << inj_error_info.maxregcount
         << "; RegOrigNum: " << inj_error_info.injRegOriginal
         << "; RegRepNum: " << inj_error_info.injRegReplacement
         << "; MaskSeed: " << inj_error_info.injMaskSeed
@@ -281,7 +282,7 @@ fout << "Report_Summary: "
         << "; LastPCOffset: 0x" << std::hex << inj_error_info.injInstPC  << std::dec
         << "; LastOpcode: " << instTypeNames[inj_error_info.injInstOpcode]
         << "; TotErrAct: " << inj_error_info.injNumActivAcc+inj_error_info.injNumActivations;
-        if (max_regcount < inj_error_info.injRegReplacement){
+        if (inj_error_info.maxregcount < inj_error_info.injRegReplacement){
                 fout << "; RegLoc: InsideLims";
         }else{
                 fout << ";  RegLoc: OutsideLims";
@@ -495,7 +496,7 @@ void instrument_function_if_neededv2(CUcontext ctx, CUfunction func) {
                 const std::vector<Instr *> &instrs = nvbit_get_instrs(ctx, f);
 
                 int maxregs = get_maxregs(f);
-                max_regcount=maxregs;
+                inj_error_info.maxregcount=maxregs;
                 assert(fout.good());
                 //assert(fout3.good());
                 int k=0;
@@ -538,7 +539,7 @@ void instrument_function_if_neededv2(CUcontext ctx, CUfunction func) {
                                         //fout << "Instr Intrumented: " << i->getSass();
                                         fout << i->getSass() << " instrumented; ";
                                         fout << "Target_reg_field: "<< inj_error_info.injRegID
-                                                << "; Max_reg_count: "<< max_regcount
+                                                << "; Max_reg_count: "<< inj_error_info.maxregcount
                                                 << "; Original_register: "<< inj_error_info.injRegOriginal
                                                 <<"; Replacement_register: "<< inj_error_info.injRegReplacement
                                                 << "; Error Mask: " << inj_error_info.injMaskSeed << endl;
@@ -580,7 +581,7 @@ void instrument_function_if_neededv2(CUcontext ctx, CUfunction func) {
                                                 //fout << "Instr Intrumented: " << i->getSass();
                                                 fout << i->getSass() << " instrumented; ";
                                                 fout << "Target_reg_field: "<< inj_error_info.injRegID
-                                                << "; Max_reg_count: "<< max_regcount
+                                                << "; Max_reg_count: "<< inj_error_info.maxregcount
                                                 << "; Original_register: "<< inj_error_info.injRegOriginal
                                                 <<"; Replacement_register: "<< inj_error_info.injRegReplacement
                                                 << "; Error Mask: " << inj_error_info.injMaskSeed << endl;
@@ -665,7 +666,7 @@ void instrument_function_if_neededv3(CUcontext ctx, CUfunction func) {
                 const std::vector<Instr *> &instrs = nvbit_get_instrs(ctx, f);
 
                 int maxregs = get_maxregs(f);
-                max_regcount=maxregs;
+                inj_error_info.maxregcount=maxregs;
                 assert(fout.good());
                 //assert(fout3.good());
                 int k=0;
@@ -697,24 +698,32 @@ void instrument_function_if_neededv3(CUcontext ctx, CUfunction func) {
                                         const InstrType::operand_t *dst= i->getOperand(idx);                                        
                                         if(dst->type == InstrType::OperandType::GENERIC ) { // GPR reg as a destination                                                                                      
                                                 GenOperand=dst->str;
-                                                size_t found = GenOperand.find("TID.X");
-                                                if (found != string::npos)
-                                                        int blockDimm=inj_error_info.blockDimX-1;
+                                                std::string str2 ("TID.X");
+                                                size_t found = GenOperand.rfind("TID.X");
+                                                if (found != string::npos){
+                                                        blockDimm=inj_error_info.blockDimX-1;
                                                         injectInstrunc=true;
-
-
-                                                found = GenOperand.find("TID.Y");
-                                                if (found != string::npos)
-                                                        int blockDimm=inj_error_info.blockDimY-1;
+                                                        //printf("Found: %d; \n",found);
+                                                }
+                                                str2 = ("TID.Y");
+                                                found = GenOperand.rfind("TID.Y");
+                                                if (found != string::npos){
+                                                        blockDimm=inj_error_info.blockDimY-1;
+                                                        injectInstrunc=true;         
+                                                        //printf("Found: %d; \n",found); 
+                                                }
+                                                str2 = ("TID.Z");
+                                                found = GenOperand.rfind("TID.Z");
+                                                if (found != string::npos){
+                                                        blockDimm=inj_error_info.blockDimZ-1;
                                                         injectInstrunc=true;
-                                                        
-                                                found = GenOperand.find("TID.Z");
-                                                if (found != string::npos)
-                                                        int blockDimm=inj_error_info.blockDimZ-1;
-                                                        injectInstrunc=true;                                                                                                     
+                                                        //printf("Found: %d; \n",found);
+                                                }
+                                                                                                                                                                
                                         }        
-                                }                                                                   
+                                }                                                                                                 
                                 if(injectInstrunc==true){
+                                        printf("string: %s; blockDimm: %d\n",GenOperand.c_str(),blockDimm); 
                                         const InstrType::operand_t *dst= i->getOperand(0);
                                         destGPRNum=dst->u.reg.num;
                                         numDestGPRs=1;
@@ -766,7 +775,7 @@ void nvbit_at_cuda_event(CUcontext ctx, int is_exit, nvbit_api_cuda_t cbid,
                 //cuLaunch_params * p = (cuLaunch_params *) params;    
                 auto *p = (cuLaunch_params *) params;
                 auto *p1 = (cuLaunchKernel_params *) params;
-                num_threads  = p1->gridDimX * p1->gridDimY * p1->gridDimZ * p1->blockDimX * p1->blockDimY * p1->blockDimZ;                              
+                inj_error_info.num_threads  = p1->gridDimX * p1->gridDimY * p1->gridDimZ * p1->blockDimX * p1->blockDimY * p1->blockDimZ;                              
 
                 if(!is_exit) {
                     if(read_file==false){
