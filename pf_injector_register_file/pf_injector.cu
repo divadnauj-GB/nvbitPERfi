@@ -774,8 +774,7 @@ void nvbit_at_cuda_event(CUcontext ctx, int is_exit, nvbit_api_cuda_t cbid,
                  * the right parameters type */
                 //cuLaunch_params * p = (cuLaunch_params *) params;    
                 auto *p = (cuLaunch_params *) params;
-                auto *p1 = (cuLaunchKernel_params *) params;
-                inj_error_info.num_threads  = p1->gridDimX * p1->gridDimY * p1->gridDimZ * p1->blockDimX * p1->blockDimY * p1->blockDimZ;                              
+                auto *p1 = (cuLaunchKernel_params *) params;             
 
                 if(!is_exit) {
                     if(read_file==false){
@@ -796,6 +795,7 @@ void nvbit_at_cuda_event(CUcontext ctx, int is_exit, nvbit_api_cuda_t cbid,
                         inj_error_info.blockDimX=p1->blockDimX;
                         inj_error_info.blockDimY=p1->blockDimY;
                         inj_error_info.blockDimZ=p1->blockDimZ;
+                        inj_error_info.num_threads  = p1->gridDimX * p1->gridDimY * p1->gridDimZ * p1->blockDimX * p1->blockDimY * p1->blockDimZ;                              
 
                         pthread_mutex_lock(&mutex);
                         if (kernel_id < limit) {
