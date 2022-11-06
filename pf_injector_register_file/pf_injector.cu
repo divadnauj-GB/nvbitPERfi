@@ -282,7 +282,7 @@ fout << "Report_Summary: "
         << "; LastPCOffset: 0x" << std::hex << inj_error_info.injInstPC  << std::dec
         << "; LastOpcode: " << instTypeNames[inj_error_info.injInstOpcode]
         << "; TotErrAct: " << inj_error_info.injNumActivAcc+inj_error_info.injNumActivations;
-        if (inj_error_info.maxregcount < inj_error_info.injRegReplacement){
+        if (inj_error_info.maxregcount >= inj_error_info.injRegReplacement){
                 fout << "; RegLoc: InsideLims";
         }else{
                 fout << ";  RegLoc: OutsideLims";
