@@ -61,6 +61,7 @@ bool read_file=false;
 std::string inj_mode;
 std::string kname;
 std::string SimEndRes;
+int num_threads=0;
 //inj_info_t inj_info;
 
 void reset_inj_info() {
@@ -120,6 +121,7 @@ void parse_paramsIRA(std::string filename) {
                         inj_error_info.injInstrIdx=-1;
                         inj_error_info.injInstOpcode=NOP;
                         inj_error_info.injInstPC=-1;
+                        inj_error_info.num_threads=num_threads;
 
                 } else {
                         printf(" File %s does not exist!", filename.c_str());
@@ -542,7 +544,8 @@ void instrument_function_if_neededv2(CUcontext ctx, CUfunction func) {
                                                 << "; Max_reg_count: "<< inj_error_info.maxregcount
                                                 << "; Original_register: "<< inj_error_info.injRegOriginal
                                                 <<"; Replacement_register: "<< inj_error_info.injRegReplacement
-                                                << "; Error Mask: " << inj_error_info.injMaskSeed << endl;
+                                                << "; Error Mask: " << inj_error_info.injMaskSeed
+                                                << "; NumThreads: " << inj_error_info.num_threads << endl;
 
                                         nvbit_insert_call(i, "inject_error_IRA_dst", IPOINT_AFTER);
                                         nvbit_add_call_arg_const_val64(i, (uint64_t)&inj_error_info);
@@ -584,7 +587,8 @@ void instrument_function_if_neededv2(CUcontext ctx, CUfunction func) {
                                                 << "; Max_reg_count: "<< inj_error_info.maxregcount
                                                 << "; Original_register: "<< inj_error_info.injRegOriginal
                                                 <<"; Replacement_register: "<< inj_error_info.injRegReplacement
-                                                << "; Error Mask: " << inj_error_info.injMaskSeed << endl;
+                                                << "; Error Mask: " << inj_error_info.injMaskSeed
+                                                << "; NumThreads: " << inj_error_info.num_threads << endl;
                                                 
                                                 nvbit_insert_call(i, "inject_error_IRA_src_before", IPOINT_BEFORE);
                                                 nvbit_add_call_arg_const_val64(i, (uint64_t)&inj_error_info);
@@ -775,7 +779,7 @@ void nvbit_at_cuda_event(CUcontext ctx, int is_exit, nvbit_api_cuda_t cbid,
                 //cuLaunch_params * p = (cuLaunch_params *) params;    
                 auto *p = (cuLaunch_params *) params;
                 auto *p1 = (cuLaunchKernel_params *) params;             
-
+                num_threads  = p1->gridDimX * p1->gridDimY * p1->gridDimZ * p1->blockDimX * p1->blockDimY * p1->blockDimZ;                              
                 if(!is_exit) {
                     if(read_file==false){
                         if(inj_mode.compare("IRA")==0){
@@ -795,7 +799,7 @@ void nvbit_at_cuda_event(CUcontext ctx, int is_exit, nvbit_api_cuda_t cbid,
                         inj_error_info.blockDimX=p1->blockDimX;
                         inj_error_info.blockDimY=p1->blockDimY;
                         inj_error_info.blockDimZ=p1->blockDimZ;
-                        inj_error_info.num_threads  = p1->gridDimX * p1->gridDimY * p1->gridDimZ * p1->blockDimX * p1->blockDimY * p1->blockDimZ;                              
+                        inj_error_info.num_threads  = num_threads;
 
                         pthread_mutex_lock(&mutex);
                         if (kernel_id < limit) {
