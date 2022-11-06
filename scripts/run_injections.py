@@ -233,12 +233,12 @@ def main():
                         #os.system("mkdir -p " + p.app_log_dir[app]) # create directory to store summary
                         clear_results_file(app,os.environ['nvbitPERfi'])
                 #run the golden application
-                startTime = datetime.datetime.now()
+                BeginTime = datetime.datetime.now()
                 cmd = p.bin_dir[app] + "/" + p.app_bin[app] + " " + p.app_args[app]+" > "+ p.app_dir[app]+"/golden_stdout.txt "+"2> "+ p.app_dir[app]+"/golden_stderr.txt"
                 if p.verbose: print (cmd)
                 pr = subprocess.Popen(cmd, shell=True, executable='/bin/bash', preexec_fn=os.setsid) # run the injection job
-                EndTime = datetime.datetime.now()
-                print(f"Golden_simulation_Time: {get_seconds(startTime-EndTime)} secs")
+                StopTime = datetime.datetime.now()
+                print(f"Golden_simulation_Time: {get_seconds(StopTime-BeginTime)} secs")
                 run_multiple_pf_injections(app, os.environ['nvbitPERfi'], where_to_run)
             
     else:
