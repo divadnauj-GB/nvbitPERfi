@@ -117,8 +117,9 @@ def record_result(inj_mode, app, error_model, cat, pc, inst_type, tid, injBID, r
 def create_p_file(p_filename, inj_mode, error_mode):
     outf = open(p_filename, "w")
 
-    if inj_mode=='ICOC':
-        print('Sorry! This error model is not implemented yet, give us a hand ;)')
+    if inj_mode == 'ICOC':
+        for fields in error_mode[:4]:
+            outf.write(fields+"\n")
     elif inj_mode=='IRA' or inj_mode=='IR':
         if len(error_mode)==7:
             #threadID=error_mode[0]
@@ -164,9 +165,7 @@ def get_inj_info(inj_mode):
     [value_str, pc, inst_type, tid, injBID] = ["", "", "", -1, -1]
     if os.path.isfile(p.inj_run_log): 
         logf = open(p.inj_run_log, "r")
-        if inj_mode=='ICOC':
-                print('Sorry! This error model is not implemented yet, give us a hand ;)')
-        elif inj_mode=='IRA' or inj_mode=='IR' or inj_mode=='IAT' or inj_mode=='IAW':
+        if inj_mode in ['ICOC', 'IRA', 'IR', 'IAT', 'IAW']:
             for line in logf:
                 if "Report_Summary:" in line:
                     value_str=line.replace("Report_Summary: ;","").strip()
