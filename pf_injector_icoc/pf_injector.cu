@@ -1,7 +1,6 @@
 #include <sstream>
 #include <csignal>
 #include <unordered_set>
-#include <map>
 #include <algorithm>
 
 #include "nvbit_tool.h"
@@ -62,7 +61,8 @@ void sig_int_handler(int sig) {
 //    std::ofstream fout(inj_output_filename);
     if (fout.good()) {
         fout << ":::NVBit-inject-error; ERROR FAIL Detected Singal SIGKILL;";
-        fout << " num_activations: " << inj_info.num_activations << ":::";
+//        fout << " num_activations: " << inj_info.num_activations << ":::";
+        fout << inj_info << std::endl;
         fout.flush();
     }
     assert_condition(false, "Ctrl-C pressed, stopping execution!");
@@ -106,7 +106,7 @@ void nvbit_at_init() {
     }
 
     initInstTypeNameMap();
-    fout.open(inj_output_filename);
+    open_output_file(inj_output_filename);
     assert_condition(fout.good(), "Could not open output file" + inj_output_filename);
 
     signal(SIGINT, sig_int_handler); // install Ctrl-C handler
@@ -181,7 +181,8 @@ void instrument_function_if_needed(CUcontext ctx, CUfunction func) {
                     int regtype = extractRegNo(tokens[start], reg_num_1);
                     if (regtype == 0) { // GPR reg
                         dest_GPR_num = reg_num_1;
-                        num_dest_GPRs = (getOpGroupNum(inst_type) == G_FP64) ? 2 : 1;
+                        auto op_group = getOpGroupNum(inst_type);
+                        num_dest_GPRs = (op_group == G_FP64) ? 2 : 1;
 
                         int sz_str = extractSize(opcode);
                         if (sz_str == 128) {
@@ -208,51 +209,43 @@ void instrument_function_if_needed(CUcontext ctx, CUfunction func) {
                          * **************************************************************************/
                         // Add all registers to the function call stack
                         // Put always 4 registers
-                        std::vector<int> input_reg_num_vector(4, 0);
+                        std::vector<int32_t> input_reg_num_vector;
+                        inj_info.set_current_instruction_type();
+
                         /* iterate on the operands */
                         for (auto operand_i = 0; operand_i < i->getNumOperands(); operand_i++) {
                             /* get the operand_i "i" */
+                            //TODO: Ask Juan about constant values stack
+                            //TODO: Ask if double and int64 will be target
                             const InstrType::operand_t *op = i->getOperand(operand_i);
                             switch (op->type) {
-                                case InstrType::OperandType::REG:
-                                    input_reg_num_vector[operand_i] = op->u.reg.num;
-                                    break;
-                                case InstrType::OperandType::IMM_UINT64:
-                                    std::cout << "IMM_UINT64 OP:";
-                                    i->print();
-                                    break;
-                                case InstrType::OperandType::IMM_DOUBLE:
-                                    std::cout << "IMM_DOUBLE OP:";
-                                    i->print();
+                                case InstrType::OperandType::REG: {
+                                    auto input_reg_num = op->u.reg.num;
+                                    assert_condition((input_reg_num >= 0 && input_reg_num <= 255),
+                                                     "Invalid reg num " + std::to_string(input_reg_num));
+                                    input_reg_num_vector.push_back(input_reg_num);
+                                }
                                     break;
                                 case InstrType::OperandType::PRED:
-                                    std::cout << "PRED OP:";
-                                    i->print();
-                                    break;
+                                case InstrType::OperandType::IMM_UINT64:
+                                case InstrType::OperandType::IMM_DOUBLE:
                                 case InstrType::OperandType::UREG:
                                 case InstrType::OperandType::UPRED:
-                                    break;
                                 case InstrType::OperandType::CBANK:
-                                    std::cout << "CBANK OP:";
-                                    i->print();
-                                    break;
                                 case InstrType::OperandType::MREF:
-                                    std::cout << "MREF OP:";
-                                    i->print();
-                                    break;
                                 case InstrType::OperandType::GENERIC:
-                                    std::cout << "GENERIC OP:";
-                                    i->print();
                                     break;
                             }
                         }
+                        // Put if it is float or not
+                        nvbit_add_call_arg_const_val32(i, int(op_group == G_FP32));
                         //  put the size of the operands at the end of the var list
                         nvbit_add_call_arg_const_val32(i, input_reg_num_vector.size());
                         //REGs FIRST as I will read them before the cbank values
                         for (int num: input_reg_num_vector) {
                             /* last parameter tells it is a variadic parameter passed to
                              * the instrument function record_reg_val() */
-                            nvbit_add_call_arg_reg_val(i, num, true);
+                            nvbit_add_call_arg_const_val32(i, num, true);
                         }
 
                     }

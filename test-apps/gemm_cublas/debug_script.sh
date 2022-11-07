@@ -5,7 +5,7 @@ set -x
 
 # environment variables for NVBit
 #export NOBANNER=1
-# set TOOL_VERBOSE=1 to print debugging information during profling and injection runs
+# set TOOL_VERBOSE=1 to print debugging information during profiling and injection runs
 export TOOL_VERBOSE=1
 export VERBOSE=1
 
@@ -18,6 +18,6 @@ LD_PRELOAD_LIB_PATH=../../pf_injector_icoc
 
 make -C $LD_PRELOAD_LIB_PATH
 
-time eval LD_PRELOAD=$LD_PRELOAD_LIB_PATH/pf_injector.so ./gemm float a.data b.data gold.data 1
+time eval LD_PRELOAD=$LD_PRELOAD_LIB_PATH/pf_injector.so ./gemm float a.data b.data gold.data 0
 
 

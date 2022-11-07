@@ -19,6 +19,7 @@
 
 #include <fstream>
 #include <iostream>
+#include <random>
 
 #include "arch.h"
 
@@ -55,7 +56,8 @@ struct InjectionInfo {
 //    uint32_t lane_id; // 0 - 32
 //    uint32_t mask; // injection mask
     uint32_t warp_group;
-    InstructionType instruction_type_in; // instruction type in
+    uint32_t warp_id;
+//    InstructionType instruction_type_in; // instruction type in
     InstructionType instruction_type_out; // instruction type in
     // subpartition type
     ICOCSubpartition icoc_subpartition;
@@ -66,7 +68,8 @@ struct InjectionInfo {
 
     HOST_FUNCTION_
     void reset_injection_info() {
-        this->instruction_type_in = static_cast<InstructionType>(0);
+//        this->instruction_type_in = static_cast<InstructionType>(0);
+        this->warp_id = 0;
         this->sm_id = 0;
 //        this->lane_id = 0;
 //        this->mask = 0;
@@ -79,8 +82,8 @@ struct InjectionInfo {
     // print info for debug
     DEVICE_FUNCTION_
     void print() const {
-        printf("InstType=%d, SMID=%d, ICOCSubpartition=%d, warp group %d\n", this->instruction_type_in,
-               this->sm_id, this->icoc_subpartition, this->warp_group);
+        printf("SMID=%d, WarpID=%d, ICOCSubpartition=%d, warp group %d, InstTypeOut:%d\n", this->sm_id, this->warp_id,
+               this->icoc_subpartition, this->warp_group, this->instruction_type_out);
     }
 
     // print info
@@ -89,10 +92,11 @@ struct InjectionInfo {
         os << "selected SM: " << inj_info.sm_id << ";";
 //        os << "selected Lane: " << inj_info.lane_id << ";";
 //        os << "selected Mask: " << inj_info.mask << ";";
-        os << "selected InstType: " << inj_info.instruction_type_in << ";";
-        os << "selected WarpGroup: " << inj_info.warp_group << ";";
-        os << "selected ICOCSubpartition: " << inj_info.icoc_subpartition << ";";
-        os << "num_activations: " << inj_info.num_activations << ";";
+        os << " selected InstTypeOut: " << inj_info.instruction_type_out << ";";
+        os << " selected WarpID: " << inj_info.warp_id << ";";
+        os << " selected WarpGroup: " << inj_info.warp_group << ";";
+        os << " selected ICOCSubpartition: " << inj_info.icoc_subpartition << ";";
+        os << " num_activations: " << inj_info.num_activations << ";";
         return os;
     }
 
@@ -113,24 +117,21 @@ struct InjectionInfo {
             ifs >> this->sm_id;
             assert_condition(this->sm_id <= 1000, "Invalid sm id. We don't have a 1000 SM system yet.\n" + message_str);
 
-//            ifs >> this->lane_id;
-//            assert_condition(this->lane_id < 32, "Invalid warp lane id, must be 0 <= warp id < 32");
+            ifs >> this->warp_id;
+            assert_condition(this->warp_id < 64, "Invalid warp id, must be 0 <= warp id < 64");
 
-//            ifs >> this->mask;
-
-            auto inst_type_in = 0, inst_type_out = 0;
-            ifs >> inst_type_in; // instruction type
-            ifs >> inst_type_out; // instruction type
-
-            this->instruction_type_in = static_cast<InstructionType>(inst_type_in);
-            // ensure that the value is in the expected range
-            assert_condition(this->instruction_type_in < NUM_ISA_INSTRUCTIONS,
-                             std::to_string(this->instruction_type_in) + " Invalid instruction type.\n" + message_str);
-
-            this->instruction_type_out = static_cast<InstructionType>(inst_type_out);
-            // ensure that the value is in the expected range
-            assert_condition(this->instruction_type_out < NUM_ISA_INSTRUCTIONS,
-                             std::to_string(this->instruction_type_out) + " Invalid instruction type.\n" + message_str);
+//            auto inst_type_in = 0, inst_type_out = 0;
+//            ifs >> inst_type_in; // instruction type
+//            ifs >> inst_type_out; // instruction type
+//            this->instruction_type_in = static_cast<InstructionType>(inst_type_in);
+//            // ensure that the value is in the expected range
+//            assert_condition(this->instruction_type_in < NUM_ISA_INSTRUCTIONS,
+//                             std::to_string(this->instruction_type_in) + " Invalid instruction type.\n" + message_str);
+//
+//            this->instruction_type_out = static_cast<InstructionType>(inst_type_out);
+//            // ensure that the value is in the expected range
+//            assert_condition(this->instruction_type_out < NUM_ISA_INSTRUCTIONS,
+//                             std::to_string(this->instruction_type_out) + " Invalid instruction type.\n" + message_str);
 
             // Read the syndrome type
             auto subpart = 0;
@@ -149,6 +150,29 @@ struct InjectionInfo {
                 std::cout << this << std::endl;
             }
         }
+    }
+
+    HOST_FUNCTION_
+    void set_current_instruction_type() {
+        //TODO: Ask Juan about the behaviour that we can simulate?
+        constexpr InstructionType possible_ops[] = {
+                FADD, FADD32I, FCMP, FFMA, FFMA32I, FMUL, FMUL32I,
+                BFE, BFI, BMSK, BREV, FLO, IABS, IADD, IADD32I,
+                IADD3, ICMP, IDP, IDP4A, IMAD, IMAD32I, IMADSP,
+                IMUL, IMUL32I, ISAD, ISCADD, ISCADD32I, LOP, LOP32I,
+                LOP3, SHF, SHL, SHR, XMAD
+        };
+
+        // gets 'entropy' from device that generates random numbers itself
+        // to seed a mersenne twister (pseudo) random generator
+        static std::mt19937 generator(std::random_device{}());
+
+        // make sure all numbers have an equal chance.
+        // range is inclusive (so we need -1 for vector index)
+        auto array_size = sizeof(possible_ops) / sizeof(InstructionType) - 1;
+        static std::uniform_int_distribution<std::size_t> distribution(0, array_size);
+        auto index = distribution(generator);
+        this->instruction_type_out = possible_ops[index];
     }
 
 };
