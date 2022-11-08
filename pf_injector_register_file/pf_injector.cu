@@ -284,7 +284,7 @@ fout << "Report_Summary: "
         << "; LastPCOffset: 0x" << std::hex << inj_error_info.injInstPC  << std::dec
         << "; LastOpcode: " << instTypeNames[inj_error_info.injInstOpcode]
         << "; TotErrAct: " << inj_error_info.injNumActivAcc+inj_error_info.injNumActivations;
-        if (inj_error_info.maxregcount >= inj_error_info.injRegReplacement){
+        if (inj_error_info.maxregcount > inj_error_info.injRegReplacement){
                 fout << "; RegLoc: InsideLims";
         }else{
                 fout << ";  RegLoc: OutsideLims";
@@ -702,27 +702,44 @@ void instrument_function_if_neededv3(CUcontext ctx, CUfunction func) {
                                         const InstrType::operand_t *dst= i->getOperand(idx);                                        
                                         if(dst->type == InstrType::OperandType::GENERIC ) { // GPR reg as a destination                                                                                      
                                                 GenOperand=dst->str;
-                                                std::string str2 ("TID.X");
                                                 size_t found = GenOperand.rfind("TID.X");
                                                 if (found != string::npos){
                                                         blockDimm=inj_error_info.blockDimX-1;
                                                         injectInstrunc=true;
                                                         //printf("Found: %d; \n",found);
-                                                }
-                                                str2 = ("TID.Y");
+                                                }                                                                                        
                                                 found = GenOperand.rfind("TID.Y");
                                                 if (found != string::npos){
                                                         blockDimm=inj_error_info.blockDimY-1;
                                                         injectInstrunc=true;         
                                                         //printf("Found: %d; \n",found); 
                                                 }
-                                                str2 = ("TID.Z");
+                                                                                                
                                                 found = GenOperand.rfind("TID.Z");
                                                 if (found != string::npos){
                                                         blockDimm=inj_error_info.blockDimZ-1;
                                                         injectInstrunc=true;
                                                         //printf("Found: %d; \n",found);
-                                                }
+                                                }     
+                                                /*                                                                                   
+                                                found = GenOperand.rfind("CTAID.X");
+                                                if (found != string::npos){
+                                                        blockDimm=inj_error_info.gridDimX-1;
+                                                        injectInstrunc=true;         
+                                                        //printf("Found: %d; \n",found); 
+                                                }                                                
+                                                found = GenOperand.rfind("CTAID.Y");
+                                                if (found != string::npos){
+                                                        blockDimm=inj_error_info.gridDimY-1;
+                                                        injectInstrunc=true;         
+                                                        //printf("Found: %d; \n",found); 
+                                                }                                                
+                                                found = GenOperand.rfind("CTAID.Z");
+                                                if (found != string::npos){
+                                                        blockDimm=inj_error_info.blockDimZ-1;
+                                                        injectInstrunc=true;
+                                                        //printf("Found: %d; \n",found);
+                                                }*/
                                                                                                                                                                 
                                         }        
                                 }                                                                                                 
@@ -803,6 +820,7 @@ void nvbit_at_cuda_event(CUcontext ctx, int is_exit, nvbit_api_cuda_t cbid,
 
                         pthread_mutex_lock(&mutex);
                         if (kernel_id < limit) {
+                            cudaDeviceSynchronize();
                             fflush (stdout);
                             fclose (stdout);
                             freopen ("nvbit_stdout.txt", "a", stdout);
