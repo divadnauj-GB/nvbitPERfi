@@ -199,6 +199,41 @@ def get_GridDim(app):
     return [gridDimX,gridDimY,gridDimZ] 
 
 
+def gen_ICOC_fault_list(app: str, inj_mode_str: str, num_injections: int):
+    max_warp_size = 64
+    error_list = []
+    warps = []
+
+    if verbose:
+        print("num_injections =", num_injections)
+    f_name = f"{p.app_log_dir[app]}/injection-list/mode{inj_mode_str}{num_injections}.txt"
+    print(f_name)
+    with open(f_name, "w") as f:
+        sm_id = int(os.environ['SMID'])
+        scheduler_id = int(os.environ['SCHID'])
+
+        for i in range(0, max_warp_size):
+            if (i % 4) == scheduler_id:
+                warps.append(1)
+            else:
+                warps.append(0)
+
+        # for i in range(opercount):
+        #     for j in range(256):
+        #         # while num_injections>0:
+        #         # errMask=random.randint(0,255)
+        #         errMask = j
+        #         # errOperField=random.randint(0,(opercount-1))
+        #         errOperField = i
+        #
+        #         error = f"{sm_id} {scheduler_id} {warp_h} {warp_l} {Threads} {errMask} {errOperField}\n"
+        #         # print(Warps,WarpH, WarpL, error)
+        #
+        #         if error not in error_list:
+        #             error_list.append(error)
+        #             f.write(error)  # print injection site information
+        #             num_injections -= 1
+
 
 def gen_IRA_fault_list(app,inj_mode,num_injections,regcount,opercount):
     MaxWarpSize=48

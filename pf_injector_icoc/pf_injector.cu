@@ -38,7 +38,6 @@ void verbose_printf(Ts &&... inputs) {
     }
 }
 
-
 void update_verbose() {
     static bool update_flag = false; // update it only once - performance enhancement
     if (!update_flag) {
@@ -196,58 +195,74 @@ void instrument_function_if_needed(CUcontext ctx, CUfunction func) {
                         nvbit_add_call_arg_const_val64(i, (uint64_t) &verbose_device);
 
                         nvbit_add_call_arg_const_val32(i, dest_GPR_num); // destination GPR register number
-                        if (dest_GPR_num != -1) {
-                            nvbit_add_call_arg_reg_val(i, dest_GPR_num); // destination GPR register val
-                        } else {
-                            nvbit_add_call_arg_const_val32(i, (unsigned int) -1); // destination GPR register val
-                        }
+//                        if (dest_GPR_num != -1) {
+//                            nvbit_add_call_arg_reg_val(i, dest_GPR_num); // destination GPR register val
+//                        } else {
+//                            nvbit_add_call_arg_const_val32(i, (unsigned int) -1); // destination GPR register val
+//                        }
                         nvbit_add_call_arg_const_val32(i, num_dest_GPRs); // number of destination GPR registers
 
-                        nvbit_add_call_arg_const_val32(i, max_regs); // max regs used by the inst info
+//                        nvbit_add_call_arg_const_val32(i, max_regs); // max regs used by the inst info
                         /**************************************************************************
                          * Edit: trying to load all the inst input vals
                          * **************************************************************************/
                         // Add all registers to the function call stack
                         // Put always 4 registers
-                        std::vector<int32_t> input_reg_num_vector;
+//                        std::vector<int32_t> input_reg_num_vector;
                         inj_info.set_current_instruction_type();
+                        inj_info.reset_operand_list();
+                        assert_condition(i->getNumOperands() <= MAX_OPERANDS_NUM,
+                                         "More than " + std::to_string(MAX_OPERANDS_NUM) +
+                                         " not managed for the moment");
 
-                        /* iterate on the operands */
-                        for (auto operand_i = 0; operand_i < i->getNumOperands(); operand_i++) {
-                            /* get the operand_i "i" */
-                            //TODO: Ask Juan about constant values stack
-                            //TODO: Ask if double and int64 will be target
-                            const InstrType::operand_t *op = i->getOperand(operand_i);
-                            switch (op->type) {
-                                case InstrType::OperandType::REG: {
-                                    auto input_reg_num = op->u.reg.num;
-                                    assert_condition((input_reg_num >= 0 && input_reg_num <= 255),
-                                                     "Invalid reg num " + std::to_string(input_reg_num));
-                                    input_reg_num_vector.push_back(input_reg_num);
-                                }
-                                    break;
-                                case InstrType::OperandType::PRED:
-                                case InstrType::OperandType::IMM_UINT64:
-                                case InstrType::OperandType::IMM_DOUBLE:
-                                case InstrType::OperandType::UREG:
-                                case InstrType::OperandType::UPRED:
-                                case InstrType::OperandType::CBANK:
-                                case InstrType::OperandType::MREF:
-                                case InstrType::OperandType::GENERIC:
-                                    break;
-                            }
-                        }
                         // Put if it is float or not
                         nvbit_add_call_arg_const_val32(i, int(op_group == G_FP32));
                         //  put the size of the operands at the end of the var list
-                        nvbit_add_call_arg_const_val32(i, input_reg_num_vector.size());
-                        //REGs FIRST as I will read them before the cbank values
-                        for (int num: input_reg_num_vector) {
-                            /* last parameter tells it is a variadic parameter passed to
-                             * the instrument function record_reg_val() */
-                            nvbit_add_call_arg_const_val32(i, num, true);
+                        nvbit_add_call_arg_const_val32(i, i->getNumOperands());
+
+                        /* iterate on the operands */
+                        for (auto operand_i = num_dest_GPRs; operand_i < i->getNumOperands(); operand_i++) {
+                            /* get the operand_i "i" */
+                            const InstrType::operand_t *op = i->getOperand(operand_i);
+                            inj_info.operand_list[operand_i].operand_type = op->type;
+                            inj_info.operand_list[operand_i].is_this_operand_valid = true;
+                            switch (op->type) {
+                                case InstrType::OperandType::UREG:
+                                    nvbit_add_call_arg_ureg_val(i, op->u.reg.num, true);
+                                    break;
+                                case InstrType::OperandType::REG:
+                                    nvbit_add_call_arg_reg_val(i, op->u.reg.num, true);
+                                    break;
+                                case InstrType::OperandType::UPRED:
+                                    nvbit_add_call_arg_upred_val_at(i, op->u.pred.num, true);
+                                    break;
+                                case InstrType::OperandType::PRED:
+                                    nvbit_add_call_arg_pred_val_at(i, op->u.pred.num, true);
+                                    break;
+                                case InstrType::OperandType::CBANK:
+                                    if (op->u.cbank.has_imm_offset) {
+                                        nvbit_add_call_arg_cbank_val(i, op->u.cbank.id, op->u.cbank.imm_offset, true);
+                                    } else {
+                                        nvbit_add_call_arg_cbank_val(i, op->u.cbank.id, op->u.cbank.reg_offset, true);
+                                    }
+                                    break;
+                                case InstrType::OperandType::MREF:
+                                    nvbit_add_call_arg_mref_addr64(i, 0, true);
+                                    break;
+                                case InstrType::OperandType::IMM_UINT64:
+                                case InstrType::OperandType::IMM_DOUBLE:
+                                case InstrType::OperandType::GENERIC:
+                                    inj_info.operand_list[operand_i].is_this_operand_valid = false;
+                                    break;
+                            }
                         }
 
+//                        //REGs FIRST as I will read them before the cbank values
+//                        for (int num: input_reg_num_vector) {
+//                            /* last parameter tells it is a variadic parameter passed to
+//                             * the instrument function record_reg_val() */
+//                            nvbit_add_call_arg_const_val32(i, num, true);
+//                        }
                     }
                     // If an instruction has two destination registers, not handled!! (TODO: Fix later)
                 }
@@ -334,5 +349,6 @@ void nvbit_at_cuda_event(CUcontext ctx, int is_exit, nvbit_api_cuda_t cbid,
 }
 
 void nvbit_at_term() {
+    //TODO: save the last op and PC
     // nothing to do here.
 }

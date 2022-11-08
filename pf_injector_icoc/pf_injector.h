@@ -22,12 +22,13 @@
 #include <random>
 
 #include "arch.h"
+#include "instr_types.h"
 
 //#define MAX_KNAME_SIZE 1000
+#define MAX_OPERANDS_NUM 8 // Not valid for everything
 
 #define HOST_FUNCTION_  inline __host__
 #define DEVICE_FUNCTION_ __device__ __forceinline__
-//#define HOST_DEVICE_FUNCTION_ __host__ DEVICE_FUNCTION_
 
 static void assert_exception(bool condition, const std::string &message, const std::string &file, int line) {
     if (!condition) {
@@ -38,6 +39,12 @@ static void assert_exception(bool condition, const std::string &message, const s
 }
 
 #define assert_condition(condition, message) assert_exception(condition, message, __FILE__, __LINE__)
+
+struct OperandDescriptor {
+    InstrType::OperandType operand_type;
+    bool is_this_operand_valid;
+//    int32_t data;
+};
 
 enum ICOCSubpartition {
     SCHEDULER = 0,
@@ -65,6 +72,14 @@ struct InjectionInfo {
     // updated during/after error injection
     uint64_t num_activations;
 //    bool error_injected;
+    OperandDescriptor operand_list[MAX_OPERANDS_NUM];
+
+    HOST_FUNCTION_
+    void reset_operand_list(){
+        for(auto& i: this->operand_list){
+            i.is_this_operand_valid = false;
+        }
+    }
 
     HOST_FUNCTION_
     void reset_injection_info() {
