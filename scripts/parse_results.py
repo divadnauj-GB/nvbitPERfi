@@ -238,13 +238,180 @@ def print_detailed_results_tsv(typ):
 					f.write("\t".join([p.EM_STR[bfm]] + map(str,to_list({}, p.NUM_CATS))))
 	f.close()
 
+
+###############################################################################
+# nvbitPERfi
+# xlsx file
+###############################################################################
+
+def parse_IRA_results(app,inj_mode):
+	log_file=p.app_log_dir[app] + "/results-mode" + inj_mode + str(p.NUM_INJECTIONS) + ".txt"
+	IRA_DUE={}
+	IRA_DUE_INJ={}
+	IRA_SDC=0
+	IRA_MASKED=0
+	IR_DUE={}
+	IR_DUE_INJ={}
+	IR_SDC=0
+	IR_MASKED=0	
+
+
+	if os.path.isfile(log_file):
+		log_data=open(log_file,'r')
+		for eachErr in log_data:
+			Errfields=eachErr.split("$")
+			ErrDefinition=Errfields[0]
+			PC=Errfields[1]
+			OpCode=Errfields[2]
+			Tid=Errfields[3]
+			Bid=Errfields[4]
+			SimTime=Errfields[5]
+			Outcome=Errfields[7]
+			InjReportInfo=Errfields[8]
+			dmesreport=Errfields[9]
+
+
+			if("InsideLims" in InjReportInfo):
+				if("DUE" in Outcome):
+					if("Timeout" in Outcome):
+						if("Timeout" not in IRA_DUE):
+							IRA_DUE["Timeout"]=1
+							ind=InjReportInfo.find("TotErrAct")
+							upind=InjReportInfo.find("RegLoc")
+							dat=InjReportInfo[ind:upind].replace("TotErrAct:","")
+							dat=dat.replace(";","")
+							IRA_DUE_INJ["Timeout"]=int(dat)
+						else:
+							IRA_DUE["Timeout"]+=1
+							ind=InjReportInfo.find("TotErrAct")
+							upind=InjReportInfo.find("RegLoc")
+							dat=InjReportInfo[ind:upind].replace("TotErrAct:","")
+							dat=dat.replace(";","")
+							IRA_DUE_INJ["Timeout"]+=int(dat)
+					else:
+						if("Out Of Range Register" in dmesreport):
+							if("Out Of Range Register" not in IRA_DUE):
+								IRA_DUE["Out Of Range Register"]=1
+								ind=InjReportInfo.find("TotErrAct")
+								upind=InjReportInfo.find("RegLoc")
+								dat=InjReportInfo[ind:upind].replace("TotErrAct:","")
+								dat=dat.replace(";","")
+								IRA_DUE_INJ["Out Of Range Register"]=int(dat)
+							else:
+								IRA_DUE["Out Of Range Register"]+=1	
+								ind=InjReportInfo.find("TotErrAct")
+								upind=InjReportInfo.find("RegLoc")
+								dat=InjReportInfo[ind:upind].replace("TotErrAct:","")
+								dat=dat.replace(";","")
+								IRA_DUE_INJ["Out Of Range Register"]+=int(dat)
+						else:
+							if("ERROR FAIL in kernel execution (" in InjReportInfo):
+								Cause=InjReportInfo.split(';')[15].replace("ERROR FAIL in kernel execution (","")
+								if(Cause not in IRA_DUE):
+									IRA_DUE[Cause]=1
+									ind=InjReportInfo.find("TotErrAct")
+									upind=InjReportInfo.find("RegLoc")
+									dat=InjReportInfo[ind:upind].replace("TotErrAct:","")
+									dat=dat.replace(";","")
+									#print(ind,upind,InjReportInfo)
+									IRA_DUE_INJ[Cause]=int(dat)
+								else:
+									IRA_DUE[Cause]+=1
+									ind=InjReportInfo.find("TotErrAct")
+									upind=InjReportInfo.find("RegLoc")
+									dat=InjReportInfo[ind:upind].replace("TotErrAct:","")
+									dat=dat.replace(";","")
+									IRA_DUE_INJ[Cause]+=int(dat)
+							else:
+								assert(1==0)
+				elif("SDC" in Outcome):
+					IRA_SDC+=1
+				elif("Masked" in Outcome):
+					IRA_MASKED+=1
+
+			if("OutsideLims" in InjReportInfo):
+				if("DUE" in Outcome):
+					if("Timeout" in Outcome):
+						if("Timeout" not in IR_DUE):
+							IR_DUE["Timeout"]=1
+							ind=InjReportInfo.find("TotErrAct")
+							upind=InjReportInfo.find("RegLoc")
+							dat=InjReportInfo[ind:upind].replace("TotErrAct:","")
+							dat=dat.replace(";","")
+							IR_DUE_INJ["Timeout"]=int(dat)
+						else:
+							IR_DUE["Timeout"]+=1
+							ind=InjReportInfo.find("TotErrAct")
+							upind=InjReportInfo.find("RegLoc")
+							dat=InjReportInfo[ind:upind].replace("TotErrAct:","")
+							dat=dat.replace(";","")
+							IR_DUE_INJ["Timeout"]+=int(dat)
+					else:
+						if("Out Of Range Register" in dmesreport):
+							if("Out Of Range Register" not in IR_DUE):
+								IR_DUE["Out Of Range Register"]=1
+								ind=InjReportInfo.find("TotErrAct")
+								upind=InjReportInfo.find("RegLoc")
+								dat=InjReportInfo[ind:upind].replace("TotErrAct:","")
+								dat=dat.replace(";","")
+								IR_DUE_INJ["Out Of Range Register"]=int(dat)
+							else:
+								IR_DUE["Out Of Range Register"]+=1	
+								ind=InjReportInfo.find("TotErrAct")
+								upind=InjReportInfo.find("RegLoc")
+								dat=InjReportInfo[ind:upind].replace("TotErrAct:","")
+								dat=dat.replace(";","")
+								IR_DUE_INJ["Out Of Range Register"]+=int(dat)
+						else:
+							if("ERROR FAIL in kernel execution (" in InjReportInfo):
+								Cause=InjReportInfo.split(';')[15].replace("ERROR FAIL in kernel execution (","")
+								if(Cause not in IR_DUE):
+									IR_DUE[Cause]=1
+									ind=InjReportInfo.find("TotErrAct")
+									upind=InjReportInfo.find("RegLoc")
+									dat=InjReportInfo[ind:upind].replace("TotErrAct:","")
+									dat=dat.replace(";","")
+									IR_DUE_INJ[Cause]=int(dat)
+								else:
+									IR_DUE[Cause]+=1
+									ind=InjReportInfo.find("TotErrAct")
+									upind=InjReportInfo.find("RegLoc")
+									dat=InjReportInfo[ind:upind].replace("TotErrAct:","")
+									dat=dat.replace(";","")
+									IR_DUE_INJ[Cause]=int(dat)
+							else:
+								assert(1==0)
+				elif("SDC" in Outcome):
+					IR_SDC+=1
+				elif("Masked" in Outcome):
+					IR_MASKED+=1	
+		log_data.close()
+
+		print(f"IRA_MASKED: {IRA_MASKED}")
+		print(f"IRA_SDCs: {IRA_SDC}")		
+		for due in IRA_DUE:
+			print(f"IRA_DUEs: {IRA_DUE[due]} {due}; AvgErrAct: {IRA_DUE_INJ[due]/IRA_DUE[due]}")
+
+		print(f"IR_MASKED: {IR_MASKED}")
+		print(f"IR_SDCs: {IR_SDC}")		
+		for due in IR_DUE:
+			print(f"IRA_DUEs: {IR_DUE[due]} {due}; AvgErrAct: {IR_DUE_INJ[due]/IR_DUE[due]}")
+
+
+	else:
+		print(f"Error the log file {log_file} is not available")
+
 ###############################################################################
 # Main function that processes files, analyzes results and prints them to an
 # xlsx file
 ###############################################################################
 def main():
-	inj_type = "inst_value"
-			
+
+	inj_type = os.environ['nvbitPERfi']
+	app= os.environ['BENCHMARK']	
+	cf.set_env(app,False)
+
+	"""		
 	parse_results_apps(inj_type) # parse sassifi results into local data structures
 	# populate instruction fractions
 	populate_inst_fraction()
@@ -257,7 +424,12 @@ def main():
 	print_stats_tsv(inj_type)
 
 	print ("Results: %s" %(p.NVBITFI_HOME + "/logs/" + "results/"))
-
+	"""
+	
+	if inj_type=="IRA" or inj_type=="IR":
+		parse_IRA_results(app,inj_type)
+	elif inj_type=="IAT" or inj_type=="IAW":
+		parse_IRA_results(app,inj_type)
 
 if __name__ == "__main__":
     main()
