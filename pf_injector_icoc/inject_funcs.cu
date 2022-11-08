@@ -102,7 +102,9 @@ void inject_error(uint64_t injection_info_ptr, uint64_t verbose_device_ptr, int 
 
     int32_t dest_reg_before_val = nvbit_read_reg(dest_GPR_num); // read the register value
 
-    int32_t reg_data[MAX_OPERANDS_NUM] = {0};
+    int32_t reg_data[MAX_OPERANDS_NUM];
+    for (auto &ri: reg_data) ri = 0;
+
     va_list vl;
     va_start(vl, input_registers_num);
     fill_values_from_variadic(inj_info, input_registers_num, vl, reg_data);
@@ -159,8 +161,14 @@ int32_t define_opcode_behavior_32bits(InstructionType instruction_type, int32_t 
         case FSEL:
             destination_val_float = r1_float;
             break;
-//        case FSET:
-            //TODO: compares and set to 0 or 1 the output register
+        case FSET:
+            // compares and set to 0 or 1 the output register
+            if (r1_float == r2_float) {
+                destination_val_float = 0;
+            } else {
+                destination_val_float = 1;
+            }
+            break;
 //        case FSETP:
 //        case FSWZ:
 //        case FSWZADD:
@@ -220,7 +228,14 @@ int32_t define_opcode_behavior_32bits(InstructionType instruction_type, int32_t 
             break;
 //        case IMNMX:
 //        case IPA:
-//        case ISET:
+        case ISET:
+            // compares and set to 0 or 1 the output register
+            if (r1_int == r2_int) {
+                destination_val = 0;
+            } else {
+                destination_val = 1;
+            }
+            break;
 //        case ISETP:
 //            assert_gpu(false, "Not implemented", verbose);
 //            break;

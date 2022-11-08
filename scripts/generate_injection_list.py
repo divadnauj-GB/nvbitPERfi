@@ -338,45 +338,17 @@ def gen_IAT_fault_list(app,inj_mode,num_injections,blockDim):
 
 
 def gen_ICOC_fault_list(app, inj_mode_str, num_injections):
-    # NumSch = 4
-    # error_list = []
-
     if verbose:
         print("num_injections =", num_injections)
     f_name = p.app_log_dir[app] + "/injection-list/mode" + inj_mode_str + str(num_injections) + ".txt"
     print(f_name)
     with open(f_name, "w") as f:
-        sm_id, scheduler_id = int(os.environ['SMID']),  int(os.environ['SCHID'])
+        sm_id, scheduler_id = int(os.environ['SMID']), int(os.environ['SCHID'])
         for _ in range(num_injections):
-            pass
-            # warps = [0] * MaxWarpSize
-        #     warp = random.randint(0, (ValidWarps - 1))
-        #     while ((warp % 4) != schid):
-        #         warp = random.randint(0, (ValidWarps - 1))
-        #     Warps[warp] = 1
-        #
-        #     WarpH = 0
-        #     WarpL = 0
-        #
-        #     for i in range(0, 32):
-        #         if (Warps[i] == 1):
-        #             tmp = 1
-        #             tmp = tmp << i
-        #             WarpL = WarpL | tmp
-        #     for i in range(32, MaxWarpSize):
-        #         if (Warps[i] == 1):
-        #             tmp = 1
-        #             tmp = tmp << (i - 32)
-        #             WarpH = WarpH | tmp
-        #     Threads = (random.randint(1, 0xffffffff))
-        #     errMask = 0  # Always Inactive thread
-        #     error = f"{smid} {schid} {WarpH} {WarpL} {Threads} {errMask}\n"
-        #     # print(Warps,WarpH, WarpL, error)
-        #
-        #     if error not in error_list:
-        #         error_list.append(error)
-        #         f.write(error)  # print injection site information
-        #         num_injections -= 1
+            warp_h = warp_l = threads = err_mask = 0
+            error = f"{sm_id} {scheduler_id} {warp_h} {warp_l} {threads} {err_mask}\n"
+            f.write(error)  # print injection site information
+
 
 #################################################################
 # Starting point of the script

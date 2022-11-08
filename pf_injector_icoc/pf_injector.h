@@ -64,6 +64,9 @@ struct InjectionInfo {
 //    uint32_t mask; // injection mask
     uint32_t warp_group;
     uint32_t warp_id;
+    uint32_t last_pc_offset;
+
+    InstructionType last_opcode;
 //    InstructionType instruction_type_in; // instruction type in
     InstructionType instruction_type_out; // instruction type in
     // subpartition type
@@ -75,8 +78,8 @@ struct InjectionInfo {
     OperandDescriptor operand_list[MAX_OPERANDS_NUM];
 
     HOST_FUNCTION_
-    void reset_operand_list(){
-        for(auto& i: this->operand_list){
+    void reset_operand_list() {
+        for (auto &i: this->operand_list) {
             i.is_this_operand_valid = false;
         }
     }
@@ -91,14 +94,17 @@ struct InjectionInfo {
         this->num_activations = 0;
         this->warp_group = 0;
 //        this->error_injected = false;
-        icoc_subpartition = ICOCSubpartition::SCHEDULER;
+        this->icoc_subpartition = ICOCSubpartition::SCHEDULER;
+        this->last_opcode = NUM_ISA_INSTRUCTIONS;
+        this->last_pc_offset = 0;
     }
 
     // print info for debug
     DEVICE_FUNCTION_
     void print() const {
-        printf("SMID=%d, WarpID=%d, ICOCSubpartition=%d, warp group %d, InstTypeOut:%d\n", this->sm_id, this->warp_id,
-               this->icoc_subpartition, this->warp_group, this->instruction_type_out);
+        printf("SMID=%d, WarpID=%d, ICOCSubpartition=%d, warp group %d, InstTypeOut:%d LastInst %d LastPCOffset %d\n",
+               this->sm_id, this->warp_id, this->icoc_subpartition, this->warp_group, this->instruction_type_out,
+               this->last_opcode, this->last_pc_offset);
     }
 
     // print info
@@ -112,6 +118,8 @@ struct InjectionInfo {
         os << " selected WarpGroup: " << inj_info.warp_group << ";";
         os << " selected ICOCSubpartition: " << inj_info.icoc_subpartition << ";";
         os << " num_activations: " << inj_info.num_activations << ";";
+        os << " LastPCOffset: " << inj_info.last_pc_offset << ";";
+        os << " LastOpcode: " << inj_info.last_opcode << ";";
         return os;
     }
 
@@ -175,7 +183,7 @@ struct InjectionInfo {
                 BFE, BFI, BMSK, BREV, FLO, IABS, IADD, IADD32I,
                 IADD3, ICMP, IDP, IDP4A, IMAD, IMAD32I, IMADSP,
                 IMUL, IMUL32I, ISAD, ISCADD, ISCADD32I, LOP, LOP32I,
-                LOP3, SHF, SHL, SHR, XMAD
+                LOP3, SHF, SHL, SHR, XMAD, ISET, FSET
         };
 
         // gets 'entropy' from device that generates random numbers itself

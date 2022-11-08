@@ -28,6 +28,8 @@ pthread_mutex_t mutex;
 
 __managed__ InjectionInfo inj_info;
 
+std::string last_kernel, last_instruction;
+
 template<class ... Ts>
 void verbose_printf(Ts &&... inputs) {
     if (verbose) {
@@ -211,6 +213,8 @@ void instrument_function_if_needed(CUcontext ctx, CUfunction func) {
 //                        std::vector<int32_t> input_reg_num_vector;
                         inj_info.set_current_instruction_type();
                         inj_info.reset_operand_list();
+                        inj_info.last_opcode = static_cast<InstructionType>(inst_type);
+                        inj_info.last_pc_offset = i->getOffset();
                         assert_condition(i->getNumOperands() <= MAX_OPERANDS_NUM,
                                          "More than " + std::to_string(MAX_OPERANDS_NUM) +
                                          " not managed for the moment");
@@ -325,6 +329,8 @@ void nvbit_at_cuda_event(CUcontext ctx, int is_exit, nvbit_api_cuda_t cbid,
                 fout << "kernel_name: " << kname << ";";
                 fout << "ctas: " << num_ctas << ";";
                 fout << inj_info << std::endl;
+                last_kernel = kname;
+
 //                fout << "selected SM: " << inj_info.sm_id << ";";
 //                fout << "selected Lane: " << inj_info.lane_id << ";";
 //                fout << "selected Mask: " << inj_info.mask << ";";
@@ -349,6 +355,8 @@ void nvbit_at_cuda_event(CUcontext ctx, int is_exit, nvbit_api_cuda_t cbid,
 }
 
 void nvbit_at_term() {
-    //TODO: save the last op and PC
-    // nothing to do here.
+    fout << "Report_Summary: ;";
+    fout << "kernel_index: " << kernel_id << ";";
+    fout << "kernel_name: " << last_kernel << ";";
+    fout << inj_info << std::endl;
 }
