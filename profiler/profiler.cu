@@ -216,18 +216,27 @@ void nvbit_at_cuda_event(CUcontext ctx, int is_exit, nvbit_api_cuda_t cbid, cons
             int gridDimX=0;
             int gridDimY=0;
             int gridDimZ=0;
+            int max_threads_per_sm=0;
+            int max_warps_per_sm=0;
 
             if (cbid == API_CUDA_cuLaunchKernel_ptsz ||
                 cbid == API_CUDA_cuLaunchKernel) {
                 cuLaunchKernel_params *p2 = (cuLaunchKernel_params *) params;
                 num_ctas = p2->gridDimX * p2->gridDimY * p2->gridDimZ;
                 num_threads  = p2->gridDimX * p2->gridDimY * p2->gridDimZ * p2->blockDimX * p2->blockDimY * p2->blockDimZ;
+                //auto *device =(cuDeviceGet_params *) params;
+                
+                CUdevice device;
+                cuDeviceGet(&device, 0);
+
                 gridDimX=p2->gridDimX;
                 gridDimY=p2->gridDimY;
                 gridDimZ=p2->gridDimZ;
                 blockDimX=p2->blockDimX;
                 blockDimY=p2->blockDimY;
                 blockDimZ=p2->blockDimZ;
+                cuDeviceGetAttribute(&max_threads_per_sm,CU_DEVICE_ATTRIBUTE_MAX_THREADS_PER_MULTIPROCESSOR,device);
+                max_warps_per_sm=int(max_threads_per_sm/32);
                 
             }
             assert(fout.good());
@@ -237,6 +246,8 @@ void nvbit_at_cuda_event(CUcontext ctx, int is_exit, nvbit_api_cuda_t cbid, cons
                  << "; ctas: " << num_ctas
                  << "; num_threads: " << num_threads
                  << "; max_regcount: " << max_regcount
+                 << "; maxThreadsPerSM: " << max_threads_per_sm
+                 << "; maxWarpsPerSM: " << max_warps_per_sm
                  << "; max_reg_operands: " << max_reg_operands
                  << "; gridDimX: " << gridDimX
                  << "; gridDimY: " << gridDimY
