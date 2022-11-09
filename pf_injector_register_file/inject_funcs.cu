@@ -160,8 +160,8 @@ int destGPRNum, int replGPRNum, int regval, int numDestGPRs, int compute_cap, in
                 if(inj_info->injSMID == smid && inj_info->injScheduler == (WID%4)){								                        
                         assert(numDestGPRs > 0);                        
                         injBeforeVal = nvbit_read_reg(destGPRNum); // read the register value                        
-                        //inj_struct->register_tmp_recovery[WARP_PER_SM*THREAD_PER_WARP+kidx]=nvbit_read_reg(destGPRNum);
-                        inj_struct->register_tmp_recovery[inj_struct->num_threads*instridx+i]=nvbit_read_reg(destGPRNum);                        
+                        inj_struct->register_tmp_recovery[inj_info->MaxWarpsPerSM*inj_info->MaxThreadsPerWarp+kidx]=nvbit_read_reg(destGPRNum);
+                        //inj_struct->register_tmp_recovery[inj_struct->num_threads*instridx+i]=nvbit_read_reg(destGPRNum);                        
                         //inj_struct->register_tmp_recovery[kidx]=nvbit_read_reg((uint64_t)destGPRNum);                        						
                         inj_info->injInstrIdx=instridx;
                         inj_info->injInstOpcode=InstOpcode;
@@ -230,7 +230,8 @@ int destGPRNum, int replGPRNum, int regval, int numDestGPRs, int compute_cap, in
                             inj_info->errorInjected = true;                             
                             atomicAdd((unsigned long long*) &inj_info->injNumActivations, 1LL); 
                             injBeforeVal=nvbit_read_reg(destGPRNum); 
-                            injAfterVal=inj_struct->register_tmp_recovery[inj_struct->num_threads*instridx+i];                        
+                            //injAfterVal=inj_struct->register_tmp_recovery[inj_struct->num_threads*instridx+i];  
+                            injAfterVal= inj_struct->register_tmp_recovery[inj_info->MaxWarpsPerSM*inj_info->MaxThreadsPerWarp+kidx];	                      
                             //nvbit_write_reg(destGPRNum, inj_struct->register_tmp_recovery[WARP_PER_SM*THREAD_PER_WARP*instridx+kidx]);										
                             nvbit_write_reg(destGPRNum, injAfterVal);										
                             //nvbit_write_reg(destGPRNum, inj_struct->register_tmp_recovery[kidx]);										

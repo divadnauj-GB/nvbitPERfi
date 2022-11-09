@@ -269,6 +269,12 @@ def gen_IRA_fault_list(app,inj_mode,num_injections,regcount,opercount):
             WarpH=WarpH | tmp
     Threads=0xffffffff
 
+    if num_injections==10: #debug purposes
+        error =f"{smid} {schid} {WarpH} {WarpL} {Threads} {2} {2}\n"
+        error_list.append(error)
+        f.write(error) # print injection site information
+        num_injections-=1
+
     for i in range(opercount):
         for j in range(256):
     #while num_injections>0:        
@@ -284,6 +290,11 @@ def gen_IRA_fault_list(app,inj_mode,num_injections,regcount,opercount):
                 error_list.append(error)
                 f.write(error) # print injection site information
                 num_injections-=1
+            if(num_injections<1):
+                exit()
+        if(num_injections<1):
+            exit()
+
     f.close()
 
 
@@ -303,6 +314,32 @@ def gen_IAT_fault_list(app,inj_mode,num_injections,blockDim):
     smid=int(os.environ['SMID'])
     schid=int(os.environ['SCHID'])
     
+    for warp in range(MaxWarpSize):
+        Warps=[0]*MaxWarpSize
+        if((warp%4)!=schid):           
+            Warps[warp]=1
+        WarpH=0
+        WarpL=0
+        for i in range(0,32):
+            if(Warps[i]==1):
+                tmp=1
+                tmp=tmp<<i
+                WarpL=WarpL | tmp
+        for i in range(32,MaxWarpSize):
+            if(Warps[i]==1):
+                tmp=1
+                tmp=tmp<<(i-32)
+                WarpH=WarpH | tmp
+        Threads=0xffffffff
+
+        errMask=0  #Always Inactive thread
+        error =f"{smid} {schid} {WarpH} {WarpL} {Threads} {errMask}\n"
+        #print(Warps,WarpH, WarpL, error)        
+        if error not in error_list:
+            error_list.append(error)
+            f.write(error) # print injection site information
+            num_injections-=1
+
     while num_injections>0:
         Warps=[0]*MaxWarpSize
         warp=random.randint(0,(ValidWarps-1))  

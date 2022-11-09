@@ -87,7 +87,7 @@ void reset_inj_info() {
         inj_error_info.gridDimY=0;
         inj_error_info.gridDimZ=0;
         inj_error_info.maxregcount=0;
-        inj_error_info.num_threads=0;
+        inj_error_info.num_threads=0;        
         inj_error_info.errorInjected = false;
 }
 
@@ -135,15 +135,16 @@ void parse_paramsIRA(std::string filename) {
                         print_inj_info();
                 }
 
-                CUDA_SAFECALL(cudaMallocManaged(&(Injection_masks.Warp_thread_active),(WARP_PER_SM*THREAD_PER_WARP)*sizeof(uint32_t)));
-                CUDA_SAFECALL(cudaMallocManaged(&(Injection_masks.warp_thread_mask),(WARP_PER_SM*THREAD_PER_WARP)*sizeof(uint32_t)));
-                //CUDA_SAFECALL(cudaMallocManaged(&(Injection_masks.register_tmp_recovery),(WARP_PER_SM*THREAD_PER_WARP*MAX_KNAME_SIZE)*sizeof(uint32_t)));
-                CUDA_SAFECALL(cudaMallocManaged(&(Injection_masks.register_tmp_recovery),(inj_error_info.num_threads*MAX_KNAME_SIZE)*sizeof(uint32_t)));
+                CUDA_SAFECALL(cudaMallocManaged(&(Injection_masks.Warp_thread_active),(inj_error_info.MaxWarpsPerSM*inj_error_info.MaxThreadsPerWarp)*sizeof(uint32_t)));
+                CUDA_SAFECALL(cudaMallocManaged(&(Injection_masks.warp_thread_mask),(inj_error_info.MaxWarpsPerSM*inj_error_info.MaxThreadsPerWarp)*sizeof(uint32_t)));
+                //CUDA_SAFECALL(cudaMallocManaged(&(Injection_masks.register_tmp_recovery),(inj_error_info.MaxWarpsPerSM*inj_error_info.MaxThreadsPerWarp*MAX_KNAME_SIZE)*sizeof(uint32_t)));
+                //CUDA_SAFECALL(cudaMallocManaged(&(Injection_masks.register_tmp_recovery),(inj_error_info.num_threads*MAX_KNAME_SIZE)*sizeof(uint32_t)));
+                CUDA_SAFECALL(cudaMallocManaged(&(Injection_masks.register_tmp_recovery),(inj_error_info.MaxWarpsPerSM*inj_error_info.MaxThreadsPerWarp)*sizeof(uint32_t)));
 
                 Injection_masks.num_threads=inj_error_info.num_threads;
 
                 srand(inj_error_info.injMaskSeed);
-                for(int i=0;i<(WARP_PER_SM*THREAD_PER_WARP);++i){
+                for(int i=0;i<(inj_error_info.MaxWarpsPerSM*inj_error_info.MaxThreadsPerWarp);++i){
                     random=rand();
                     Injection_masks.warp_thread_mask[i]=*(int *)&random;
                 }
@@ -151,13 +152,13 @@ void parse_paramsIRA(std::string filename) {
                 int validW=0;
                 int validT=0;
                 int integer_mask=0;
-                for(int i=0;i<WARP_PER_SM;++i){
+                for(int i=0;i<inj_error_info.MaxWarpsPerSM;++i){
                     if (i>31){
                         validW=(inj_error_info.injWarpMaskH>>i)&1;
                     }else{
                         validW=(inj_error_info.injWarpMaskL>>i)&1;
                     }
-                    for(int j=0;j<THREAD_PER_WARP;++j){   
+                    for(int j=0;j<inj_error_info.MaxThreadsPerWarp;++j){   
                         validT= (inj_error_info.injThreadMask>>j)&1;                    
                         random=rand();
                         integer_mask=*(int *)&random;
@@ -206,19 +207,19 @@ void parse_paramsIAT(std::string filename) {
                         print_inj_info();
                 }
 
-                CUDA_SAFECALL(cudaMallocManaged(&(Injection_masks.Warp_thread_active),(WARP_PER_SM*THREAD_PER_WARP)*sizeof(uint32_t)));
+                CUDA_SAFECALL(cudaMallocManaged(&(Injection_masks.Warp_thread_active),(inj_error_info.MaxWarpsPerSM*inj_error_info.MaxThreadsPerWarp)*sizeof(uint32_t)));
 
                 int idx=0;
                 int validW=0;
                 int validT=0;
                 int integer_mask=0;
-                for(int i=0;i<WARP_PER_SM;++i){
+                for(int i=0;i<inj_error_info.MaxWarpsPerSM;++i){
                     if (i>31){
                         validW=(inj_error_info.injWarpMaskH>>i)&1;
                     }else{
                         validW=(inj_error_info.injWarpMaskL>>i)&1;
                     }
-                    for(int j=0;j<THREAD_PER_WARP;++j){   
+                    for(int j=0;j<inj_error_info.MaxThreadsPerWarp;++j){   
                         validT= (inj_error_info.injThreadMask>>j)&1;
                         //printf("valid %d, %d\n",idx,validW&validT) ;                   
                         Injection_masks.Warp_thread_active[idx]=(validW&validT);
@@ -269,14 +270,18 @@ void report_summary_results(void){
 fout << "=================================================================================" << endl;
 fout << "Final Report" <<  endl;
 fout << "=================================================================================" << endl;
-fout << "Report_Summary: "
+fout << "Report_Summary: " 
+        << "; DeviceName: " << inj_error_info.DeviceName
+        << "; MaxThreadsPerSM: " << inj_error_info.MaxThreadsPerSM
+        << "; MaxWarpsPerSm: " << inj_error_info.MaxWarpsPerSM
+        << "; MaxThreadsPerWarp: " << inj_error_info.MaxThreadsPerWarp
         << "; SmID: " << inj_error_info.injSMID
         << "; SchID: " << inj_error_info.injScheduler
         << "; WarpIDH: " << inj_error_info.injWarpMaskH
         << "; WarpIDL: " << inj_error_info.injWarpMaskL
         << "; LaneID: " << inj_error_info.injThreadMask
         << "; RegField: " << inj_error_info.injRegID
-        << "; MaxRegCount: " << inj_error_info.maxregcount
+        << "; MaxRegCount: " << inj_error_info.maxregcount     
         << "; RegOrigNum: " << inj_error_info.injRegOriginal
         << "; RegRepNum: " << inj_error_info.injRegReplacement
         << "; MaskSeed: " << inj_error_info.injMaskSeed
@@ -799,6 +804,14 @@ void nvbit_at_cuda_event(CUcontext ctx, int is_exit, nvbit_api_cuda_t cbid,
                 num_threads  = p1->gridDimX * p1->gridDimY * p1->gridDimZ * p1->blockDimX * p1->blockDimY * p1->blockDimZ;                              
                 if(!is_exit) {
                     if(read_file==false){
+                        int MaxThreadsPerSM=0;
+                        CUdevice device;
+                        cuDeviceGet(&device, 0);
+                        cuDeviceGetAttribute(&MaxThreadsPerSM,CU_DEVICE_ATTRIBUTE_MAX_THREADS_PER_MULTIPROCESSOR,device);
+                        cuDeviceGetName(inj_error_info.DeviceName,256,device);
+                        inj_error_info.MaxThreadsPerWarp=32;
+                        inj_error_info.MaxThreadsPerSM=MaxThreadsPerSM;
+                        inj_error_info.MaxWarpsPerSM=MaxThreadsPerSM/inj_error_info.MaxThreadsPerWarp;
                         if(inj_mode.compare("IRA")==0){
                                 parse_paramsIRA(injInputFilename);                                
                         }else if(inj_mode.compare("IAT")==0 || inj_mode.compare("IAW")==0){

@@ -218,6 +218,7 @@ void nvbit_at_cuda_event(CUcontext ctx, int is_exit, nvbit_api_cuda_t cbid, cons
             int gridDimZ=0;
             int max_threads_per_sm=0;
             int max_warps_per_sm=0;
+            char DeviceName[256];
 
             if (cbid == API_CUDA_cuLaunchKernel_ptsz ||
                 cbid == API_CUDA_cuLaunchKernel) {
@@ -238,16 +239,19 @@ void nvbit_at_cuda_event(CUcontext ctx, int is_exit, nvbit_api_cuda_t cbid, cons
                 cuDeviceGetAttribute(&max_threads_per_sm,CU_DEVICE_ATTRIBUTE_MAX_THREADS_PER_MULTIPROCESSOR,device);
                 max_warps_per_sm=int(max_threads_per_sm/32);
                 
+                cuDeviceGetName(DeviceName,256,device);
+                
             }
             assert(fout.good());
             std::string kname = removeSpaces(nvbit_get_func_name(ctx, p->f)).c_str();
             // std::cout << "; kernel_name: " << kname << " " << nvbit_get_func_name(ctx, p->f) << "\n";
             fout << "NVBit-igprofile; index: " << kernel_id++ << "; kernel_name: " << kname
+                 << "; DeviceName: " << DeviceName
+                 << "; maxThreadsPerSM: " << max_threads_per_sm
+                 << "; maxWarpsPerSM: " << max_warps_per_sm
                  << "; ctas: " << num_ctas
                  << "; num_threads: " << num_threads
                  << "; max_regcount: " << max_regcount
-                 << "; maxThreadsPerSM: " << max_threads_per_sm
-                 << "; maxWarpsPerSM: " << max_warps_per_sm
                  << "; max_reg_operands: " << max_reg_operands
                  << "; gridDimX: " << gridDimX
                  << "; gridDimY: " << gridDimY

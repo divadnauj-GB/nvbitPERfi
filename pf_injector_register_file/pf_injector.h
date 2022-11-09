@@ -66,6 +66,10 @@ typedef struct {
   uint32_t gridDimZ;
   uint32_t maxregcount;
   uint32_t num_threads;
+  uint32_t MaxWarpsPerSM;
+  uint32_t MaxThreadsPerSM;
+  uint32_t MaxThreadsPerWarp;
+  char DeviceName[256];
   bool errorInjected;
 } inj_info_error_t; 
 
