@@ -377,6 +377,9 @@ void nvbit_at_cuda_event(CUcontext ctx, int is_exit, nvbit_api_cuda_t cbid,
                 fout << "index: " << kernel_id << ";";
                 fout << "kernel_name: " << kname << ";";
                 fout << "ctas: " << num_ctas << ";";
+                fout << " LastPCOffset: " << last_pc_offset << ";";
+                fout << " LastOpcode: " << current_instruction_opcode << ";";
+                fout << " LastInstSASS: " << last_instruction_sass_str << ";";
                 fout << inj_info << std::endl;
                 last_kernel = kname;
 
