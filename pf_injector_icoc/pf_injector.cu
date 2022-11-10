@@ -27,8 +27,11 @@ std::string inj_output_filename;
 pthread_mutex_t mutex;
 
 __managed__ InjectionInfo inj_info;
+__managed__ unsigned long long count_activations_inst[NUM_ISA_INSTRUCTIONS];
 
-std::string last_kernel, last_instruction;
+std::string last_kernel, last_instruction_sass_str;
+uint64_t last_pc_offset;
+uint32_t current_instruction_opcode;
 
 template<class ... Ts>
 void verbose_printf(Ts &&... inputs) {
@@ -48,6 +51,40 @@ void update_verbose() {
         verbose_device = verbose;
         cudaDeviceSynchronize();
     }
+}
+
+void update_inst_counters() {
+    static bool update_flag = false;
+    if (!update_flag) {
+        update_flag = true;
+//        CUDA_SAFECALL(cudaMallocManaged(&count_activations_inst, sizeof(unsigned long long) * NUM_ISA_INSTRUCTIONS))
+        cudaDeviceSynchronize();
+        std::fill(count_activations_inst, count_activations_inst + NUM_ISA_INSTRUCTIONS, 0);
+        cudaDeviceSynchronize();
+    }
+}
+
+uint32_t generate_current_instruction_type(const uint32_t current_opcode) {
+    constexpr InstructionType possible_ops[] = {
+            FADD, FADD32I, FCMP, FFMA, FFMA32I, FMUL, FMUL32I,
+            BFE, BFI, BMSK, BREV, FLO, IABS, IADD, IADD32I,
+            IADD3, ICMP, IDP, IDP4A, IMAD, IMAD32I, IMADSP,
+            IMUL, IMUL32I, ISAD, ISCADD, ISCADD32I, LOP, LOP32I,
+            LOP3, SHF, SHL, SHR, XMAD, ISET, FSET
+    };
+    std::vector<uint32_t> weights;
+    for (auto i: possible_ops) {
+        if (i == current_opcode)
+            weights.push_back(0);
+        else
+            weights.push_back(1);
+    }
+
+    // gets 'entropy' from device that generates random numbers itself
+    // to seed a mersenne twister (pseudo) random generator
+    static std::mt19937 generator(std::random_device{}());
+    static std::discrete_distribution<> distribution(weights.begin(), weights.end());
+    return possible_ops[distribution(generator)];
 }
 
 int get_max_regs(CUfunction func) {
@@ -119,6 +156,7 @@ void instrument_function_if_needed(CUcontext ctx, CUfunction func) {
 
     inj_info.parse_params(inj_input_filename, verbose);  // injParams are updated based on injection seed file
     update_verbose();
+    update_inst_counters();
 
     /* Get related functions of the kernel (device function that can be
      * called by the kernel) */
@@ -192,81 +230,92 @@ void instrument_function_if_needed(CUcontext ctx, CUfunction func) {
                             num_dest_GPRs = 2;
                         }
 
+                        // Save last instrumented instruction info
+                        current_instruction_opcode = inst_type;
+                        last_pc_offset = i->getOffset();
+                        last_instruction_sass_str = i->getSass();
+                        auto is_float = uint32_t(op_group == G_FP32);
+                        auto replace_instruction_opcode = generate_current_instruction_type(current_instruction_opcode);
+                        auto num_operands = i->getNumOperands();
+
                         nvbit_insert_call(i, "inject_error", IPOINT_AFTER);
-                        nvbit_add_call_arg_const_val64(i, (uint64_t) &inj_info);
-                        nvbit_add_call_arg_const_val64(i, (uint64_t) &verbose_device);
-
-                        nvbit_add_call_arg_const_val32(i, dest_GPR_num); // destination GPR register number
-//                        if (dest_GPR_num != -1) {
-//                            nvbit_add_call_arg_reg_val(i, dest_GPR_num); // destination GPR register val
-//                        } else {
-//                            nvbit_add_call_arg_const_val32(i, (unsigned int) -1); // destination GPR register val
-//                        }
-                        nvbit_add_call_arg_const_val32(i, num_dest_GPRs); // number of destination GPR registers
-
-//                        nvbit_add_call_arg_const_val32(i, max_regs); // max regs used by the inst info
-                        /**************************************************************************
-                         * Edit: trying to load all the inst input vals
-                         * **************************************************************************/
-                        // Add all registers to the function call stack
-                        // Put always 4 registers
-//                        std::vector<int32_t> input_reg_num_vector;
-                        inj_info.set_current_instruction_type();
-                        inj_info.reset_operand_list();
-                        inj_info.last_opcode = static_cast<InstructionType>(inst_type);
-                        inj_info.last_pc_offset = i->getOffset();
-                        assert_condition(i->getNumOperands() <= MAX_OPERANDS_NUM,
-                                         "More than " + std::to_string(MAX_OPERANDS_NUM) +
-                                         " not managed for the moment");
-
+                        nvbit_add_call_arg_const_val64(i, uint64_t(&inj_info));
+                        nvbit_add_call_arg_const_val64(i, uint64_t(&verbose_device));
+                        nvbit_add_call_arg_const_val64(i, uint64_t(count_activations_inst));
+                        // destination GPR register number
+                        nvbit_add_call_arg_const_val32(i, dest_GPR_num);
+                        // number of destination GPR registers
+                        nvbit_add_call_arg_const_val32(i, num_dest_GPRs);
                         // Put if it is float or not
-                        nvbit_add_call_arg_const_val32(i, int(op_group == G_FP32));
+                        nvbit_add_call_arg_const_val32(i, is_float);
+                        // Put last opcode index
+                        nvbit_add_call_arg_const_val32(i, current_instruction_opcode);
+                        // Put the next opcode index
+                        nvbit_add_call_arg_const_val32(i, replace_instruction_opcode);
                         //  put the size of the operands at the end of the var list
-                        nvbit_add_call_arg_const_val32(i, i->getNumOperands());
+                        nvbit_add_call_arg_const_val32(i, num_operands);
+                        assert_condition(num_operands <= MAX_OPERANDS_NUM,
+                                         "More than " + std::to_string(MAX_OPERANDS_NUM) + "operands not managed");
 
                         /* iterate on the operands */
-                        for (auto operand_i = num_dest_GPRs; operand_i < i->getNumOperands(); operand_i++) {
+//                        auto mem_id = 0;
+                        for (auto operand_i = num_dest_GPRs; operand_i < num_operands; operand_i++) {
                             /* get the operand_i "i" */
                             const InstrType::operand_t *op = i->getOperand(operand_i);
-                            inj_info.operand_list[operand_i].operand_type = op->type;
-                            inj_info.operand_list[operand_i].is_this_operand_valid = true;
-                            switch (op->type) {
-                                case InstrType::OperandType::UREG:
-                                    nvbit_add_call_arg_ureg_val(i, op->u.reg.num, true);
-                                    break;
-                                case InstrType::OperandType::REG:
+                            InstrType::OperandType operand_type = op->type;
+                            auto casted_operand_type = static_cast<uint32_t>(operand_type);
+                            /**
+                             * Always put in the following order
+                             * 1 operand type const 32 bits
+                             * 2 if the operand is valid const 32bits (0 or 1)
+                             * 3 operand val, can be 32 bits or mem ref 64 bits
+                             */
+                            nvbit_add_call_arg_const_val32(i, casted_operand_type, true);
+//                            verbose_printf("casted_operand_type ", casted_operand_type, "\nnum_dest_GPRS ",
+//                                           num_dest_GPRs, " num operands ", num_operands);
+                            switch (operand_type) {
+                                case InstrType::OperandType::REG: {
+                                    nvbit_add_call_arg_const_val32(i, 1, true);
                                     nvbit_add_call_arg_reg_val(i, op->u.reg.num, true);
                                     break;
-                                case InstrType::OperandType::UPRED:
-                                    nvbit_add_call_arg_upred_val_at(i, op->u.pred.num, true);
-                                    break;
-                                case InstrType::OperandType::PRED:
-                                    nvbit_add_call_arg_pred_val_at(i, op->u.pred.num, true);
-                                    break;
-                                case InstrType::OperandType::CBANK:
+                                }
+                                case InstrType::OperandType::CBANK: {
+                                    nvbit_add_call_arg_const_val32(i, 1, true);
                                     if (op->u.cbank.has_imm_offset) {
                                         nvbit_add_call_arg_cbank_val(i, op->u.cbank.id, op->u.cbank.imm_offset, true);
                                     } else {
                                         nvbit_add_call_arg_cbank_val(i, op->u.cbank.id, op->u.cbank.reg_offset, true);
                                     }
                                     break;
+                                }
                                 case InstrType::OperandType::MREF:
-                                    nvbit_add_call_arg_mref_addr64(i, 0, true);
-                                    break;
+//                                {
+//                                    nvbit_add_call_arg_const_val32(i, 1, true);
+////                                    verbose_printf("HAS RA ", op->u.mref.has_ra, " has mmr ", op->u.mref.has_imm, "\n");
+//                                    nvbit_add_call_arg_const_val32(i, op->u.mref.has_ra, true);
+//                                    nvbit_add_call_arg_const_val32(i, op->u.mref.has_imm, true);
+//                                    if (op->u.mref.has_ra){
+//                                        nvbit_add_call_arg_reg_val(i, op->u.mref.ra_num, true);
+//                                    }
+//                                    if (op->u.mref.has_imm){
+//                                        assert_condition(mem_id == 0, "Interesting case here\n");
+//                                        nvbit_add_call_arg_mref_addr64(i, mem_id, true);
+//                                        mem_id++;
+//                                    }
+//                                    break;
+//                                }
                                 case InstrType::OperandType::IMM_UINT64:
                                 case InstrType::OperandType::IMM_DOUBLE:
                                 case InstrType::OperandType::GENERIC:
-                                    inj_info.operand_list[operand_i].is_this_operand_valid = false;
+                                case InstrType::OperandType::UREG:
+                                case InstrType::OperandType::UPRED:
+                                case InstrType::OperandType::PRED: {
+                                    nvbit_add_call_arg_const_val32(i, 0, true);
+                                    nvbit_add_call_arg_const_val32(i, 0, true);
                                     break;
+                                }
                             }
                         }
-
-//                        //REGs FIRST as I will read them before the cbank values
-//                        for (int num: input_reg_num_vector) {
-//                            /* last parameter tells it is a variadic parameter passed to
-//                             * the instrument function record_reg_val() */
-//                            nvbit_add_call_arg_const_val32(i, num, true);
-//                        }
                     }
                     // If an instruction has two destination registers, not handled!! (TODO: Fix later)
                 }
@@ -331,12 +380,6 @@ void nvbit_at_cuda_event(CUcontext ctx, int is_exit, nvbit_api_cuda_t cbid,
                 fout << inj_info << std::endl;
                 last_kernel = kname;
 
-//                fout << "selected SM: " << inj_info.sm_id << ";";
-//                fout << "selected Lane: " << inj_info.lane_id << ";";
-//                fout << "selected Mask: " << inj_info.mask << ";";
-//                fout << "selected InstType: " << inj_info.instruction_type_in << ";";
-//                fout << "num_activations: " << inj_info.num_activations << std::endl;
-
                 if (cudaSuccess != le) {
                     assert_condition(fout.good(), "Output file " + inj_output_filename + " not opened");
 
@@ -358,5 +401,15 @@ void nvbit_at_term() {
     fout << "Report_Summary: ;";
     fout << "kernel_index: " << kernel_id << ";";
     fout << "kernel_name: " << last_kernel << ";";
+    fout << " LastPCOffset: " << last_pc_offset << ";";
+    fout << " LastOpcode: " << current_instruction_opcode << ";";
+    fout << " LastInstSASS: " << last_instruction_sass_str << ";";
+
     fout << inj_info << std::endl;
+    cudaDeviceSynchronize();
+    for (auto i = 0; i < NUM_ISA_INSTRUCTIONS; i++) {
+        if (count_activations_inst[i]) {
+            verbose_printf(instTypeNames[i], ":", count_activations_inst[i], "\n");
+        }
+    }
 }
