@@ -55,8 +55,7 @@ void inject_error(
 ) {
     auto *inj_info = (InjectionInfo *) injection_info_ptr;
     auto *count_activations_inst = (unsigned long long *) count_activations_inst_ptr;
-    // Count the activations
-    atomicAdd(&count_activations_inst[current_opcode], 1);
+
     uint32_t verbose_device = *((uint32_t *) verbose_device_ptr);
     assert_gpu(num_dest_GPRs > 0, "num_dest_GPRs equals to 0", verbose_device);
 
@@ -108,6 +107,8 @@ void inject_error(
                    dest_GPR_num, current_opcode, replace_opcode, dest_reg_before_val, nvbit_read_reg(dest_GPR_num),
                    dest_reg_after_val);
         atomicAdd((unsigned long long *) &(inj_info->num_activations), 1LL);
+        // Count the activations
+        atomicAdd(&count_activations_inst[current_opcode], 1);
     }
 }
 

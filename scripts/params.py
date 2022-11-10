@@ -26,7 +26,7 @@
 
 import os, sys
 
-PYTHON_P = "python"
+PYTHON_P = "python3"
 
 TIMEOUT_THRESHOLD = 10 # 10X usual runtime 
 
@@ -82,6 +82,7 @@ assert THRESHOLD_JOBS <= NUM_INJECTIONS
 INJECTOR_LIB = os.environ['NVBITFI_HOME'] + "/injector/injector.so"
 PROFILER_LIB = os.environ['NVBITFI_HOME'] + "/profiler/profiler.so"
 INJECTOR_PF_RF = os.environ['NVBITFI_HOME'] + "/pf_injector_register_file/pf_injector.so"
+INJECTOR_PF_ICOC = os.environ['NVBITFI_HOME'] + "/pf_injector_icoc/pf_injector.so"
 
 
 #######################################################################

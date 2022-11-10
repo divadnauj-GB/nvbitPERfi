@@ -324,6 +324,17 @@ void instrument_function_if_needed(CUcontext ctx, CUfunction func) {
     }
 }
 
+
+void dump_count_activations_inst() {
+    for (auto i = 0; i < NUM_ISA_INSTRUCTIONS; i++) {
+        if (count_activations_inst[i]) {
+            verbose_printf(instTypeNames[i], ":", count_activations_inst[i], "\n");
+            fout << instTypeNames[i] << ":" << count_activations_inst[i] << "\n";
+        }
+    }
+}
+
+
 /* This call-back is triggered every time a CUDA event is encountered.
  * Here, we identify CUDA kernel launch events and reset the "counter" before
  * th kernel is launched, and print the counter after the kernel has completed
@@ -381,6 +392,7 @@ void nvbit_at_cuda_event(CUcontext ctx, int is_exit, nvbit_api_cuda_t cbid,
                 fout << " LastOpcode: " << current_instruction_opcode << ";";
                 fout << " LastInstSASS: " << last_instruction_sass_str << ";";
                 fout << inj_info << std::endl;
+                dump_count_activations_inst();
                 last_kernel = kname;
 
                 if (cudaSuccess != le) {
@@ -407,12 +419,8 @@ void nvbit_at_term() {
     fout << " LastPCOffset: " << last_pc_offset << ";";
     fout << " LastOpcode: " << current_instruction_opcode << ";";
     fout << " LastInstSASS: " << last_instruction_sass_str << ";";
-
     fout << inj_info << std::endl;
+
     cudaDeviceSynchronize();
-    for (auto i = 0; i < NUM_ISA_INSTRUCTIONS; i++) {
-        if (count_activations_inst[i]) {
-            verbose_printf(instTypeNames[i], ":", count_activations_inst[i], "\n");
-        }
-    }
+    dump_count_activations_inst();
 }
