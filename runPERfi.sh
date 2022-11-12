@@ -69,7 +69,8 @@ export RODINIA=""
 #IR
 #IIO
 #IPP
-export nvbitPERfi=IAT
+#export nvbitPERfi=IAT
+export nvbitPERfi=$2
 export SMID=0
 export SCHID=0
 
