@@ -55,7 +55,7 @@ def set_env_variables(inj_mode, app, error_model, icount): # Set directory paths
     injection_seeds_file = new_directory + "/" + p.injection_seeds
     if p.verbose: print ("new_directory: " + new_directory)
 
-    cf.set_env(app, False) # False - not the profiler job
+    cf.set_env(app, False, inj_mode) # False - not the profiler job
 
     
 ###############################################################################

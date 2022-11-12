@@ -87,7 +87,8 @@ def get_injection_site_info(countList, inj_num, igid):
         start += int(item[idx])
     return ["", -1, -1]
 
-def set_env(app, is_profiler):
+
+def set_env(app, is_profiler, inj_mode='IRA'):
     # Make sure that you use the same ENV variables in the run scripts
     os.environ['BIN_DIR'] = p.bin_dir[app]
     os.environ['BIN_PATH'] = p.bin_dir[app]
@@ -95,12 +96,18 @@ def set_env(app, is_profiler):
     os.environ['APP_BIN'] = p.app_bin[app]
     os.environ['APP_ARGS'] = p.app_args[app]
     os.environ['DATASET_DIR'] = p.app_data_dir[app]
-    if is_profiler: 
+    if is_profiler:
         os.environ['PRELOAD_FLAG'] = "LD_PRELOAD=" + p.PROFILER_LIB
-    else:
-        os.environ['PRELOAD_FLAG'] = "LD_PRELOAD=" + p.INJECTOR_PF_RF 
-    if p.verbose: print ("BIN_DIR=%s" %(os.environ['BIN_DIR']))
-    if p.verbose: print ("PRELOAD_FLAG=%s" %(os.environ['PRELOAD_FLAG']))
-    if p.verbose: print ("RODINIA=%s" %(os.environ['RODINIA']))
-    if p.verbose: print ("APP_DIR=%s" %(os.environ['APP_DIR']))
+    elif inj_mode in ['IRA', 'IR', 'IAT', 'IAW', 'IAC']:
+        os.environ['PRELOAD_FLAG'] = "LD_PRELOAD=" + p.INJECTOR_PF_RF
+    elif inj_mode in ['ICOC', 'IIO']:
+        os.environ['PRELOAD_FLAG'] = "LD_PRELOAD=" + p.INJECTOR_PF_ICOC
 
+    if p.verbose:
+        print("BIN_DIR=%s" % (os.environ['BIN_DIR']))
+    if p.verbose:
+        print("PRELOAD_FLAG=%s" % (os.environ['PRELOAD_FLAG']))
+    if p.verbose:
+        print("RODINIA=%s" % (os.environ['RODINIA']))
+    if p.verbose:
+        print("APP_DIR=%s" % (os.environ['APP_DIR']))

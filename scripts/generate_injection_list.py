@@ -644,6 +644,10 @@ def gen_IAC_fault_list(app,inj_mode,num_injections,blockDim):
 
 
 def gen_ICOC_fault_list(app, inj_mode_str, num_injections):
+    max_warp_per_sm = getMaxWarpsPerSM(app)
+    scheduler, decoder, fetch = range(3)
+    subpartitions = [scheduler, decoder, fetch]
+    is_iio_fault_model = int(inj_mode_str == 'IIO')
     if verbose:
         print("num_injections =", num_injections)
     f_name = p.app_log_dir[app] + "/injection-list/mode" + inj_mode_str + str(num_injections) + ".txt"
@@ -651,9 +655,10 @@ def gen_ICOC_fault_list(app, inj_mode_str, num_injections):
     with open(f_name, "w") as f:
         sm_id, scheduler_id = int(os.environ['SMID']), int(os.environ['SCHID'])
         for _ in range(num_injections):
-            warp_h = warp_l = threads = err_mask = 0
-            error = f"{sm_id} {scheduler_id} {warp_h} {warp_l} {threads} {err_mask}\n"
-            f.write(error)  # print injection site information
+            warp_id = random.choice([w_id_i for w_id_i in range(max_warp_per_sm) if (w_id_i % 4) == scheduler_id])
+            icoc_subpartition = random.choice(subpartitions)
+            err_string = f"{sm_id} {scheduler_id} {icoc_subpartition} {warp_id} {is_iio_fault_model}\n"
+            f.write(err_string)  # print injection site information
 
 
 #################################################################
@@ -674,7 +679,7 @@ def main():
             print ("\nCreating list for %s ... " %(app))
             os.system("mkdir -p %s/injection-list" %(p.app_log_dir[app])) # create directory to store injection list
 
-            if inj_mode == 'ICOC':
+            if inj_mode in ['ICOC', 'IIO']:
                 gen_ICOC_fault_list(app=app, inj_mode_str=inj_mode, num_injections=p.NUM_INJECTIONS)
             elif inj_mode=='IRA' or inj_mode=='IR':
                 regcount =  get_MaxRegPerThread(app)
@@ -692,7 +697,7 @@ def main():
             elif inj_mode=='IIO':
                 print('Sorry! This error model is not implemented yet, give us a hand ;)')
             else:
-                print(f"Ops.. the {inj_mode} error model does not exist, perhaps it is a new model you can implement in the future ;)")	
+                print(f"Ops.. the {inj_mode} error model does not exist, perhaps it is a new model you can implement in the future ;)")
 
             print ("Output: Check %s" %(p.app_log_dir[app] + "/injection-list/"))
 

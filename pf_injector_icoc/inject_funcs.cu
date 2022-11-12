@@ -35,70 +35,29 @@ bool is_fault_injection_necessary(const InjectionInfo *inj_info) {
     return true;
 }
 
-
 DEVICE_FUNCTION_
-void modify_destination_register(int dest_GPR_num, InjectionInfo *inj_info, uint32_t verbose_device,
-                                 uint32_t dest_reg_before_val, uint32_t dest_reg_after_val) {
-//    uint32_t dest_reg_before_val = nvbit_read_reg(dest_GPR_num); // read the register value
-//    uint32_t dest_reg_after_val = dest_reg_before_val;
-
-//        dest_reg_after_val = dest_reg_before_val ^ inj_info->mask;
-    nvbit_write_reg(dest_GPR_num, (int) dest_reg_after_val);
-
-    // updating counter/flag to check whether the error was injected
-    if (verbose_device)
-        printf("register=%d, before=0x%x, after=0x%x, expected_after=0x%x\n", dest_GPR_num, dest_reg_before_val,
-               nvbit_read_reg(dest_GPR_num), dest_reg_after_val);
-//    inj_info->error_injected = true;
-    atomicAdd((unsigned long long *) &inj_info->num_activations, 1LL);
-}
-
-DEVICE_FUNCTION_
-void fill_values_from_variadic(InjectionInfo *inj_info, int num_operands, va_list vl, int32_t *data) {
-    auto i = 0;
-    for (auto &op_descriptor: inj_info->operand_list) {
-        // end the list
-        if (op_descriptor.is_this_operand_valid) {
-            switch (op_descriptor.operand_type) {
-                case InstrType::OperandType::IMM_UINT64:
-                case InstrType::OperandType::IMM_DOUBLE:
-                case InstrType::OperandType::GENERIC:
-                    data[i] = 0; // Not managed
-                    break;
-                case InstrType::OperandType::REG:
-                case InstrType::OperandType::UREG:
-                case InstrType::OperandType::PRED:
-                case InstrType::OperandType::UPRED:
-                case InstrType::OperandType::CBANK:
-                    data[i] = va_arg(vl, int32_t);
-                    break;
-                case InstrType::OperandType::MREF: {
-                    uint64_t mem_adr = va_arg(vl, uint64_t);
-                    data[i] = 0;
-                    auto *mem_data = (int32_t *) mem_adr;
-                    data[i] = *mem_data;
-                }
-                    break;
-            }
-            i++;
-        }
-        if (num_operands-- < 0)
-            break;
-    }
-}
-
-DEVICE_FUNCTION_
-int32_t define_opcode_behavior_32bits(InstructionType instruction_type, int32_t original_r0,
+int32_t define_opcode_behavior_32bits(uint32_t instruction_type, int32_t original_r0,
                                       int32_t r1_int, int32_t r2_int, int32_t r3_int, int32_t r4_int,
                                       bool is_float, bool verbose);
 
 extern "C" __device__ __noinline__
-void inject_error(uint64_t injection_info_ptr, uint64_t verbose_device_ptr, int dest_GPR_num, int num_dest_GPRs,
-                  int is_float, int input_registers_num, ...) {
+void inject_error(
+        uint64_t injection_info_ptr,        //nvbit_add_call_arg_const_val64(i, uint64_t(&inj_info));
+        uint64_t verbose_device_ptr,        //nvbit_add_call_arg_const_val64(i, uint64_t(&verbose_device));
+        uint64_t count_activations_inst_ptr,//nvbit_add_call_arg_const_val64(i, uint64_t(count_activations_inst));
+        uint32_t dest_GPR_num,              //nvbit_add_call_arg_const_val32(i, dest_GPR_num);
+        uint32_t num_dest_GPRs,             //nvbit_add_call_arg_const_val32(i, num_dest_GPRs);
+        uint32_t is_float,                  //nvbit_add_call_arg_const_val32(i, is_float);
+        uint32_t current_opcode,            //nvbit_add_call_arg_const_val32(i, current_opcode);
+        uint32_t replace_opcode,            //nvbit_add_call_arg_const_val32(i, next_instruction_opcode);
+        int32_t num_operands,               //nvbit_add_call_arg_const_val32(i, i->getNumOperands());
+        ...                                 //variadic operands, managed on fill_values_from_variadic
+) {
     auto *inj_info = (InjectionInfo *) injection_info_ptr;
+    auto *count_activations_inst = (unsigned long long *) count_activations_inst_ptr;
+
     uint32_t verbose_device = *((uint32_t *) verbose_device_ptr);
     assert_gpu(num_dest_GPRs > 0, "num_dest_GPRs equals to 0", verbose_device);
-    assert_gpu(num_dest_GPRs == 1, "num_dest_GPRs > 1", verbose_device);
 
     int32_t dest_reg_before_val = nvbit_read_reg(dest_GPR_num); // read the register value
 
@@ -106,22 +65,56 @@ void inject_error(uint64_t injection_info_ptr, uint64_t verbose_device_ptr, int 
     for (auto &ri: reg_data) ri = 0;
 
     va_list vl;
-    va_start(vl, input_registers_num);
-    fill_values_from_variadic(inj_info, input_registers_num, vl, reg_data);
+    va_start(vl, num_operands);
+    for (uint32_t operand_i = num_dest_GPRs, i = 0; operand_i < num_operands; operand_i++) {
+        /** Always put in the following order
+         * 1 operand type const 32 bits
+         * 2 if the operand is valid const 32bits (0 or 1)
+         * 3 operand val, can be 32 bits or mem ref 64 bits
+         */
+        uint32_t operand_type = va_arg(vl, uint32_t);
+        uint32_t is_operand_valid = va_arg(vl, uint32_t);
+
+//        if (static_cast<InstrType::OperandType>(operand_type) == InstrType::OperandType::MREF) {
+//            uint64_t mem_adr = 0;
+//            uint32_t ra_val = 0;
+//            bool has_ra = va_arg(vl, uint32_t);
+//            bool has_imm = va_arg(vl, uint32_t);
+//            if (has_ra){
+//                ra_val = va_arg(vl, uint32_t);
+//            }
+//            if (has_imm){
+//                mem_adr = va_arg(vl, uint64_t);;
+//            }
+//            printf("%lu\n", (ra_val + mem_adr));
+//            auto *mem_data = (int32_t *) (ra_val + mem_adr);
+//            reg_data[i] = *mem_data;
+//        } else {
+        reg_data[i] = va_arg(vl, int32_t);
+//        }
+        assert_gpu((is_operand_valid == 0 || is_operand_valid == 1), "is_operand_valid incorrect >1", verbose_device);
+        i += is_operand_valid;
+    }
     va_end(vl);
 
-    auto dest_reg_after_val = define_opcode_behavior_32bits(inj_info->instruction_type_out, dest_reg_before_val,
+    auto dest_reg_after_val = define_opcode_behavior_32bits(replace_opcode, dest_reg_before_val,
                                                             reg_data[0], reg_data[1], reg_data[2], reg_data[3],
                                                             bool(is_float), verbose_device);
     if (DUMMY == 0 && is_fault_injection_necessary(inj_info)) {
-        modify_destination_register(dest_GPR_num, inj_info, verbose_device, dest_reg_before_val,
-                                    dest_reg_after_val);
+        nvbit_write_reg(dest_GPR_num, (int) dest_reg_after_val);
+        if (verbose_device)
+            printf("register=%d, beforeInst=%d, afterInst=%d, before=0x%x, after=0x%x, expected_after=0x%x\n",
+                   dest_GPR_num, current_opcode, replace_opcode, dest_reg_before_val, nvbit_read_reg(dest_GPR_num),
+                   dest_reg_after_val);
+        atomicAdd((unsigned long long *) &(inj_info->num_activations), 1LL);
+        // Count the activations
+        atomicAdd(&count_activations_inst[current_opcode], 1);
     }
 }
 
 
 DEVICE_FUNCTION_
-int32_t define_opcode_behavior_32bits(InstructionType instruction_type, int32_t original_r0,
+int32_t define_opcode_behavior_32bits(uint32_t instruction_type, int32_t original_r0,
                                       int32_t r1_int, int32_t r2_int, int32_t r3_int, int32_t r4_int,
                                       bool is_float, bool verbose) {
     float r1_float = __int_as_float(r1_int);
@@ -138,9 +131,6 @@ int32_t define_opcode_behavior_32bits(InstructionType instruction_type, int32_t 
         case FADD32I:
             destination_val_float = r1_float + r2_float;
             break;
-//        case FCHK:
-//            assert_gpu(false, "Not implemented", verbose);
-//            break;
         case FCMP:
             if (r1_float == r2_float)
                 destination_val_float = r3_float;
@@ -151,9 +141,6 @@ int32_t define_opcode_behavior_32bits(InstructionType instruction_type, int32_t 
         case FFMA32I:
             destination_val_float = r1_float * r2_float + r3_float;
             break;
-//        case FMNMX:
-//            assert_gpu(false, "Not implemented", verbose);
-//            break;
         case FMUL:
         case FMUL32I:
             destination_val_float = r1_float * r2_float;
@@ -169,11 +156,6 @@ int32_t define_opcode_behavior_32bits(InstructionType instruction_type, int32_t 
                 destination_val_float = 1;
             }
             break;
-//        case FSETP:
-//        case FSWZ:
-//        case FSWZADD:
-//            assert_gpu(false, "Not implemented", verbose);
-//            break;
 //====== Integer Instructions (35-67)
         case BFE: {
             int32_t mask = ~(0xffffffff << r3_int);
@@ -226,8 +208,6 @@ int32_t define_opcode_behavior_32bits(InstructionType instruction_type, int32_t 
         case IMADSP: // FIXME: find out what is different here
             destination_val = r1_int * r2_int + r3_int;
             break;
-//        case IMNMX:
-//        case IPA:
         case ISET:
             // compares and set to 0 or 1 the output register
             if (r1_int == r2_int) {
@@ -236,9 +216,6 @@ int32_t define_opcode_behavior_32bits(InstructionType instruction_type, int32_t 
                 destination_val = 1;
             }
             break;
-//        case ISETP:
-//            assert_gpu(false, "Not implemented", verbose);
-//            break;
         case IMUL:
         case IMUL32I:
             destination_val = r1_int * r2_int;
@@ -250,9 +227,6 @@ int32_t define_opcode_behavior_32bits(InstructionType instruction_type, int32_t 
         case ISCADD32I:
             destination_val = r1_int + r2_int;
             break;
-//        case LEA:
-//            assert_gpu(false, "Not implemented", verbose);
-//            break;
         case LOP:
         case LOP32I:
             destination_val = r1_int & r2_int;
@@ -260,9 +234,6 @@ int32_t define_opcode_behavior_32bits(InstructionType instruction_type, int32_t 
         case LOP3:
             destination_val = r1_int & r2_int & r3_int;
             break;
-//        case POPC:
-//            assert_gpu(false, "Not implemented", verbose);
-//            break;
         case SHF:
             destination_val = __funnelshift_l(r1_int, r2_int, r2_int);
             break;

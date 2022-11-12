@@ -4,7 +4,7 @@ NVCC_VER_REQ=11.3
 NVCC_VER=$(shell $(NVCC) --version | grep release | cut -f2 -d, | cut -f3 -d' ')
 NVCC_VER_CHECK=$(shell echo "${NVCC_VER} >= $(NVCC_VER_REQ)" | bc)
 
-NVBIT_PATH=../nvbit_release/core
+NVBIT_PATH=../../../core
 INCLUDES=-I$(NVBIT_PATH)
 INCLUDES+=-I../common
 
