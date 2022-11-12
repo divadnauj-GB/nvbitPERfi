@@ -83,13 +83,19 @@ export SCHID=0
 # Step 0 (3): Build the nvbitfi injector and profiler tools
 ###############################################################################
 printf "\nStep 0 (3): Build the nvbitfi injector and profiler tools\n"
-cd pf_injector_register_file
-make clean
-make
-cd ../profiler/
-make clean
-make
-cd $CWD
+for buildi in pf_injector_icoc  pf_injector_register_file profiler; do
+  echo "Building $buildi"
+  cd $buildi;
+  make clean all;
+  cd -
+done
+#cd pf_injector_register_file
+#make clean
+#make
+#cd ../profiler/
+#make clean
+#make
+#cd $CWD
 
 ###############################################################################
 # Step 0 (4): Run the app without instrumentation. Collect golden stdout and

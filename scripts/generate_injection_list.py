@@ -647,7 +647,7 @@ def gen_ICOC_fault_list(app, inj_mode_str, num_injections):
     max_warp_per_sm = getMaxWarpsPerSM(app)
     scheduler, decoder, fetch = range(3)
     subpartitions = [scheduler, decoder, fetch]
-    is_iio_fault_model = int(inj_mode_str == 'IIO')
+    is_iio_fault_model = 1 if inj_mode_str == 'IIO' else 0
     if verbose:
         print("num_injections =", num_injections)
     f_name = p.app_log_dir[app] + "/injection-list/mode" + inj_mode_str + str(num_injections) + ".txt"
@@ -694,8 +694,6 @@ def main():
             elif inj_mode=='IAC':
                 gridkDim=get_BlockDim(app)
                 gen_IAC_fault_list(app,inj_mode,p.NUM_INJECTIONS,gridkDim)
-            elif inj_mode=='IIO':
-                print('Sorry! This error model is not implemented yet, give us a hand ;)')
             else:
                 print(f"Ops.. the {inj_mode} error model does not exist, perhaps it is a new model you can implement in the future ;)")
 
