@@ -133,7 +133,13 @@ def create_p_file(p_filename, inj_mode, error_mode):
         else:
             print("Ops... it seems the error descriptor has missing arguments  :(")
     elif inj_mode=='IAT' or inj_mode=='IAW':
-        if len(error_mode)==6:
+        if len(error_mode)==8:
+            for fields in error_mode:
+                outf.write(fields+"\n")
+        else:
+            print("Ops... it seems the error descriptor has missing arguments  :(")
+    elif inj_mode=='IAC':
+        if len(error_mode)==8:
             for fields in error_mode:
                 outf.write(fields+"\n")
         else:
@@ -165,7 +171,7 @@ def get_inj_info(inj_mode):
     [value_str, pc, inst_type, tid, injBID] = ["", "", "", -1, -1]
     if os.path.isfile(p.inj_run_log): 
         logf = open(p.inj_run_log, "r")
-        if inj_mode in ['ICOC', 'IRA', 'IR', 'IAT', 'IAW']:
+        if inj_mode in ['ICOC', 'IRA', 'IR', 'IAT', 'IAW', 'IAC']:
             for line in logf:
                 if "Report_Summary:" in line:
                     value_str=line.replace("Report_Summary: ;","").strip()

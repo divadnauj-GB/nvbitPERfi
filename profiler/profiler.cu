@@ -218,6 +218,13 @@ void nvbit_at_cuda_event(CUcontext ctx, int is_exit, nvbit_api_cuda_t cbid, cons
             int gridDimZ=0;
             int max_threads_per_sm=0;
             int max_warps_per_sm=0;
+            int maxDimx=0;
+            int maxDimy=0;
+            int maxDimz=0;
+            int maxGridx=0;
+            int maxGridy=0;
+            int maxGridz=0;
+            
             char DeviceName[256];
 
             if (cbid == API_CUDA_cuLaunchKernel_ptsz ||
@@ -237,6 +244,13 @@ void nvbit_at_cuda_event(CUcontext ctx, int is_exit, nvbit_api_cuda_t cbid, cons
                 blockDimY=p2->blockDimY;
                 blockDimZ=p2->blockDimZ;
                 cuDeviceGetAttribute(&max_threads_per_sm,CU_DEVICE_ATTRIBUTE_MAX_THREADS_PER_MULTIPROCESSOR,device);
+                cuDeviceGetAttribute(&maxDimx,CU_DEVICE_ATTRIBUTE_MAX_BLOCK_DIM_X,device);
+                cuDeviceGetAttribute(&maxDimy,CU_DEVICE_ATTRIBUTE_MAX_BLOCK_DIM_Y,device);
+                cuDeviceGetAttribute(&maxDimz,CU_DEVICE_ATTRIBUTE_MAX_BLOCK_DIM_Z,device);
+                cuDeviceGetAttribute(&maxGridx,CU_DEVICE_ATTRIBUTE_MAX_GRID_DIM_X,device);
+                cuDeviceGetAttribute(&maxGridy,CU_DEVICE_ATTRIBUTE_MAX_GRID_DIM_Y,device);
+                cuDeviceGetAttribute(&maxGridz,CU_DEVICE_ATTRIBUTE_MAX_GRID_DIM_Z,device);
+                
                 max_warps_per_sm=int(max_threads_per_sm/32);
                 
                 cuDeviceGetName(DeviceName,256,device);
@@ -258,7 +272,13 @@ void nvbit_at_cuda_event(CUcontext ctx, int is_exit, nvbit_api_cuda_t cbid, cons
                  << "; gridDimZ: " << gridDimZ
                  << "; blockDimX: " << blockDimX
                  << "; blockDimY: " << blockDimY
-                 << "; blockDimZ: " << blockDimZ;
+                 << "; blockDimZ: " << blockDimZ
+                 << "; maxDimX: " << maxDimx
+                 << "; maxDimY: " << maxDimy
+                 << "; maxDimZ: " << maxDimz
+                 << "; maxGridX: " << maxGridx
+                 << "; maxGridY: " << maxGridy
+                 << "; maxGridZ: " << maxGridz;
                                                    
             if (enable_instrumentation) {
                 fout << "; instrs: " << get_inst_count(true) << ";";

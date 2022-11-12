@@ -50,6 +50,8 @@ typedef struct {
   uint32_t injThreadMask; //0-32
   uint32_t injMaskSeed;
   uint32_t injRegID; // injection mask
+  uint32_t injDimension;
+  uint32_t injStuck_at;
   uint32_t injInstType; // instruction type 
   uint32_t injRegOriginal;
   uint32_t injRegReplacement;
@@ -57,7 +59,7 @@ typedef struct {
   uint64_t injNumActivAcc;
   uint32_t injInstrIdx;
   uint32_t injInstPC;
-  uint32_t injInstOpcode;
+  uint32_t injInstOpcode;  
   uint32_t blockDimX;
   uint32_t blockDimY;
   uint32_t blockDimZ;
@@ -68,7 +70,7 @@ typedef struct {
   uint32_t num_threads;
   uint32_t MaxWarpsPerSM;
   uint32_t MaxThreadsPerSM;
-  uint32_t MaxThreadsPerWarp;
+  uint32_t MaxThreadsPerWarp;  
   char DeviceName[256];
   bool errorInjected;
 } inj_info_error_t; 

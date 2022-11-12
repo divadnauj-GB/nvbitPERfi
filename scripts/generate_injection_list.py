@@ -214,7 +214,8 @@ def getMaxThreadPerSM(app):
         maxThreadsPerSM=0
         for field in fields:
             if "maxThreadsPerSM" in field:
-                maxThreadsPerSM=int(field.strip().split(':')[1])            
+                maxThreadsPerSM=int(field.strip().split(':')[1])       
+    f.close()
     return maxThreadsPerSM
 
 
@@ -232,8 +233,60 @@ def getMaxWarpsPerSM(app):
         maxWarpsPerSM=0
         for field in fields:
             if "maxWarpsPerSM" in field:
-                maxWarpsPerSM=int(field.strip().split(':')[1])            
+                maxWarpsPerSM=int(field.strip().split(':')[1])          
+    f.close()
     return maxWarpsPerSM
+
+
+def getMaxDim(app):
+    maxreg = 0
+    fName = p.app_log_dir[app] + "/" + p.nvbit_profile_log 
+    if not os.path.exists(fName):
+        print ("%s file not found!" %fName )
+        return maxreg
+
+    f = open(fName, "r")
+    for line in f:
+        # NVBit-igprofile; index: 0; kernel_name: _Z10simple_addi; ctas: 10; instrs: 409600; FADD: 0, FADD32I: 0, FCHK: 0, FCMP: 0, FFMA: 0, FFMA32I: 0, FMNMX: 0, FMUL: 0, FMUL32I: 0, FSET: 0, FSETP: 0, FSWZADD: 0, IPA: 0, MUFU: 0, RRO: 0, DADD: 0, DFMA: 0, DMNMX: 0, DMUL: 0, DSET: 0, DSETP: 0, HADD2: 0, HADD2_32I: 0, HFMA2: 0, HFMA2_32I: 0, HMUL2: 0, HMUL2_32I: 0, HSET2: 0, HSETP2: 0, IDP: 0, BFE: 0, BFI: 0, FLO: 10240, IADD: 0, IADD3: 0, IADD32I: 30720, ICMP: 0, IMAD: 0, IMAD32I: 0, IMADSP: 0, IMNMX: 0, IMUL: 0, IMUL32I: 0, ISCADD: 0, ISCADD32I: 0, ISET: 0, ISETP: 30720, LEA: 0, LOP: 0, LOP3: 0, LOP32I: 0, POPC: 10240, SHF: 0, SHL: 0, SHR: 0, XMAD: 30720, VABSDIFF: 40960, VADD: 0, VMAD: 0, VMNMX: 0, VSET: 0, VSETP: 0, VSHL: 0, VSHR: 0, VABSDIFF4: 0, F2F: 0, F2I: 0, I2F: 0, I2I: 0, MOV: 122880, MOV32I: 40960, PRMT: 0, SEL: 0, SHFL: 0, CSET: 0, CSETP: 0, PSET: 0, PSETP: 0, P2R: 0, R2P: 0, TEX: 0, TLD: 0, TLD4: 0, TMML: 0, TXA: 0, TXD: 0, TXQ: 0, TEXS: 0, TLD4S: 0, TLDS: 0, STP: 0, LD: 0, LDC: 0, LDG: 0, LDL: 0, LDS: 0, ST: 0, STG: 0, STL: 0, STS: 0, ATOM: 0, ATOMS: 0, RED: 320, CCTL: 0, CCTLL: 0, MEMBAR: 0, CCTLT: 0, SUATOM: 0, SULD: 0, SURED: 0, SUST: 0, BRA: 61120, BRX: 0, JMP: 0, JMX: 0, SSY: 0, SYNC: 0, CAL: 0, JCAL: 0, PRET: 0, RET: 0, BRK: 0, PBK: 0, CONT: 0, PCNT: 0, EXIT: 10240, PEXIT: 0, LONGJMP: 0, PLONGJMP: 0, KIL: 0, BPT: 0, IDE: 0, RAM: 0, RTT: 0, SAM: 0, NOP: 0, CS2R: 0, S2R: 10240, LEPC: 0, B2R: 0, BAR: 0, R2B: 0, VOTE: 10240, DEPBAR: 0, GETCRSPTR: 0, GETLMEMBASE: 0, SETCRSPTR: 0, SETLMEMBASE: 0, fp64: 0, fp32: 0, ld: 0, pr: 30720, nodest: 71680, others: 307200, gppr: 337920,
+        fields=line.strip().split(';')
+        maxGridX=0
+        maxGridY=0
+        maxGridZ=0
+        for field in fields:
+            if "maxDimX" in field:
+                maxGridX=int(field.strip().split(':')[1])  
+            if "maxDimY" in field:
+                maxGridY=int(field.strip().split(':')[1])   
+            if "maxDimZ" in field:
+                maxGridZ=int(field.strip().split(':')[1])   
+    f.close()
+    return [maxGridX, maxGridY, maxGridZ]
+
+def getMaxGrid(app):
+    maxreg = 0
+    fName = p.app_log_dir[app] + "/" + p.nvbit_profile_log 
+    if not os.path.exists(fName):
+        print ("%s file not found!" %fName )
+        return maxreg
+
+    f = open(fName, "r")
+    for line in f:
+        # NVBit-igprofile; index: 0; kernel_name: _Z10simple_addi; ctas: 10; instrs: 409600; FADD: 0, FADD32I: 0, FCHK: 0, FCMP: 0, FFMA: 0, FFMA32I: 0, FMNMX: 0, FMUL: 0, FMUL32I: 0, FSET: 0, FSETP: 0, FSWZADD: 0, IPA: 0, MUFU: 0, RRO: 0, DADD: 0, DFMA: 0, DMNMX: 0, DMUL: 0, DSET: 0, DSETP: 0, HADD2: 0, HADD2_32I: 0, HFMA2: 0, HFMA2_32I: 0, HMUL2: 0, HMUL2_32I: 0, HSET2: 0, HSETP2: 0, IDP: 0, BFE: 0, BFI: 0, FLO: 10240, IADD: 0, IADD3: 0, IADD32I: 30720, ICMP: 0, IMAD: 0, IMAD32I: 0, IMADSP: 0, IMNMX: 0, IMUL: 0, IMUL32I: 0, ISCADD: 0, ISCADD32I: 0, ISET: 0, ISETP: 30720, LEA: 0, LOP: 0, LOP3: 0, LOP32I: 0, POPC: 10240, SHF: 0, SHL: 0, SHR: 0, XMAD: 30720, VABSDIFF: 40960, VADD: 0, VMAD: 0, VMNMX: 0, VSET: 0, VSETP: 0, VSHL: 0, VSHR: 0, VABSDIFF4: 0, F2F: 0, F2I: 0, I2F: 0, I2I: 0, MOV: 122880, MOV32I: 40960, PRMT: 0, SEL: 0, SHFL: 0, CSET: 0, CSETP: 0, PSET: 0, PSETP: 0, P2R: 0, R2P: 0, TEX: 0, TLD: 0, TLD4: 0, TMML: 0, TXA: 0, TXD: 0, TXQ: 0, TEXS: 0, TLD4S: 0, TLDS: 0, STP: 0, LD: 0, LDC: 0, LDG: 0, LDL: 0, LDS: 0, ST: 0, STG: 0, STL: 0, STS: 0, ATOM: 0, ATOMS: 0, RED: 320, CCTL: 0, CCTLL: 0, MEMBAR: 0, CCTLT: 0, SUATOM: 0, SULD: 0, SURED: 0, SUST: 0, BRA: 61120, BRX: 0, JMP: 0, JMX: 0, SSY: 0, SYNC: 0, CAL: 0, JCAL: 0, PRET: 0, RET: 0, BRK: 0, PBK: 0, CONT: 0, PCNT: 0, EXIT: 10240, PEXIT: 0, LONGJMP: 0, PLONGJMP: 0, KIL: 0, BPT: 0, IDE: 0, RAM: 0, RTT: 0, SAM: 0, NOP: 0, CS2R: 0, S2R: 10240, LEPC: 0, B2R: 0, BAR: 0, R2B: 0, VOTE: 10240, DEPBAR: 0, GETCRSPTR: 0, GETLMEMBASE: 0, SETCRSPTR: 0, SETLMEMBASE: 0, fp64: 0, fp32: 0, ld: 0, pr: 30720, nodest: 71680, others: 307200, gppr: 337920,
+        fields=line.strip().split(';')
+        maxGridX=0
+        maxGridY=0
+        maxGridZ=0
+        for field in fields:
+            if "maxGridX" in field:
+                maxGridX=int(field.strip().split(':')[1])  
+            if "maxGridY" in field:
+                maxGridY=int(field.strip().split(':')[1])   
+            if "maxGridZ" in field:
+                maxGridZ=int(field.strip().split(':')[1])   
+    f.close()
+    return [maxGridX, maxGridY, maxGridZ]
+
+
 
 
 def gen_IRA_fault_list(app,inj_mode,num_injections,regcount,opercount):
@@ -300,6 +353,7 @@ def gen_IRA_fault_list(app,inj_mode,num_injections,regcount,opercount):
 
 def gen_IAT_fault_list(app,inj_mode,num_injections,blockDim):
     MaxWarpSize=getMaxWarpsPerSM(app)
+    [maxDimx, maxDimy, maxDimz] = getMaxDim(app)
     ValidWarps=int((max(blockDim)/32))
     ValidWarps=MaxWarpSize
     NumSch=4
@@ -313,44 +367,17 @@ def gen_IAT_fault_list(app,inj_mode,num_injections,blockDim):
     f = open(fName, "w")
     smid=int(os.environ['SMID'])
     schid=int(os.environ['SCHID'])
-    
-    for warp in range(0,MaxWarpSize):
-        Warps=[0]*MaxWarpSize
-        if((warp%4)==schid):           
-            Warps[warp]=1
-            WarpH=0
-            WarpL=0
-
-            for i in range(0,32):
-                if(Warps[i]==1):
-                    tmp=1
-                    tmp=tmp<<i
-                    WarpL=WarpL | tmp
-            for i in range(32,MaxWarpSize):
-                if(Warps[i]==1):
-                    tmp=1
-                    tmp=tmp<<(i-32)
-                    WarpH=WarpH | tmp
-            Threads=0xffffffff
-
-            errMask=0  #Always Inactive thread
-            error =f"{smid} {schid} {WarpH} {WarpL} {Threads} {errMask}\n"
-            #print(Warps,WarpH, WarpL, error)        
-            if error not in error_list:
-                error_list.append(error)
-                f.write(error) # print injection site information
-                num_injections-=1
-        if(num_injections<1):
-            exit()
-
-
 
     while num_injections>0:
         Warps=[0]*MaxWarpSize
-        warp=random.randint(0,(ValidWarps-1))  
-        while((warp%4)!=schid):           
-            warp=random.randint(0,(ValidWarps-1))
-        Warps[warp]=1
+
+        ErrWarps=random.randint(0,(ValidWarps)/4)
+        while(ErrWarps>0):
+            warp=random.randint(0,(ValidWarps-1))  
+            while((warp%4)!=schid and Warps[warp]!=0):           
+                warp=random.randint(0,(ValidWarps-1))
+            Warps[warp]=1
+            ErrWarps-=1
 
         WarpH=0
         WarpL=0
@@ -365,9 +392,61 @@ def gen_IAT_fault_list(app,inj_mode,num_injections,blockDim):
                 tmp=1
                 tmp=tmp<<(i-32)
                 WarpH=WarpH | tmp
-        Threads=(random.randint(1,0xffffffff))
-        errMask=0  #Always Inactive thread
-        error =f"{smid} {schid} {WarpH} {WarpL} {Threads} {errMask}\n"
+        
+        numThreads=random.randint(1,31)
+        n=0
+        val=0
+        while(n!=numThreads):
+            val=val | (1<<random.randint(0,31))
+            n=bin(val).count("1")
+        
+        #print(bin(val))
+
+        Threads=val
+
+        #TargetWarp=random.randint(0,(MaxWarpSize-1))  
+        #while((TargetWarp==warp)):           
+        #    TargetWarp=random.randint(0,(MaxWarpSize-1))
+        [DimIDx,DimIDy,DimIDz]=get_BlockDim(app)
+
+        dim=random.randint(0,2)
+           
+        if(DimIDz>1):
+            if(dim==2): # error in the dimention z
+                MaskSeed=random.randint(1,maxDimz)
+        else:
+            dim=random.randint(0,1)
+
+        if(DimIDy>1):
+            if(dim==1): # error in the dimention Y
+                MaskSeed=random.randint(1,maxDimy)
+        else:
+            dim=0
+
+        if(DimIDx>1):   
+            if(dim==0): #error in the dimention x
+                MaskSeed=random.randint(1,maxDimx)
+        else:
+            dim=2
+
+        if(DimIDz>1):
+            if(dim==2): # error in the dimention z
+                MaskSeed=random.randint(1,maxDimz)
+        else:
+            dim=0
+            MaskSeed=random.randint(1,maxDimx)
+            
+        """
+        dim=random.randint(0,2)
+        if(dim==0): #error in the dimention x
+            MaskSeed=random.randint(1,maxDimx-1)
+        if(dim==1): # error in the dimention Y
+            MaskSeed=random.randint(1,maxDimy-1)
+        if(dim==2): # error in the dimention z
+            MaskSeed=random.randint(1,maxDimz-1)
+        """
+        active=random.randint(0,1)  #Always Inactive thread
+        error =f"{smid} {schid} {WarpH} {WarpL} {Threads} {MaskSeed} {dim} {active}\n"
         #print(Warps,WarpH, WarpL, error)
         
         if error not in error_list:
@@ -377,6 +456,191 @@ def gen_IAT_fault_list(app,inj_mode,num_injections,blockDim):
 
     f.close()
 
+
+def gen_IAW_fault_list(app,inj_mode,num_injections,blockDim):
+    MaxWarpSize=getMaxWarpsPerSM(app)
+    [maxDimx, maxDimy, maxDimz] = getMaxDim(app)
+    ValidWarps=int((max(blockDim)/32))
+    ValidWarps=MaxWarpSize
+    NumSch=4
+    error_list=[]
+    
+
+    if verbose:
+        print ("num_injections = %d" %(num_injections))
+    fName = p.app_log_dir[app] + "/injection-list/mode" + inj_mode+str(num_injections) + ".txt"
+    print (fName)
+    f = open(fName, "w")
+    smid=int(os.environ['SMID'])
+    schid=int(os.environ['SCHID'])
+
+    while num_injections>0:
+        Warps=[0]*MaxWarpSize
+
+        ErrWarps=random.randint(0,(ValidWarps)/4)
+        while(ErrWarps>0):
+            warp=random.randint(0,(ValidWarps-1))  
+            while((warp%4)!=schid and Warps[warp]!=0):           
+                warp=random.randint(0,(ValidWarps-1))
+            Warps[warp]=1
+            ErrWarps-=1
+
+        WarpH=0
+        WarpL=0
+
+        for i in range(0,32):
+            if(Warps[i]==1):
+                tmp=1
+                tmp=tmp<<i
+                WarpL=WarpL | tmp
+        for i in range(32,MaxWarpSize):
+            if(Warps[i]==1):
+                tmp=1
+                tmp=tmp<<(i-32)
+                WarpH=WarpH | tmp
+        
+        Threads=0xffffffff
+
+        #TargetWarp=random.randint(0,(MaxWarpSize-1))  
+        #while((TargetWarp==warp)):           
+        #    TargetWarp=random.randint(0,(MaxWarpSize-1))      
+        [DimIDx,DimIDy,DimIDz]=get_BlockDim(app)
+
+        dim=random.randint(0,2)
+           
+        if(DimIDz>1):
+            if(dim==2): # error in the dimention z
+                MaskSeed=random.randint(1,maxDimz)
+        else:
+            dim=random.randint(0,1)
+
+        if(DimIDy>1):
+            if(dim==1): # error in the dimention Y
+                MaskSeed=random.randint(1,maxDimy)
+        else:
+            dim=0
+
+        if(DimIDx>1):   
+            if(dim==0): #error in the dimention x
+                MaskSeed=random.randint(1,maxDimx)
+        else:
+            dim=2
+
+        if(DimIDz>1):
+            if(dim==2): # error in the dimention z
+                MaskSeed=random.randint(1,maxDimz)
+        else:
+            dim=0
+            MaskSeed=random.randint(1,maxDimx)
+
+        """
+        dim=random.randint(0,2)
+        if(dim==0): #error in the dimention x
+            MaskSeed=random.randint(1,maxDimx-1)
+        if(dim==1): # error in the dimention Y
+            MaskSeed=random.randint(1,maxDimy-1)
+        if(dim==2): # error in the dimention z
+            MaskSeed=random.randint(1,maxDimz-1)
+        """
+
+        active=random.randint(0,1)  #Always Inactive thread
+        error =f"{smid} {schid} {WarpH} {WarpL} {Threads} {MaskSeed} {dim} {active}\n"
+        #print(Warps,WarpH, WarpL, error)
+        
+        if error not in error_list:
+            error_list.append(error)
+            f.write(error) # print injection site information
+            num_injections-=1
+    f.close()
+
+
+def gen_IAC_fault_list(app,inj_mode,num_injections,blockDim):
+    MaxWarpSize=getMaxWarpsPerSM(app)
+    [maxGridx, maxGridy, maxGridz] = getMaxGrid(app)
+    ValidWarps=int((max(blockDim)/32))
+    ValidWarps=MaxWarpSize
+    NumSch=4
+    error_list=[]
+    
+
+    if verbose:
+        print ("num_injections = %d" %(num_injections))
+    fName = p.app_log_dir[app] + "/injection-list/mode" + inj_mode+str(num_injections) + ".txt"
+    print (fName)
+    f = open(fName, "w")
+    smid=int(os.environ['SMID'])
+    schid=int(os.environ['SCHID'])
+
+    while num_injections>0:
+        Warps=[0]*MaxWarpSize
+
+        ErrWarps=random.randint(0,(ValidWarps)/4)
+        while(ErrWarps>0):
+            warp=random.randint(0,(ValidWarps-1))  
+            while((warp%4)!=schid and Warps[warp]!=0):           
+                warp=random.randint(0,(ValidWarps-1))
+            Warps[warp]=1
+            ErrWarps-=1
+
+        WarpH=0
+        WarpL=0
+
+        for i in range(0,32):
+            if(Warps[i]==1):
+                tmp=1
+                tmp=tmp<<i
+                WarpL=WarpL | tmp
+        for i in range(32,MaxWarpSize):
+            if(Warps[i]==1):
+                tmp=1
+                tmp=tmp<<(i-32)
+                WarpH=WarpH | tmp
+        
+        Threads=0xffffffff
+
+        #TargetWarp=random.randint(0,(MaxWarpSize-1))  
+        #while((TargetWarp==warp)):           
+        #    TargetWarp=random.randint(0,(MaxWarpSize-1))
+
+        [gridIDx,gridIDy,gridIDz]=get_GridDim(app)
+
+        dim=random.randint(0,2)
+           
+        if(gridIDz>1):
+            if(dim==2): # error in the dimention z
+                MaskSeed=random.randint(1,maxGridz)
+        else:
+            dim=random.randint(0,1)
+
+        if(gridIDy>1):
+            if(dim==1): # error in the dimention Y
+                MaskSeed=random.randint(1,maxGridy)
+        else:
+            dim=0
+
+        if(gridIDx>1):   
+            if(dim==0): #error in the dimention x
+                MaskSeed=random.randint(1,maxGridx)
+        else:
+            dim=2
+
+        if(gridIDz>1):
+            if(dim==2): # error in the dimention z
+                MaskSeed=random.randint(1,maxGridz)
+        else:
+            dim=0
+            MaskSeed=random.randint(1,maxGridx)
+
+        active=random.randint(0,1)  #Always Inactive thread
+        error =f"{smid} {schid} {WarpH} {WarpL} {Threads} {MaskSeed} {dim} {active}\n"
+        #print(Warps,WarpH, WarpL, error)
+        
+        if error not in error_list:
+            error_list.append(error)
+            f.write(error) # print injection site information
+            num_injections-=1
+
+    f.close()
 
 
 def gen_ICOC_fault_list(app, inj_mode_str, num_injections):
@@ -416,9 +680,15 @@ def main():
                 regcount =  get_MaxRegPerThread(app)
                 opercount = get_MaxRegOper(app) 
                 gen_IRA_fault_list(app,inj_mode,p.NUM_INJECTIONS,regcount,opercount)
-            elif inj_mode=='IAT' or inj_mode=='IAW':
+            elif inj_mode=='IAT':
                 blockDim=get_BlockDim(app)
                 gen_IAT_fault_list(app,inj_mode,p.NUM_INJECTIONS,blockDim)
+            elif inj_mode=='IAW':
+                blockDim=get_BlockDim(app)
+                gen_IAW_fault_list(app,inj_mode,p.NUM_INJECTIONS,blockDim)
+            elif inj_mode=='IAC':
+                gridkDim=get_BlockDim(app)
+                gen_IAC_fault_list(app,inj_mode,p.NUM_INJECTIONS,gridkDim)
             elif inj_mode=='IIO':
                 print('Sorry! This error model is not implemented yet, give us a hand ;)')
             else:

@@ -160,7 +160,8 @@ int destGPRNum, int replGPRNum, int regval, int numDestGPRs, int compute_cap, in
                 if(inj_info->injSMID == smid && inj_info->injScheduler == (WID%4)){								                        
                         assert(numDestGPRs > 0);                        
                         injBeforeVal = nvbit_read_reg(destGPRNum); // read the register value                        
-                        inj_struct->register_tmp_recovery[inj_info->MaxWarpsPerSM*inj_info->MaxThreadsPerWarp+kidx]=nvbit_read_reg(destGPRNum);
+                        inj_struct->register_tmp_recovery[kidx]=nvbit_read_reg(destGPRNum);
+                        //inj_struct->register_tmp_recovery[inj_info->MaxWarpsPerSM*inj_info->MaxThreadsPerWarp*instridx+kidx]=nvbit_read_reg(destGPRNum);
                         //inj_struct->register_tmp_recovery[inj_struct->num_threads*instridx+i]=nvbit_read_reg(destGPRNum);                        
                         //inj_struct->register_tmp_recovery[kidx]=nvbit_read_reg((uint64_t)destGPRNum);                        						
                         inj_info->injInstrIdx=instridx;
@@ -231,7 +232,8 @@ int destGPRNum, int replGPRNum, int regval, int numDestGPRs, int compute_cap, in
                             atomicAdd((unsigned long long*) &inj_info->injNumActivations, 1LL); 
                             injBeforeVal=nvbit_read_reg(destGPRNum); 
                             //injAfterVal=inj_struct->register_tmp_recovery[inj_struct->num_threads*instridx+i];  
-                            injAfterVal= inj_struct->register_tmp_recovery[inj_info->MaxWarpsPerSM*inj_info->MaxThreadsPerWarp+kidx];	                      
+                            injAfterVal= inj_struct->register_tmp_recovery[kidx];	                      
+                            //injAfterVal= inj_struct->register_tmp_recovery[inj_info->MaxWarpsPerSM*inj_info->MaxThreadsPerWarp*instridx+kidx];	                      
                             //nvbit_write_reg(destGPRNum, inj_struct->register_tmp_recovery[WARP_PER_SM*THREAD_PER_WARP*instridx+kidx]);										
                             nvbit_write_reg(destGPRNum, injAfterVal);										
                             //nvbit_write_reg(destGPRNum, inj_struct->register_tmp_recovery[kidx]);										
@@ -319,6 +321,102 @@ int destGPRNum, int regval, int numDestGPRs, int blokDimm, int instridx, int Ins
             int ctaIDX =ctaID.x;
             int ctaIDY =ctaID.y;
             int ctaIDZ =ctaID.z;
+            auto blktidx= threadIdx.z * blockDim.y * blockDim.x
+            + threadIdx.y * blockDim.x + threadIdx.x;
+
+            //check performed on the Straming Multiprocessor ID
+            //printf("smid %d %d\n",smid, inj_info->injSMID );
+            assert(numDestGPRs > 0);
+            uint32_t injAfterVal = 0; 
+            uint32_t injBeforeValrep = 0; 
+            //uint32_t injBeforeVal = nvbit_read_reg(destGPRNum); // read the register value
+            uint32_t injBeforeVal = 0; // read the register value
+            inj_struct->warp_thread_mask[kidx] = blktidx;
+            if(inj_info->injSMID == smid && inj_info->injScheduler == (WID%4)){	
+                inj_info->injInstrIdx=instridx;
+                inj_info->injInstOpcode=InstOpcode;
+                inj_info->injInstPC=InstOffset;
+                inj_info->injRegOriginal=destGPRNum;               
+                injBeforeVal=nvbit_read_reg(destGPRNum); 
+                              
+                
+                //auto tidx=(inj_struct->warp_thread_mask[inj_info->injMaskSeed*inj_info->MaxThreadsPerWarp+LID])%blockDim.x;
+                //auto tidy=(inj_struct->warp_thread_mask[inj_info->injMaskSeed*inj_info->MaxThreadsPerWarp+LID]/blockDim.x)%blockDim.y;
+                //auto tidz=(inj_struct->warp_thread_mask[inj_info->injMaskSeed*inj_info->MaxThreadsPerWarp+LID]/(blockDim.y*blockDim.x))%blockDim.z;
+                //printf("%d %d %d %d %d %d %d %d\n",kidx,WID,inj_struct->warp_thread_mask[inj_info->injMaskSeed*inj_info->MaxThreadsPerWarp+LID],threadIdx.x,injBeforeVal, tidx,tidy,tidz);
+                /*
+                if(injBeforeVal==blokDimm){
+                    injAfterVal = 0;
+                }else{
+                    injAfterVal = blokDimm;
+                }
+                */
+               /*
+                if(blokDimm==0){
+                        injAfterVal=tidx;
+                }else if(blokDimm==1){
+                        injAfterVal=tidy;
+                }else if(blokDimm==2){
+                        injAfterVal=tidz;
+                }
+                */
+                /*injAfterVal=injBeforeVal+32;
+                if(injAfterVal>blktidx)
+                {
+                    injAfterVal=LID;
+                }*/
+                if(inj_info->injStuck_at==0){
+                    injAfterVal = injBeforeVal & (~inj_info->injMaskSeed);
+                }
+                else{
+                    injAfterVal = injBeforeVal | inj_info->injMaskSeed;
+                }
+                //injAfterVal = injBeforeVal ^ inj_info->injMaskSeed;
+                if(injAfterVal==injBeforeVal){
+                    injAfterVal = injBeforeVal ^ inj_info->injMaskSeed;
+                }
+
+                if (DUMMY ) { 
+                                injAfterVal = injBeforeVal;
+                } else {    
+                    if(inj_struct->Warp_thread_active[kidx]==1){                    
+                        inj_info->errorInjected = true; 
+                        atomicAdd((unsigned long long*) &inj_info->injNumActivations, 1LL);                           
+                        nvbit_write_reg(destGPRNum, injAfterVal);                                        
+                        if(verbose_device)printf("DST: smID=%d, warpID=%d,target_register=%d, before=0x%x, after=0x%x, expected_after=0x%x, ReadReg =0x%x, SMthread %d\n", smid, WID, destGPRNum, injBeforeVal, nvbit_read_reg(destGPRNum), nvbit_read_reg(destGPRNum),destGPRNum,instridx);                                                                                            
+                    //__threadfence();
+                    /*
+                    printf("IAT$ smID: %d; schID: %d; ctaID.x: %d; ctaID.y: %d; ctaID.z: %d; warpID: %d; LaneID: %d; TargOpField: %d; OrgRegID: %d; BlockDim: %d; MskSeed: %d; InstErrID: %d; PCOffset: %d; InstType: %d$ RegID: %d; ValBefore: %d; ValAfter: %d; ExpectAfter: %d$ Kindex: %d\n",
+                        smid,inj_info->injScheduler,ctaID.x,ctaID.y,ctaID.z,WID,LID,0,destGPRNum,blokDimm,0, instridx, InstOffset, InstOpcode, destGPRNum, injBeforeVal, nvbit_read_reg(destGPRNum), injAfterVal,kidx);                    
+                    */
+                    }
+                }                 
+            } 
+            
+}
+
+
+extern "C" __device__ __noinline__ void inject_error_IAC(uint64_t piinfo, uint64_t Data_arrays, uint64_t pverbose_device, 
+int destGPRNum, int regval, int numDestGPRs, int gridDimm, int instridx, int InstOffset, int InstOpcode) { 
+                
+            muliple_ptr_t *inj_struct=(muliple_ptr_t *) Data_arrays;
+            inj_info_error_t * inj_info = (inj_info_error_t*)piinfo; 
+            uint32_t verbose_device = *((uint32_t *)pverbose_device);
+                        
+
+            int i = getGlobalIdx_3D_3D();
+            auto smid=get_smid();
+            auto ctaID=get_ctaid();
+            auto WID=get_warpid();
+            auto LID=get_laneid();
+            auto kidx=WID*32+LID;
+            int ctaIDX =ctaID.x;
+            int ctaIDY =ctaID.y;
+            int ctaIDZ =ctaID.z;
+
+            auto blktidx= threadIdx.z * blockDim.y * blockDim.x
+            + threadIdx.y * blockDim.x + threadIdx.x;
+
             //check performed on the Straming Multiprocessor ID
             //printf("smid %d %d\n",smid, inj_info->injSMID );
             assert(numDestGPRs > 0);
@@ -332,11 +430,21 @@ int destGPRNum, int regval, int numDestGPRs, int blokDimm, int instridx, int Ins
                 inj_info->injInstPC=InstOffset;
                 inj_info->injRegOriginal=destGPRNum;
                 injBeforeVal = nvbit_read_reg(destGPRNum); 
-                if(injBeforeVal==blokDimm){
-                    injAfterVal = 0;
-                }else{
-                    injAfterVal = blokDimm;
-                } 
+
+                if(inj_info->injStuck_at==0){
+                    injAfterVal = injBeforeVal & (~inj_info->injMaskSeed);
+                }
+                else{
+                    injAfterVal = injBeforeVal | inj_info->injMaskSeed;
+                }
+                //injAfterVal = injBeforeVal ^ inj_info->injMaskSeed;
+                if(injAfterVal==injBeforeVal){
+                    injAfterVal = injBeforeVal ^ inj_info->injMaskSeed;
+                }
+                if(injAfterVal<0){
+                    injAfterVal=0x7fffffff;
+                }
+                //printf("%d %d %d %d %d \n",kidx,WID,threadIdx.x,injBeforeVal,injAfterVal);
                 if (DUMMY ) { 
                                 injAfterVal = injBeforeVal;
                 } else {    
