@@ -1,0 +1,10 @@
+[DEFAULT]
+installdir = @RAD_BENCHS_INSTALL_DIR@
+vardir = @LOG_DIR@/radiation-benchmarks
+logdir = @LOG_DIR@/radiation-benchmarks/log
+tmpdir = @TMP_DIR@
+signalcmd = @WATCHDOG_COMMANDS@
+eccinfofile = @ECC_INFO_FILE_DIR@
+serverip = @SERVER_IP@
+serverport = @SERVER_PORT@
+

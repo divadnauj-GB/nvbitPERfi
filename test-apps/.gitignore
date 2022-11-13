@@ -9,6 +9,6 @@
 !/VectorAdd/vectorAdd.cu
 !/common
 !/logs/VectorAdd/injection-list/modeIRA1000.txt
-
+!/real_workloads
 
 

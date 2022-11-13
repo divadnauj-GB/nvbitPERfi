@@ -1,0 +1,29 @@
+#!/bin/bash
+# Perform any other operation that is necessary to your test at the boot step
+# such as ecc disable/enable, time sync, etc.
+NUMBER_OF_PROCESSORS=@NUMBER_OF_PROCESSORS@
+# Edit the following command to be compatible with your device
+# The following command works only on NVIDIA GPUs
+ECC_RETURN=$(/usr/bin/nvidia-smi --query-gpu=gpu_name,ecc.mode.current --format=csv,noheader 2>/dev/null)
+SUB='Enabled'
+if [[ "$ECC_RETURN" == *"$SUB"* ]]; then
+  echo "1" > @ECC_INFO_FILE_DIR@
+else
+  echo "0" > @ECC_INFO_FILE_DIR@
+fi
+chmod ugo+r @ECC_INFO_FILE_DIR@
+
+# set mce check interval to short
+for((i=0; i < NUMBER_OF_PROCESSORS;i++))
+do
+	echo 10 > /sys/devices/system/machinecheck/machinecheck"$i"/check_interval;
+	echo 3 > /sys/devices/system/machinecheck/machinecheck"$i"/tolerant
+done
+
+# turn off crash on uncorrectable errs
+echo 0 > /sys/module/edac_core/parameters/edac_mc_panic_on_ue
+
+# NTP date update for a specific server
+ntpdate -u @SERVER_IP@ > @HOME_DIR@/log_ntpdate.log 2>> @HOME_DIR@/log_ntpdate.log
+
+exit 0
