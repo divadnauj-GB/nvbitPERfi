@@ -1,54 +1,59 @@
 #!/bin/bash
 #
 # Copyright 2020, NVIDIA CORPORATION.
-# 
+#
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
-# 
+#
 #     http://www.apache.org/licenses/LICENSE-2.0
-# 
+#
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-# 
+#
 
-# stop after first error 
-set -e 
+# stop after first error
+set -e
 
 # Uncomment for verbose output
-# set -x 
-
+# set -x
+if [ "$#" != 2 ]; then
+  echo "Incorrect number of arguments:"
+  echo "Usage:  ${0} [benchmark to inject (see test-apps/ directory)] [fault mode (see scripts/params.py)]"
+  exit 1
+fi
 # Automatize the process
 export BENCHMARK=$1
+FAULT_MODE=$2
 
 CWD=`pwd`
 echo "Current working directory: $CWD"
 
 ###############################################################################
-# Step 0: Set-up 
+# Step 0: Set-up
 #
 # (1) One-time only: Copy nvbitfi tool package to NVBit/tools/ directory
 # (2) Everytime we run an injection campaign: Setup environment
-# (3) One-time only: Build the inject_error and igprofiler NVBit tools 
+# (3) One-time only: Build the inject_error and igprofiler NVBit tools
 # (4) One-time only: Run and collect golden stdout and stderr files for each of the applications
 ###############################################################################
 
 ###############################################################################
-# Step 0 (1): Provide execute permissions to *.sh scripts 
+# Step 0 (1): Provide execute permissions to *.sh scripts
 ###############################################################################
-find . -name "*.sh" | xargs chmod +x 
+find . -name "*.sh" | xargs chmod +x
 
 ###############################################################################
-# Step 0 (2): Setup environment 
+# Step 0 (2): Setup environment
 ###############################################################################
 printf "\nStep 0 (2): Setting environment variables\n"
 
 # environment variables for NVBit
 export NOBANNER=1
-# set TOOL_VERBOSE=1 to print debugging information during profling and injection runs 
+# set TOOL_VERBOSE=1 to print debugging information during profling and injection runs
 export TOOL_VERBOSE=0
 export VERBOSE=0
 
@@ -70,7 +75,7 @@ export RODINIA=""
 #IIO
 #IPP
 #export nvbitPERfi=IAT
-export nvbitPERfi=$2
+export nvbitPERfi=$FAULT_MODE
 export SMID=0
 export SCHID=0
 
@@ -78,13 +83,19 @@ export SCHID=0
 # Step 0 (3): Build the nvbitfi injector and profiler tools
 ###############################################################################
 printf "\nStep 0 (3): Build the nvbitfi injector and profiler tools\n"
-cd pf_injector_register_file 
-make clean 
-make
-cd ../profiler/
-make clean 
-make
-cd $CWD
+for buildi in pf_injector_icoc  pf_injector_register_file profiler; do
+  echo "Building $buildi"
+  cd $buildi;
+  make clean all;
+  cd -
+done
+#cd pf_injector_register_file
+#make clean
+#make
+#cd ../profiler/
+#make clean
+#make
+#cd $CWD
 
 ###############################################################################
 # Step 0 (4): Run the app without instrumentation. Collect golden stdout and
@@ -100,9 +111,9 @@ cd $CWD
 # Step 1: Profile and generate injection list
 #
 # (1) Profile the workload and collect opcode counts. This needs to be done
-# just once for a workload.  
+# just once for a workload.
 # (2) Generate injection list for architecture-level error injections for the
-# selected error injection model. 
+# selected error injection model.
 ###############################################################################
 cd scripts/
 printf "\nStep 1 (1): Profile the application\n"
@@ -115,7 +126,7 @@ printf "\nStep 1 (2): Generate injection list for instruction-level error inject
 python3 generate_injection_list.py
 
 ################################################
-# Step 2: Run the error injection campaign 
+# Step 2: Run the error injection campaign
 ################################################
 printf "\nStep 2: Run the error injection campaign\n"
 python3 run_injections.py standalone remove # to run the injection campaign on a single machine with single gpu
