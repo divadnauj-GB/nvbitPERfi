@@ -728,7 +728,7 @@ def main():
 
 	inj_type = os.environ['nvbitPERfi']
 	app= os.environ['BENCHMARK']	
-	cf.set_env(app,False)
+	cf.set_env(app,False,inj_type)
 
 	"""		
 	parse_results_apps(inj_type) # parse sassifi results into local data structures
