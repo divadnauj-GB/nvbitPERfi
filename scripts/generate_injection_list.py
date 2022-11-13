@@ -371,10 +371,10 @@ def gen_IAT_fault_list(app,inj_mode,num_injections,blockDim):
     while num_injections>0:
         Warps=[0]*MaxWarpSize
 
-        ErrWarps=random.randint(0,(ValidWarps)/4)
+        ErrWarps=random.randint(1,(ValidWarps)/4)
         while(ErrWarps>0):
             warp=random.randint(0,(ValidWarps-1))  
-            while((warp%4)!=schid and Warps[warp]!=0):           
+            while((warp%4)!=schid or Warps[warp]!=0):           
                 warp=random.randint(0,(ValidWarps-1))
             Warps[warp]=1
             ErrWarps-=1
@@ -477,10 +477,10 @@ def gen_IAW_fault_list(app,inj_mode,num_injections,blockDim):
     while num_injections>0:
         Warps=[0]*MaxWarpSize
 
-        ErrWarps=random.randint(0,(ValidWarps)/4)
+        ErrWarps=random.randint(1,(ValidWarps)/4)
         while(ErrWarps>0):
             warp=random.randint(0,(ValidWarps-1))  
-            while((warp%4)!=schid and Warps[warp]!=0):           
+            while((warp%4)!=schid or Warps[warp]!=0):           
                 warp=random.randint(0,(ValidWarps-1))
             Warps[warp]=1
             ErrWarps-=1
@@ -574,10 +574,10 @@ def gen_IAC_fault_list(app,inj_mode,num_injections,blockDim):
     while num_injections>0:
         Warps=[0]*MaxWarpSize
 
-        ErrWarps=random.randint(0,(ValidWarps)/4)
+        ErrWarps=random.randint(1,(ValidWarps)/4)
         while(ErrWarps>0):
             warp=random.randint(0,(ValidWarps-1))  
-            while((warp%4)!=schid and Warps[warp]!=0):           
+            while((warp%4)!=schid or Warps[warp]!=0):           
                 warp=random.randint(0,(ValidWarps-1))
             Warps[warp]=1
             ErrWarps-=1
@@ -642,6 +642,85 @@ def gen_IAC_fault_list(app,inj_mode,num_injections,blockDim):
 
     f.close()
 
+def gen_WV_fault_list(app,inj_mode,num_injections,blockDim):
+    MaxWarpSize=getMaxWarpsPerSM(app)
+    [maxGridx, maxGridy, maxGridz] = getMaxGrid(app)
+    ValidWarps=int((max(blockDim)/32))
+    ValidWarps=MaxWarpSize
+    NumSch=4
+    error_list=[]
+    
+
+    if verbose:
+        print ("num_injections = %d" %(num_injections))
+    fName = p.app_log_dir[app] + "/injection-list/mode" + inj_mode+str(num_injections) + ".txt"
+    print (fName)
+    f = open(fName, "w")
+    smid=int(os.environ['SMID'])
+    schid=int(os.environ['SCHID'])
+
+    while num_injections>0:
+        Warps=[0]*MaxWarpSize
+        #for i in range(0,MaxWarpSize):
+        #    if((i%4)==schid):
+        #        Warps[i]=1
+
+        ErrWarps=random.randint(1,(ValidWarps)/4)
+        while(ErrWarps>0):
+            warp=random.randint(0,(ValidWarps-1))  
+            while((warp%4)!=schid or Warps[warp]!=0):           
+                warp=random.randint(0,(ValidWarps-1))
+            Warps[warp]=1
+            ErrWarps=ErrWarps-1
+
+        WarpH=0
+        WarpL=0
+        
+        
+        for i in range(0,32):
+            if(Warps[i]==1):
+                tmp=1
+                tmp=tmp<<i
+                WarpL=WarpL | tmp
+        for i in range(32,MaxWarpSize):
+            if(Warps[i]==1):
+                tmp=1
+                tmp=tmp<<(i-32)
+                WarpH=WarpH | tmp
+        
+        numThreads=random.randint(1,31)
+        n=0
+        val=0
+        while(n!=numThreads):
+            val=val | (1<<random.randint(0,31))
+            n=bin(val).count("1")
+
+        Threads=val
+
+        #TargetWarp=random.randint(0,(MaxWarpSize-1))  
+        #while((TargetWarp==warp)):           
+        #    TargetWarp=random.randint(0,(MaxWarpSize-1))
+
+        predReg=random.randint(0,8)
+        while(predReg==7):
+            predReg=random.randint(0,8)
+
+        if(predReg==8):
+            MaskSeed=random.randint(0,255)
+        else:
+            MaskSeed=(1<<(predReg))
+        
+        active=random.randint(0,1)  #Always Inactive thread
+        error =f"{smid} {schid} {WarpH} {WarpL} {Threads} {predReg} {MaskSeed} {active}\n"
+        #print(Warps,WarpH, WarpL, error)
+        
+        if error not in error_list:
+            error_list.append(error)
+            f.write(error) # print injection site information
+            num_injections-=1
+
+    f.close()
+
 
 def gen_ICOC_fault_list(app, inj_mode_str, num_injections):
     max_warp_per_sm = getMaxWarpsPerSM(app)
@@ -694,6 +773,9 @@ def main():
             elif inj_mode=='IAC':
                 gridkDim=get_BlockDim(app)
                 gen_IAC_fault_list(app,inj_mode,p.NUM_INJECTIONS,gridkDim)
+            elif inj_mode=='WV':
+                gridkDim=get_BlockDim(app)
+                gen_WV_fault_list(app,inj_mode,p.NUM_INJECTIONS,gridkDim)
             elif inj_mode=='IIO':
                 print('Sorry! This error model is not implemented yet, give us a hand ;)')
             else:

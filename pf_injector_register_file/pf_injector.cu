@@ -297,6 +297,69 @@ void parse_paramsIAC(std::string filename) {
 }
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////
+// Parse error injection site info from a file. This should be done on host side.
+void parse_paramsWV(std::string filename) {
+        static bool parse_flag = false; // file will be parsed only once - performance enhancement
+        if (!parse_flag) {
+                parse_flag = true;
+                reset_inj_info(); 
+                float random=0;
+                std::ifstream ifs (filename.c_str(), std::ifstream::in);
+                if (ifs.is_open()) {
+                        
+                        ifs >> inj_error_info.injSMID;
+                        ifs >> inj_error_info.injScheduler;
+                        ifs >> inj_error_info.injWarpMaskH;
+                        ifs >> inj_error_info.injWarpMaskL;
+                        ifs >> inj_error_info.injThreadMask;
+                        ifs >> inj_error_info.injRegID;
+                        ifs >> inj_error_info.injMaskSeed;  // 0: inactive thread 1: active thread                                    
+                        ifs >> inj_error_info.injStuck_at;
+
+
+                        assert(inj_error_info.injSMID < 1000); 
+                        inj_error_info.injNumActivations=0;
+                        inj_error_info.injInstrIdx=-1;
+                        inj_error_info.injInstOpcode=NOP;
+                        inj_error_info.injInstPC=-1;
+
+                } else {
+                        printf(" File %s does not exist!", filename.c_str());
+                        printf(" This file should contain enough information about the fault site to perform a permanent error injection run: ");
+                        printf("Documentation to be deifined...\n"); 
+                        assert(false);
+                }
+                ifs.close();
+
+                if (verbose) {
+                        print_inj_info();
+                }
+
+                CUDA_SAFECALL(cudaMallocManaged(&(Injection_masks.Warp_thread_active),(inj_error_info.MaxWarpsPerSM*inj_error_info.MaxThreadsPerWarp)*sizeof(uint32_t)));
+
+                int idx=0;
+                int validW=0;
+                int validT=0;
+                int integer_mask=0;
+                for(int i=0;i<inj_error_info.MaxWarpsPerSM;++i){
+                    if (i>31){
+                        validW=(inj_error_info.injWarpMaskH>>i)&1;
+                    }else{
+                        validW=(inj_error_info.injWarpMaskL>>i)&1;
+                    }
+                    for(int j=0;j<inj_error_info.MaxThreadsPerWarp;++j){   
+                        validT= (inj_error_info.injThreadMask>>j)&1;
+                        //printf("valid %d, %d\n",idx,validW&validT) ;                   
+                        Injection_masks.Warp_thread_active[idx]=(validW&validT);
+                        idx++;
+                    }
+                }        
+        }
+}
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 void update_verbose() {
         static bool update_flag = false; // update it only once - performance enhancement
         if (!update_flag) {
@@ -879,7 +942,7 @@ void instrument_function_if_neededv3(CUcontext ctx, CUfunction func) {
         }       
 }
 
-/* Instrumentation for IAT and IAW error models */
+/* Instrumentation for IAC*/
 void instrument_function_IAC(CUcontext ctx, CUfunction func) {
 
         //parse_params(injInputFilename);  // injParams are updated based on injection seed file
@@ -997,6 +1060,117 @@ void instrument_function_IAC(CUcontext ctx, CUfunction func) {
                 fout << "=================================================================================" << endl;
         }       
 }
+
+
+/* Instrumentation for IPP*/
+void instrument_function_WV(CUcontext ctx, CUfunction func) {
+
+        //parse_params(injInputFilename);  // injParams are updated based on injection seed file
+        update_verbose();        
+        /* Get related functions of the kernel (device function that can be
+        * called by the kernel) */
+        std::vector<CUfunction> related_functions =
+        nvbit_get_related_functions(ctx, func);
+
+        /* add kernel itself to the related function vector */
+        related_functions.push_back(func);
+        cudaDeviceProp devProp;
+        cudaGetDeviceProperties( &devProp, 0) ;
+        int archmajor = devProp.major; 
+        int archminor = devProp.minor;
+        int compute_cap = archmajor*10 + archminor;
+        /* iterate on function */
+        for (auto f : related_functions) {                
+                /* "recording" function was instrumented, if set insertion failed
+                        * we have already encountered this function */
+                if (!already_instrumented.insert(f).second) {
+                        continue;
+                }
+                fout << "=================================================================================" << endl;
+                fout << "The Instrumentation step Begins Here: " << removeSpaces(nvbit_get_func_name(ctx,f)) << endl;
+                fout << "=================================================================================" << endl;
+
+                std::string kname = removeSpaces(nvbit_get_func_name(ctx,f));
+                /* Get the vector of instruction composing the loaded CUFunction "func" */
+                const std::vector<Instr *> &instrs = nvbit_get_instrs(ctx, f);
+
+                int maxregs = get_maxregs(f);
+                inj_error_info.maxregcount=maxregs;
+                assert(fout.good());
+                //assert(fout3.good());
+                int k=0;
+                int instridx=0;
+                int gridDimm=0;
+                bool injectInstrunc=false;
+                //fout << "Inspecting: " << kname << ";num_static_instrs: " << instrs.size() << ";maxregs: " << maxregs << "(" << maxregs << ")" << std::endl;
+                for(auto i: instrs)  {
+                        std::string opcode = i->getOpcode(); 
+                        std::string instTypeStr = i->getOpcodeShort();
+                        std::string GenOperand;
+                        int instType = instTypeNameMap[instTypeStr]; 
+
+                        if (verbose) printf("extracted instType: %s, ", instTypeStr.c_str());
+                        if (verbose) printf("index of instType: %d\n", instTypeNameMap[instTypeStr]);
+                        //if ((uint32_t)instType == inj_info.injInstType || inj_info.injInstType == NUM_ISA_INSTRUCTIONS) {
+                        
+                        //if ((uint32_t)instType == inj_info.injInstType) {
+                        if (verbose) { printf("instruction selected for instrumentation: "); i->print(); }
+
+                        int destGPRNum = -1;
+                        int replGPRNum = -1;
+                        int numDestGPRs = 0;
+                        int predicateNum=-1;
+                        injectInstrunc=false;
+                        fout << "0x" << std::hex << i->getOffset() << ":::" << i->getSass()  << std::dec << std::endl;
+                        //i->printDecoded();
+                        printf("%s %d\n",i->getSass(),i->hasPred()==true ? i->getPredNum():-1);
+                        if (i->getNumOperands() > 1) { // an actual instruction that writes to either a GPR or PR register
+                                // Parse the first operand - this is the the destination register field                                
+                                printf("%s\n",i->getSass());
+                                for (int idx=0;idx<i->getNumOperands();++idx){
+                                        const InstrType::operand_t *dst= i->getOperand(idx);                                        
+                                        if(dst->type == InstrType::OperandType::PRED && injectInstrunc==false && idx==0) { // GPR reg as a destination                                                                                      
+                                                GenOperand=dst->str;  
+                                                predicateNum=dst->u.pred.num;
+                                                //predicateNum=6;                                                                                                                               
+                                                printf("pred:%s; num: %d\n", dst->str, dst->u.pred.num); 
+                                                injectInstrunc=true;                                                                                                                                                                                                               
+                                        }        
+                                }                                                                                                 
+                                if(injectInstrunc==true and inj_error_info.injRegID==predicateNum){
+                                        printf("string: %s; blockDimm: %d\n",GenOperand.c_str(),gridDimm); 
+                                        fout << i->getSass() << " instrumented; " << endl;
+                                        const InstrType::operand_t *dst= i->getOperand(0);
+                                        destGPRNum=dst->u.reg.num;
+                                        numDestGPRs=1;
+                                        nvbit_insert_call(i, "inject_error_WV", IPOINT_AFTER);
+                                        nvbit_add_call_arg_const_val64(i, (uint64_t)&inj_error_info);
+                                        nvbit_add_call_arg_const_val64(i, (uint64_t)&Injection_masks);
+                                        nvbit_add_call_arg_const_val64(i, (uint64_t)&verbose_device);
+                                        nvbit_add_call_arg_const_val32(i, predicateNum); // destination GPR register number                                        
+                                        if (predicateNum != -1) {
+                                        nvbit_add_call_arg_pred_val_at(i, 1); // destination GPR register val
+                                        } else {
+                                        nvbit_add_call_arg_const_val32(i, (unsigned int)-1); // destination GPR register val 
+                                        }
+                                        nvbit_add_call_arg_pred_reg(i);
+                                        nvbit_add_call_arg_const_val32(i, numDestGPRs); // number of destination GPR registers
+                                        nvbit_add_call_arg_const_val32(i, gridDimm); // compute_capability
+                                        nvbit_add_call_arg_const_val32(i, instridx); // compute_capability
+                                        nvbit_add_call_arg_const_val32(i, i->getOffset());
+                                        nvbit_add_call_arg_const_val32(i, instType);
+                                        instridx++;  
+                                }
+
+                        }
+
+                }
+                fout << "=================================================================================" << endl;
+                fout << "The Instrumentation step Stops Here: " << removeSpaces(nvbit_get_func_name(ctx,f)) << endl;
+                fout << "=================================================================================" << endl;
+        }       
+}
+
 /* This call-back is triggered every time a CUDA event is encountered.
  * Here, we identify CUDA kernel launch events and reset the "counter" before
  * th kernel is launched, and print the counter after the kernel has completed
@@ -1034,6 +1208,8 @@ void nvbit_at_cuda_event(CUcontext ctx, int is_exit, nvbit_api_cuda_t cbid,
                                 parse_paramsIAT(injInputFilename); 
                         }else if(inj_mode.compare("IAC")==0){
                                 parse_paramsIAC(injInputFilename); 
+                        }else if(inj_mode.compare("WV")==0){
+                                parse_paramsWV(injInputFilename); 
                         }else{
                                 assert(1==0);
                         }         
@@ -1062,6 +1238,8 @@ void nvbit_at_cuda_event(CUcontext ctx, int is_exit, nvbit_api_cuda_t cbid,
                                         instrument_function_if_neededv3(ctx, p->f);
                                 }else if(inj_mode.compare("IAC")==0) {
                                         instrument_function_IAC(ctx, p->f);
+                                }else if(inj_mode.compare("WV")==0) {
+                                        instrument_function_WV(ctx, p->f);
                                 }else{
                                         assert(1==0);
                                 }

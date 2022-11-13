@@ -98,7 +98,7 @@ def set_env(app, is_profiler, inj_mode='IRA'):
     os.environ['DATASET_DIR'] = p.app_data_dir[app]
     if is_profiler:
         os.environ['PRELOAD_FLAG'] = "LD_PRELOAD=" + p.PROFILER_LIB
-    elif inj_mode in ['IRA', 'IR', 'IAT', 'IAW', 'IAC']:
+    elif inj_mode in ['IRA', 'IR', 'IAT', 'IAW', 'IAC', 'WV']:
         os.environ['PRELOAD_FLAG'] = "LD_PRELOAD=" + p.INJECTOR_PF_RF
     elif inj_mode in ['ICOC', 'IIO']:
         os.environ['PRELOAD_FLAG'] = "LD_PRELOAD=" + p.INJECTOR_PF_ICOC
