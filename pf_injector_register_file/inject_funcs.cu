@@ -492,21 +492,21 @@ int PredNum, int predval, int predreg, int numDestGPRs, int gridDimm, int instri
                 inj_info->injInstPC=InstOffset;
                 inj_info->injRegOriginal=PredNum;
                 injBeforeVal = nvbit_read_pred_reg();
-               /* if(inj_info->injStuck_at==0){
+                if(inj_info->injStuck_at==0){
                     injAfterVal=injBeforeVal & (~inj_info->injMaskSeed);
                 }else{
                     injAfterVal=injBeforeVal | (inj_info->injMaskSeed);
                 }
-                if(injAfterVal==injBeforeVal){
-                   injAfterVal=injBeforeVal ^ (inj_info->injMaskSeed); 
-                }*/
-                injAfterVal=injBeforeVal ^ (inj_info->injMaskSeed); 
+
+                //injAfterVal=injBeforeVal ^ (inj_info->injMaskSeed); 
                 if (DUMMY ) { 
                                 injAfterVal = injBeforeVal;
                 } else {    
                     if(inj_struct->Warp_thread_active[kidx]==1){                    
                         inj_info->errorInjected = true; 
-                        atomicAdd((unsigned long long*) &inj_info->injNumActivations, 1LL);                        
+                        if(injAfterVal!=injBeforeVal){
+                            atomicAdd((unsigned long long*) &inj_info->injNumActivations, 1LL);
+                        }                                                
                         nvbit_write_pred_reg(injAfterVal);
                         //printf("A:TID: %d; WID: %d; PredNum: %d; PredVal: %d; prev_val: %d; Newval: %d; PredReg: %d\n",i, WID,PredNum, predval, prev_vall, nvbit_read_pred_reg(), predreg);                          
                         //nvbit_write_reg(destGPRNum, injAfterVal);                                        
