@@ -79,7 +79,7 @@ def main():
             f"{common_additional_run_parameters} {specific_run_parameters}"  # additional parameters to the run.sh
         ]
         # Debug break
-        if workload_name == "FGEMM":
+        if workload_name == "gemm":
             break
 
     with open(REAL_WORKLOADS_PARAMETERS_FILE, 'w') as handle:
