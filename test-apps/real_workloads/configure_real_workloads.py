@@ -15,6 +15,7 @@ LOG_HELPER_LOGS_DIR = f"{REAL_WORKLOADS_DIR}/log_helper_dest"
 REAL_WORKLOADS_PARAMETERS_FILE = f"{REAL_WORKLOADS_DIR}/../../scripts/real_workloads_parameters.py"
 
 NVBITFI_HOME = os.environ["NVBITFI_HOME"]
+CUDA_PATH = "/usr/local/cuda"
 
 
 def execute_cmd(cmd: str, err_message: str):
@@ -47,11 +48,11 @@ def build_and_set_lib_log_helper():
 def build_benchmark_with_fi_parameters(app: str, parameters: dict):
     app_full_path = f"{REAL_WORKLOADS_DIR}/{parameters['APP_DIR']}"
     os.chdir(app_full_path)
-    make_cmd = f"make LOG_HELPER_PATH={LOG_HELPER_SOURCE_PATH} clean all"
+    make_cmd = f"make LOG_HELPER_PATH={LOG_HELPER_SOURCE_PATH} all"
     execute_cmd(cmd=make_cmd, err_message=f"Making {app}")
     # Generate golden
     app_make_parameters = " ".join([f"{k}={v}" for k, v in parameters["MAKE_PARAMETERS"].items()])
-    generate_cmd = f"make {app_make_parameters} generate"
+    generate_cmd = f"LD_LIBRARY_PATH={LOG_HELPER_LIB_PATH}:$LD_LIBRARY_PATH make {app_make_parameters} generate"
     execute_cmd(cmd=generate_cmd, err_message=f"Generate golden for {app}")
 
 
@@ -59,21 +60,22 @@ def main():
     # Build libLogHelper first
     build_and_set_lib_log_helper()
     real_workloads_dict_out = dict()
+    common_additional_run_parameters = f"{CUDA_PATH} {LOG_HELPER_LIB_PATH}"
     for workload_name, workload_parameters in REAL_WORKLOADS.items():
         print("Building and setting", workload_name)
-        # build_benchmark_with_fi_parameters(app=workload_name, parameters=workload_parameters)
+        build_benchmark_with_fi_parameters(app=workload_name, parameters=workload_parameters)
         app_dir, app_bin = workload_parameters["APP_DIR"], workload_parameters["APP_BIN"]
         real_workloads_dict_out[workload_name] = [
             NVBITFI_HOME + f'/test-apps/real_workloads/{app_dir}',  # workload directory
             app_bin,  # binary name
             NVBITFI_HOME + f'/test-apps/real_workloads/{app_dir}',  # path to the binary file
             5,  # expected runtime secs
-            " ".join(map(str, workload_parameters["MAKE_PARAMETERS"].values()))  # additional parameters to the run.sh
+            # additional parameters to the run.sh
+            common_additional_run_parameters + " ".join(map(str, workload_parameters["MAKE_PARAMETERS"].values()))
         ]
 
     with open(REAL_WORKLOADS_PARAMETERS_FILE, 'w') as handle:
-        handle.write("REAL_WORKLOAD_DICT = ")
-        handle.write(json.dumps(real_workloads_dict_out, indent=4))
+        handle.write(f"REAL_WORKLOAD_DICT = {json.dumps(real_workloads_dict_out, indent=4)}")
 
 
 REAL_WORKLOADS = {
