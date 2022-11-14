@@ -64,6 +64,7 @@ struct InjectionInfo {
 //    uint32_t mask; // injection mask
     uint32_t warp_group;
     uint32_t warp_id;
+    uint32_t is_iio_fault_model;
 //    uint32_t last_pc_offset;
 //    uint32_t last_opcode;
 //    InstructionType instruction_type_in; // instruction type in
@@ -141,8 +142,12 @@ struct InjectionInfo {
             ifs >> this->sm_id;
             assert_condition(this->sm_id <= 1000, "Invalid sm id. We don't have a 1000 SM system yet.\n" + message_str);
 
-            ifs >> this->warp_id;
-            assert_condition(this->warp_id < 64, "Invalid warp id, must be 0 <= warp id < 64");
+            // Read the warp group
+            // it refers to the groups of warp that will execute on a faulty scheduler
+            ifs >> this->warp_group;
+            assert_condition(this->warp_group < 4,
+                             std::to_string(this->icoc_subpartition) + " Invalid warp group must be 0 <= wg < 4.\n" +
+                             message_str);
 
 //            auto inst_type_in = 0, inst_type_out = 0;
 //            ifs >> inst_type_in; // instruction type
@@ -164,11 +169,14 @@ struct InjectionInfo {
             assert_condition(this->icoc_subpartition < ICOCSubpartition::NUM_ICOC_SUBPARTITIONS,
                              std::to_string(this->icoc_subpartition) + " Invalid syndrome type");
 
-            // Read the warp group
-            ifs >> this->warp_group;
-            assert_condition(this->warp_group < 4,
-                             std::to_string(this->icoc_subpartition) + " Invalid warp group must be 0 <= wg < 4.\n" +
-                             message_str);
+            // Warp id is used only when the ICOC subpartition is for scheduler (then one warp only is affected)
+            ifs >> this->warp_id;
+            assert_condition(this->warp_id < 64, "Invalid warp id, must be 0 <= warp id < 64");
+
+            // to allow the IIO fault model with slight moddifications
+            ifs >> this->is_iio_fault_model;
+            assert_condition(this->is_iio_fault_model == 0 || this->is_iio_fault_model == 1,
+                             "is_iio_fault_model must be 0 or 1");
 
             if (verbose) {
                 std::cout << this << std::endl;
