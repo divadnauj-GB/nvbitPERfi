@@ -39,7 +39,7 @@ option(WITH_DEBUG "To print debug information" ON)
 option(WITH_PYTHON_SUPPORT "To build the SWIG Python 3.8 wrapper" ON)
 
 # Include directories for the lib
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
+include_directories(include)
 add_library(
         LogHelper
         SHARED
@@ -129,7 +129,7 @@ if (NOT LOG_DIR)
 endif ()
 ########################################################################################################################
 # Installation process
-set(INSTALL_SCRIPTS_DIR ${CMAKE_CURRENT_SOURCE_DIR}/cmake_install_scripts)
+set(INSTALL_SCRIPTS_DIR cmake_install_scripts)
 # configuration file that will be read by the library
 set(RADIATION_CONF_FILE radiation-benchmarks.conf)
 configure_file(${INSTALL_SCRIPTS_DIR}/${RADIATION_CONF_FILE}.in ${RADIATION_CONF_FILE} @ONLY)
@@ -204,7 +204,7 @@ if (WITH_PYTHON_SUPPORT)
 
     target_include_directories(log_helper
             PRIVATE
-            ${CMAKE_CURRENT_SOURCE_DIR}/include
+            include
             ${Python3_INCLUDE_DIRS}
             )
     set_property(TARGET log_helper PROPERTY SWIG_USE_TARGET_INCLUDE_DIRECTORIES ON)
@@ -225,7 +225,7 @@ if (WITH_PYTHON_SUPPORT)
     set_property(
             TARGET log_helper
             PROPERTY INCLUDE_DIRECTORIES ${Python_INCLUDE_DIRS}
-            ${CMAKE_CURRENT_SOURCE_DIR}/include
+            include
     )
 
 #    set_property(

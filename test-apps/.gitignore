@@ -9,6 +9,20 @@
 !/VectorAdd/vectorAdd.cu
 !/common
 !/logs/VectorAdd/injection-list/modeIRA1000.txt
-!/real_workloads
+!/gemm
+!/accl
+!/bfs
+!/gaussian
+!/lava
+!/hotspot
+!/libLogHelper
+!/log_helper_dest/README.md
+!/lud
+!/mergesort
+!/quicksort
+!/cfd
+!/common/include
+!/nw
+!/configure_real_workloads.py
 
 

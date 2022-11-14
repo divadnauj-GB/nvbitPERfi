@@ -65,13 +65,13 @@ def main():
         print("Building and setting", workload_name)
         build_benchmark_with_fi_parameters(app=workload_name, parameters=workload_parameters)
         app_dir, app_bin = workload_parameters["APP_DIR"], workload_parameters["APP_BIN"]
+        specific_run_parameters = " ".join(map(str, workload_parameters["MAKE_PARAMETERS"].values()))
         real_workloads_dict_out[workload_name] = [
             NVBITFI_HOME + f'/test-apps/real_workloads/{app_dir}',  # workload directory
             app_bin,  # binary name
             NVBITFI_HOME + f'/test-apps/real_workloads/{app_dir}',  # path to the binary file
             5,  # expected runtime secs
-            # additional parameters to the run.sh
-            common_additional_run_parameters + " ".join(map(str, workload_parameters["MAKE_PARAMETERS"].values()))
+            f"{common_additional_run_parameters} {specific_run_parameters}"  # additional parameters to the run.sh
         ]
 
     with open(REAL_WORKLOADS_PARAMETERS_FILE, 'w') as handle:
