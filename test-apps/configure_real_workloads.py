@@ -60,6 +60,8 @@ def build_benchmark_with_fi_parameters(app: str, parameters: dict):
 
 
 def main():
+    # Create a link from gemm to mxm just to allow runPERfi to work properly
+    execute_cmd(cmd="rm -f mxm && ln -s gemm mxm", err_message="Failed to create the mxm link")
     # Build libLogHelper first
     build_and_set_lib_log_helper()
     real_workloads_dict_out = dict()
@@ -87,75 +89,75 @@ def main():
 REAL_WORKLOADS = {
     # ----------------------------------------------------------------------------------------------------------------
     # LAVA
-    "FLAVA": {
+    "lava": {
         # "MAKE_PARAMETERS": dict(PRECISION="float", SIZE=15, STREAMS=1),
         "MAKE_PARAMETERS": dict(PRECISION="single", SIZE=2, STREAMS=1),
         "APP_DIR": "lava", "APP_BIN": "cuda_lava_single"
     },
     # ----------------------------------------------------------------------------------------------------------------
     # MXM AND GEMM USE BOTH 2KX2K MATRICES
-    "FMXM": {
+    "mxm": {
         # "MAKE_PARAMETERS": dict(PRECISION="float", SIZE=2048, CUBLAS=0, TENSOR_CORES=0),
         "MAKE_PARAMETERS": dict(PRECISION="float", SIZE=512, CUBLAS=0, TENSOR_CORES=0), "APP_DIR": "gemm",
         "APP_BIN": "gemm"
     },
-    "FGEMM": {
+    "gemm": {
         # "MAKE_PARAMETERS": dict(PRECISION="float", SIZE=2048, CUBLAS=0, TENSOR_CORES=0),
         "MAKE_PARAMETERS": dict(PRECISION="float", SIZE=512, CUBLAS=1, TENSOR_CORES=0), "APP_DIR": "gemm",
         "APP_BIN": "gemm"
     },
     # ----------------------------------------------------------------------------------------------------------------
     # HOTSPOT
-    "FHOTSPOT": {
+    "hotspot": {
         # "MAKE_PARAMETERS": dict(PRECISION="float", STREAMS=4, SIM_TIME=1000),
         "MAKE_PARAMETERS": dict(PRECISION="float", STREAMS=1, SIM_TIME=100), "APP_DIR": "hotspot",
         "APP_BIN": "cuda_hotspot"
     },
     # ------------------------------------------------------------------------------------------------------------------
     # GAUSSIAN - 1K
-    "FGAUSSIAN": {
+    "gaussian": {
         # "MAKE_PARAMETERS": dict(SIZE=1024),
         "MAKE_PARAMETERS": dict(SIZE=512), "APP_DIR": "gaussian", "APP_BIN": "cudaGaussian"
     },
     # ------------------------------------------------------------------------------------------------------------------
     # BFS
-    "BFS": {
+    "bfs": {
         # "MAKE_PARAMETERS": dict(),
         "MAKE_PARAMETERS": dict(), "APP_DIR": "bfs", "APP_BIN": "cudaBFS"
     },
     # ------------------------------------------------------------------------------------------------------------------
     # LUD - 8K
-    "FLUD": {
+    "lud": {
         # "MAKE_PARAMETERS": dict(SIZE=8192),
         "MAKE_PARAMETERS": dict(SIZE=2048), "APP_DIR": "lud", "APP_BIN": "cudaLUD"
     },
     # ------------------------------------------------------------------------------------------------------------------
     # CCL
-    "ACCL": {
+    "accl": {
         # "MAKE_PARAMETERS": dict(SIZE=7, FRAMES=7),
         "MAKE_PARAMETERS": dict(SIZE=7, FRAMES=7), "APP_DIR": "accl", "APP_BIN": "cudaACCL"
     },
     # ------------------------------------------------------------------------------------------------------------------
     # NW
-    "NW": {
+    "nw": {
         # "MAKE_PARAMETERS": dict(SIZE=16384, PENALTY=10),
         "MAKE_PARAMETERS": dict(SIZE=16384, PENALTY=10), "APP_DIR": "nw", "APP_BIN": "nw",
     },
     # ------------------------------------------------------------------------------------------------------------------
     # CFD
-    "FCFD": {
+    "cfd": {
         # "MAKE_PARAMETERS": dict(STREAMS=100),
         "MAKE_PARAMETERS": dict(STREAMS=1), "APP_DIR": "cfd", "APP_BIN": "cudaCFD",
     },
     # ----------------------------------------------------------------------------------------------------------------
     # SORTS USE 128K, for fault injection 1k
     # QUICKSORT
-    "QUICKSORT": {
+    "quicksort": {
         # "MAKE_PARAMETERS": dict(SIZE=134217728),
         "MAKE_PARAMETERS": dict(SIZE=1048576), "APP_DIR": "quicksort", "APP_BIN": "quicksort",
     },
     # MERGESORT
-    "MERGESORT": {
+    "mergesort": {
         # "MAKE_PARAMETERS": dict(SIZE=134217728),
         "MAKE_PARAMETERS": dict(SIZE=1048576), "APP_DIR": "mergesort", "APP_BIN": "mergesort"
     },
