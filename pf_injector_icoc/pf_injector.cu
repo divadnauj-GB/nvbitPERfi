@@ -344,11 +344,11 @@ void instrument_function_if_needed(CUcontext ctx, CUfunction func) {
                         auto is_float = uint32_t(op_group == G_FP32);
                         auto replace_instruction_opcode = generate_current_instruction_type(current_instruction_opcode);
                         auto num_operands = i->getNumOperands();
-                        fout << "; current opcode:" << inst_type_str
-                             << "; replace_instruction_opcode_num:" << replace_instruction_opcode
-                             << "; num_operands:" << num_operands
-                             << "; last_inst:" << last_instruction_sass_str
-                             << "; last_pc_offset:" << last_pc_offset << std::endl;
+//                        fout << "; current opcode:" << inst_type_str
+//                             << "; replace_instruction_opcode_num:" << replace_instruction_opcode
+//                             << "; num_operands:" << num_operands
+//                             << "; last_inst:" << last_instruction_sass_str
+//                             << "; last_pc_offset:" << last_pc_offset << std::endl;
 
                         nvbit_insert_call(i, "inject_error", IPOINT_AFTER);
                         nvbit_add_call_arg_const_val64(i, uint64_t(&inj_info));
