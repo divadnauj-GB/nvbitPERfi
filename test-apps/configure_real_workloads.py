@@ -3,18 +3,20 @@ import json
 import os
 import shutil
 
-REAL_WORKLOADS_DIR = os.path.abspath(os.getcwd())
-LOG_HELPER_SOURCE_PATH = f"{REAL_WORKLOADS_DIR}/libLogHelper"
+# SET NVBITFI HOME BEFORE STARTING
+NVBITFI_HOME = os.path.abspath(os.environ["NVBITFI_HOME"])
+
+TEST_APPS_DIR = f"{NVBITFI_HOME}/test-apps"
+LOG_HELPER_SOURCE_PATH = f"{TEST_APPS_DIR}/libLogHelper"
 # Also used to set the makefiles
 LOG_HELPER_LIB_PATH = f"{LOG_HELPER_SOURCE_PATH}/build"
 LOG_HELPER_INCLUDE_PATH = f"{LOG_HELPER_SOURCE_PATH}/include"
 
-LOG_HELPER_LOGS_DIR = f"{REAL_WORKLOADS_DIR}/log_helper_dest"
+LOG_HELPER_LOGS_DIR = f"{TEST_APPS_DIR}/log_helper_dest"
 
 # NVBitPermaFI configuration file
-REAL_WORKLOADS_PARAMETERS_FILE = f"{REAL_WORKLOADS_DIR}/../../scripts/real_workloads_parameters.py"
+REAL_WORKLOADS_PARAMETERS_FILE = f"{NVBITFI_HOME}/scripts/real_workloads_parameters.py"
 
-NVBITFI_HOME = os.environ["NVBITFI_HOME"]
 CUDA_PATH = "/usr/local/cuda"
 
 
@@ -42,11 +44,11 @@ def build_and_set_lib_log_helper():
     execute_cmd(cmd=cmake_cmd, err_message="PROBLEM ON CMAKE")
     execute_cmd(cmd=f"make", err_message="PROBLEM ON MAKE LOG HELPER")
 
-    os.chdir(REAL_WORKLOADS_DIR)
+    os.chdir(TEST_APPS_DIR)
 
 
 def build_benchmark_with_fi_parameters(app: str, parameters: dict):
-    app_full_path = f"{REAL_WORKLOADS_DIR}/{parameters['APP_DIR']}"
+    app_full_path = f"{TEST_APPS_DIR}/{parameters['APP_DIR']}"
     os.chdir(app_full_path)
     make_cmd = f"make LOG_HELPER_PATH={LOG_HELPER_SOURCE_PATH} all"
     execute_cmd(cmd=make_cmd, err_message=f"Making {app}")
@@ -54,6 +56,7 @@ def build_benchmark_with_fi_parameters(app: str, parameters: dict):
     app_make_parameters = " ".join([f"{k}={v}" for k, v in parameters["MAKE_PARAMETERS"].items()])
     generate_cmd = f"LD_LIBRARY_PATH={LOG_HELPER_LIB_PATH}:$LD_LIBRARY_PATH make {app_make_parameters} generate"
     execute_cmd(cmd=generate_cmd, err_message=f"Generate golden for {app}")
+    os.chdir(TEST_APPS_DIR)
 
 
 def main():
@@ -73,6 +76,9 @@ def main():
             5,  # expected runtime secs
             f"{common_additional_run_parameters} {specific_run_parameters}"  # additional parameters to the run.sh
         ]
+        # Debug break
+        if workload_name == "FGEMM":
+            break
 
     with open(REAL_WORKLOADS_PARAMETERS_FILE, 'w') as handle:
         handle.write(f"REAL_WORKLOAD_DICT = {json.dumps(real_workloads_dict_out, indent=4)}")
