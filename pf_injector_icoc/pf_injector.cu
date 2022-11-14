@@ -140,7 +140,7 @@ void report_summary_results() {
              //             << "; NumErrInstExeBefStop: " << inj_error_info.injInstrIdx
              << "; LastPCOffset: 0x" << std::hex << last_pc_offset << std::dec
              << "; LastOpcode: " << current_instruction_opcode
-             << "; TotErrAct: " << total_activations;
+             << "; TotErrAct: " << total_activations << std::endl;
 //        if (inj_error_info.maxregcount > inj_error_info.injRegReplacement) {
 //            fout << "; RegLoc: InsideLims";
 //        } else {
@@ -184,7 +184,7 @@ void report_kernel_results() {
          << "; WarpID: " << inj_info.warp_id
          << "; LastPCOffset: 0x" << std::hex << last_pc_offset << std::dec
          << "; LastOpcode: " << current_instruction_opcode
-         << "; TotErrAct: " << total_activations;
+         << "; TotErrAct: " << total_activations << std::endl;
     verbose_printf(activation_string, "\n");
     fout << activation_string;
     fout << simulation_end_result << std::endl;
