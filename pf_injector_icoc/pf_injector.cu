@@ -400,6 +400,17 @@ void instrument_function_if_needed(CUcontext ctx, CUfunction func) {
                                     }
                                     break;
                                 }
+                                case InstrType::OperandType::IMM_UINT64:{
+                                    nvbit_add_call_arg_const_val32(i, 1, true);
+                                    nvbit_add_call_arg_const_val64(i, op->u.imm_uint64.value, true);
+                                    break;
+                                }
+                                case InstrType::OperandType::IMM_DOUBLE:{
+                                    nvbit_add_call_arg_const_val32(i, 1, true);
+                                    auto* data_val = (uint64_t*) &op->u.imm_double.value;
+                                    nvbit_add_call_arg_const_val64(i, *data_val, true);
+                                    break;
+                                }
                                 case InstrType::OperandType::MREF:
 //                                {
 //                                    nvbit_add_call_arg_const_val32(i, 1, true);
@@ -416,8 +427,6 @@ void instrument_function_if_needed(CUcontext ctx, CUfunction func) {
 //                                    }
 //                                    break;
 //                                }
-                                case InstrType::OperandType::IMM_UINT64:
-                                case InstrType::OperandType::IMM_DOUBLE:
                                 case InstrType::OperandType::GENERIC:
                                 case InstrType::OperandType::UREG:
                                 case InstrType::OperandType::UPRED:

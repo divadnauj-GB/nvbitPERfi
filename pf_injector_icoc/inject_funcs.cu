@@ -75,23 +75,19 @@ void inject_error(
         uint32_t operand_type = va_arg(vl, uint32_t);
         uint32_t is_operand_valid = va_arg(vl, uint32_t);
 
-//        if (static_cast<InstrType::OperandType>(operand_type) == InstrType::OperandType::MREF) {
-//            uint64_t mem_adr = 0;
-//            uint32_t ra_val = 0;
-//            bool has_ra = va_arg(vl, uint32_t);
-//            bool has_imm = va_arg(vl, uint32_t);
-//            if (has_ra){
-//                ra_val = va_arg(vl, uint32_t);
-//            }
-//            if (has_imm){
-//                mem_adr = va_arg(vl, uint64_t);;
-//            }
-//            printf("%lu\n", (ra_val + mem_adr));
-//            auto *mem_data = (int32_t *) (ra_val + mem_adr);
-//            reg_data[i] = *mem_data;
-//        } else {
-        reg_data[i] = va_arg(vl, int32_t);
-//        }
+        if (static_cast<InstrType::OperandType>(operand_type) == InstrType::OperandType::MREF) {
+            // do nothing
+            reg_data[i] = 0;
+        } else if (static_cast<InstrType::OperandType>(operand_type) == InstrType::OperandType::IMM_UINT64) {
+            // only what is low in the 64 format
+            reg_data[i] = int32_t(va_arg(vl, int64_t));
+        } else if (static_cast<InstrType::OperandType>(operand_type) == InstrType::OperandType::IMM_DOUBLE) {
+            auto raw = va_arg(vl, int64_t);
+            auto val_data = float(*((double *) &raw));
+            reg_data[i] = *((int32_t *) &val_data);
+        } else {
+            reg_data[i] = va_arg(vl, int32_t);
+        }
         assert_gpu((is_operand_valid == 0 || is_operand_valid == 1), "is_operand_valid incorrect >1", verbose_device);
         i += is_operand_valid;
     }
