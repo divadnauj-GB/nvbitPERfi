@@ -234,7 +234,13 @@ def main():
                         clear_results_file(app,os.environ['nvbitPERfi'])
                 #run the golden application
                 BeginTime = datetime.datetime.now()
-                cmd = p.bin_dir[app] + "/" + p.app_bin[app] + " " + p.app_args[app]+" > "+ p.app_dir[app]+"/golden_stdout.txt "+"2> "+ p.app_dir[app]+"/golden_stderr.txt"
+                # cmd = p.bin_dir[app] + "/" + p.app_bin[app] + " " + p.app_args[app]+" > "+ p.app_dir[app]+"/golden_stdout.txt "+"2> "+ p.app_dir[app]+"/golden_stderr.txt"
+                cmd = [f"cd {p.app_dir[app]}",
+                       f"PRELOAD_FLAG= BIN_DIR={p.bin_dir[app]} {p.app_dir[app]}/run.sh {p.app_args[app]}",
+                       f"mv {p.app_dir[app]}/{p.stdout_file} {p.app_dir[app]}/golden_{p.stdout_file}",
+                       f"mv {p.app_dir[app]}/{p.stderr_file} {p.app_dir[app]}/golden_{p.stderr_file}",
+                       "cd -"]
+
                 if p.verbose: print (cmd)
                 pr = subprocess.Popen(cmd, shell=True, executable='/bin/bash', preexec_fn=os.setsid) # run the injection job
                 StopTime = datetime.datetime.now()
