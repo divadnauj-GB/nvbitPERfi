@@ -3,14 +3,13 @@ EXEC=cudaCFD
 LOGS=1
 BUILDPROFILER=0
 DEBUG=0
-ITERATIONS=10
+ITERATIONS=1
 STREAMS=1
 
 VPATH=./src
 CUDAPATH=/usr/local/cuda
 NVCC=$(CUDAPATH)/bin/nvcc
-RADDIR=../../..
-DATADIR=$(RADDIR)/data/cfd
+DATADIR=.
 INPUT_BASE=missile.domn.0.2M
 INPUT=$(DATADIR)/$(INPUT_BASE)
 GOLD=$(DATADIR)/cfd_gold_$(INPUT_BASE)
@@ -18,10 +17,10 @@ GOLD=$(DATADIR)/cfd_gold_$(INPUT_BASE)
 NVCCFLAGS= -std=c++11 -Xptxas -v -Xcompiler -fopenmp  -Xcompiler -fPIC
 CXXFLAGS= -std=c++11 -O3 -fPIC -pthread -fopenmp
 
-INCLUDE= -I$(CUDAPATH)/include -I$(CUDAPATH)/samples/common/inc -I$(RADDIR)/libLogHelper/include
-INCLUDE+= -I$(RADDIR)/src/cuda/common/include
+INCLUDE= -I./src -I$(LOG_HELPER_PATH)/include -I$(CUDAPATH)/samples/common/inc -I../common/include -I$(CUDAPATH)/include
+
 # Kepler, Volta
-SMS= 35 70 86
+SMS=70 86
 $(foreach sm,$(SMS),$(eval ARCH += -gencode arch=compute_$(sm),code=sm_$(sm)))
 
 ifeq ($(DEBUG), 1) 
@@ -32,7 +31,7 @@ endif
 ifeq ($(LOGS), 1)
 CXXFLAGS+= -DLOGS
 NVCCFLAGS+= -DLOGS
-LDFLAGS+= -L$(RADDIR)/libLogHelper  -lLogHelper
+LDFLAGS+= -L$(LOG_HELPER_PATH)/build  -lLogHelper
 endif
 
 ifeq ($(BUILDPROFILER), 1)
@@ -76,3 +75,8 @@ generate:
 test:
 	./$(EXEC) --streams $(STREAMS) --input $(INPUT) --gold $(GOLD) --iterations $(ITERATIONS) --verbose
 	
+golden:
+	./$(EXEC) --streams $(STREAMS) --input $(INPUT) --gold $(GOLD) --iterations $(ITERATIONS) --verbose > golden_stdout.txt 2>golden_stderr.txt
+	sed -i '/Kernel time/c\REPLACED.' golden_stdout.txt
+	sed -i '/read../c\REPLACED.' golden_stdout.txt
+
