@@ -20,8 +20,20 @@ REAL_WORKLOADS_PARAMETERS_FILE = f"{NVBITFI_HOME}/scripts/real_workloads_paramet
 CUDA_PATH = "/usr/local/cuda"
 
 
+class Bcolors:
+    HEADER = '\033[95m'
+    OKBLUE = '\033[94m'
+    OKCYAN = '\033[96m'
+    OKGREEN = '\033[92m'
+    WARNING = '\033[93m'
+    FAIL = '\033[91m'
+    ENDC = '\033[0m'
+    BOLD = '\033[1m'
+    UNDERLINE = '\033[4m'
+
+
 def execute_cmd(cmd: str, err_message: str):
-    print("EXECUTING:", cmd)
+    print(Bcolors.HEADER + "EXECUTING:", cmd + Bcolors.ENDC)
     if os.system(cmd) != 0:
         raise ValueError(f"Failed to execute CMD:{cmd}, message:{err_message}")
 
@@ -74,7 +86,7 @@ def main():
     real_workloads_dict_out = dict()
     common_additional_run_parameters = f"{CUDA_PATH} {LOG_HELPER_LIB_PATH}"
     for workload_name, workload_parameters in REAL_WORKLOADS.items():
-        print("Building and setting", workload_name)
+        print(Bcolors.WARNING + "Building and setting", workload_name + Bcolors.ENDC)
         build_benchmark_with_fi_parameters(app=workload_name, parameters=workload_parameters)
         app_dir, app_bin = workload_parameters["APP_DIR"], workload_parameters["APP_BIN"]
         specific_run_parameters = " ".join(map(str, workload_parameters["MAKE_PARAMETERS"].values()))
