@@ -375,14 +375,14 @@ void instrument_function_if_needed(CUcontext ctx, CUfunction func) {
                             /* get the operand_i "i" */
                             const InstrType::operand_t *op = i->getOperand(operand_i);
                             InstrType::OperandType operand_type = op->type;
-                            auto casted_operand_type = static_cast<uint32_t>(operand_type);
+//                            auto casted_operand_type = static_cast<uint32_t>(operand_type);
                             /**
                              * Always put in the following order
                              * 1 operand type const 32 bits
                              * 2 if the operand is valid const 32bits (0 or 1)
                              * 3 operand val, can be 32 bits or mem ref 64 bits
                              */
-                            nvbit_add_call_arg_const_val32(i, casted_operand_type, true);
+//                            nvbit_add_call_arg_const_val32(i, casted_operand_type, true);
 //                            verbose_printf("casted_operand_type ", casted_operand_type, "\nnum_dest_GPRS ",
 //                                           num_dest_GPRs, " num operands ", num_operands);
                             switch (operand_type) {
@@ -402,13 +402,14 @@ void instrument_function_if_needed(CUcontext ctx, CUfunction func) {
                                 }
                                 case InstrType::OperandType::IMM_UINT64:{
                                     nvbit_add_call_arg_const_val32(i, 1, true);
-                                    nvbit_add_call_arg_const_val64(i, op->u.imm_uint64.value, true);
+                                    nvbit_add_call_arg_const_val32(i, uint32_t(op->u.imm_uint64.value), true);
                                     break;
                                 }
                                 case InstrType::OperandType::IMM_DOUBLE:{
                                     nvbit_add_call_arg_const_val32(i, 1, true);
-                                    auto* data_val = (uint64_t*) &op->u.imm_double.value;
-                                    nvbit_add_call_arg_const_val64(i, *data_val, true);
+                                    auto data_val = float((*(double*) &op->u.imm_double.value));
+                                    auto* const_to_variadic = (uint32_t*) &data_val;
+                                    nvbit_add_call_arg_const_val32(i, *const_to_variadic, true);
                                     break;
                                 }
                                 case InstrType::OperandType::MREF:

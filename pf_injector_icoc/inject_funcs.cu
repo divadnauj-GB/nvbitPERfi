@@ -72,22 +72,9 @@ void inject_error(
          * 2 if the operand is valid const 32bits (0 or 1)
          * 3 operand val, can be 32 bits or mem ref 64 bits
          */
-        uint32_t operand_type = va_arg(vl, uint32_t);
+//        uint32_t operand_type = va_arg(vl, uint32_t);
         uint32_t is_operand_valid = va_arg(vl, uint32_t);
-
-        if (static_cast<InstrType::OperandType>(operand_type) == InstrType::OperandType::MREF) {
-            // do nothing
-            reg_data[i] = 0;
-        } else if (static_cast<InstrType::OperandType>(operand_type) == InstrType::OperandType::IMM_UINT64) {
-            // only what is low in the 64 format
-            reg_data[i] = int32_t(va_arg(vl, int64_t));
-        } else if (static_cast<InstrType::OperandType>(operand_type) == InstrType::OperandType::IMM_DOUBLE) {
-            auto raw = va_arg(vl, int64_t);
-            auto val_data = float(*((double *) &raw));
-            reg_data[i] = *((int32_t *) &val_data);
-        } else {
-            reg_data[i] = va_arg(vl, int32_t);
-        }
+        reg_data[i] = va_arg(vl, int32_t);
         assert_gpu((is_operand_valid == 0 || is_operand_valid == 1), "is_operand_valid incorrect >1", verbose_device);
         i += is_operand_valid;
     }
