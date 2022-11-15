@@ -911,7 +911,7 @@ int main(int argc, char *argv[]) {
     //	if (!generate)
         {
             start_log_file(test_name, test_info);
-            set_max_errors_iter(MAX_LOGGED_ERRORS_PER_STREAM * nstreams + 32);
+            set_max_errors_iter(1048575);
         }
 
 #ifdef BUILDPROFILER
