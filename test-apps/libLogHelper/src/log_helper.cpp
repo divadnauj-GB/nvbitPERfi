@@ -19,8 +19,8 @@ namespace log_helper {
 
     // Max errors that can be found for a single iteration
     // If more than max errors is found, exit the program
-    size_t max_errors_per_iter = 65535;
-    size_t max_infos_per_iter = 65535;
+    size_t max_errors_per_iter = 1048575;
+    size_t max_infos_per_iter = 1048575;
 
     // Kernel total errors
     size_t kernels_total_errors = 0;
