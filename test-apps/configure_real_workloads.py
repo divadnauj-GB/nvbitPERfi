@@ -77,6 +77,9 @@ def treat_specific_cases():
     # Uncompress hotspot files
     execute_cmd(cmd="cd hotspot/ && tar xzf power_and_temp_files.tar.gz && cd -",
                 err_message="Failed to uncompress hotspot files")
+    # Uncompress bfs files
+    execute_cmd(cmd="cd bfs/ && tar xzf graphs_rodinia.tar.gz && cd -",
+                err_message="Failed to uncompress bfs files")
 
 
 def main():
