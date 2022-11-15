@@ -59,9 +59,16 @@ def build_benchmark_with_fi_parameters(app: str, parameters: dict):
     os.chdir(TEST_APPS_DIR)
 
 
-def main():
+def treat_specific_cases():
     # Create a link from gemm to mxm just to allow runPERfi to work properly
     execute_cmd(cmd="rm -f mxm && ln -s gemm mxm", err_message="Failed to create the mxm link")
+    # Uncompress hotspot files
+    execute_cmd(cmd="cd hotspot/ && tar xzf power_and_temp_files.tar.gz && cd -",
+                err_message="Failed to uncompress hotspot files")
+
+
+def main():
+    treat_specific_cases()
     # Build libLogHelper first
     build_and_set_lib_log_helper()
     real_workloads_dict_out = dict()
@@ -79,7 +86,7 @@ def main():
             f"{common_additional_run_parameters} {specific_run_parameters}"  # additional parameters to the run.sh
         ]
         # Debug break
-        if workload_name == "gemm":
+        if workload_name == "hotspot":
             break
 
     with open(REAL_WORKLOADS_PARAMETERS_FILE, 'w') as handle:
