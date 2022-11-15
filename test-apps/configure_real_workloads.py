@@ -78,11 +78,10 @@ def treat_specific_cases():
     execute_cmd(cmd="cd hotspot/ && tar xzf power_and_temp_files.tar.gz && cd -",
                 err_message="Failed to uncompress hotspot files")
     # Uncompress bfs files
-    execute_cmd(cmd="cd bfs/ && tar xzf graphs_rodinia.tar.gz && cd -",
-                err_message="Failed to uncompress bfs files")
+    execute_cmd(cmd="cd bfs/ && tar xzf graphs_rodinia.tar.gz && cd -", err_message="Failed to uncompress bfs files")
     # Uncompress cfd files
-    execute_cmd(cmd="cd cfd/ && xz -df missile.domn.0.2M.xz && cd -",
-                err_message="Failed to uncompress cfd files")
+    if os.path.isfile("cfd/missile.domn.0.2M") is False:
+        execute_cmd(cmd="cd cfd/ && xz -df missile.domn.0.2M.xz && cd -", err_message="Failed to uncompress cfd files")
 
 
 def main():
