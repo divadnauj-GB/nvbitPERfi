@@ -2,10 +2,9 @@ CXX=g++
 EXEC=cudaLUD
 LOGS=1
 BUILDPROFILER=0
-ITERATIONS=10
-RADDIR=../../..
-SIZE=8192
-DATADIR=$(RADDIR)/data/lud
+ITERATIONS=1
+SIZE=2048
+DATADIR=.
 GOLD=$(DATADIR)/gold_$(SIZE).data
 INPUT=$(DATADIR)/input_$(SIZE).data
 
@@ -20,10 +19,10 @@ CXXFLAGS= -std=c++11 -o3  -fPIC -fopenmp
 
 # This is what I use, uncomment if you know your arch and want to specify
 # Kepler, Volta
-SMS= 35 53 70 86
+SMS= 70 86
 $(foreach sm,$(SMS), $(eval ARCH += -gencode arch=compute_$(sm),code=sm_$(sm)))
 
-INCLUDE= -I./src -I$(CUDAPATH)/include -I$(CUDAPATH)/samples/common/inc -I$(RADDIR)/libLogHelper/include -I$(RADDIR)/src/cuda/common/include
+INCLUDE= -I./src -I$(LOG_HELPER_PATH)/include -I$(CUDAPATH)/samples/common/inc -I../common/include -I$(CUDAPATH)/include
 
 OBJDIR=./obj/
 OBJ=  lud_kernel.o  main.o Parameters.o
@@ -36,7 +35,7 @@ endif
 ifeq ($(LOGS), 1)
 CXXFLAGS+= -DLOGS
 NVCCFLAGS+= -DLOGS
-LDFLAGS+= -L$(RADDIR)/libLogHelper/  -lLogHelper
+LDFLAGS+= -L$(LOG_HELPER_PATH)/build  -lLogHelper
 endif
 
 ifeq ($(BUILDPROFILER), 1)
@@ -77,4 +76,15 @@ generate:
 	
 test:
 	./$(EXEC) --size $(SIZE) --input $(INPUT) --gold $(GOLD) --iterations $(ITERATIONS) --verbose
+
+golden:
+	./$(EXEC) --size $(SIZE) --input $(INPUT) --gold $(GOLD) --iterations 1 --verbose > golden_stdout.txt 2>golden_stderr.txt
+	sed -i '/Array set time/c\REPLACED.' golden_stdout.txt 
+	sed -i '/Gold check time/c\REPLACED.' golden_stdout.txt 
+	sed -i '/OUTPUT/c\REPLACED.' golden_stdout.txt 
+	sed -i '/Iteration 0 overall time/c\REPLACED.' golden_stdout.txt 
+	sed -i '/Total kernel time/c\REPLACED.' golden_stdout.txt 
+	sed -i '/Average kernel time/c\REPLACED.' golden_stdout.txt 
+	sed -i '/Device kernel time/c\REPLACED.' golden_stdout.txt 
+	sed -i '/Copy time/c\REPLACED.' golden_stdout.txt 
 
