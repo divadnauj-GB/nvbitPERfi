@@ -52,7 +52,7 @@ diff stderr.txt ${APP_DIR}/golden_stderr.txt > stderr_diff.log
 
 # Application specific output: The following check will be performed only if at least one of diff.log, stdout_diff.log, and stderr_diff.log is different
 echo "" > selected_output.txt
-grep "" > selected_golden_output.txt
+echo "" > selected_golden_output.txt
 diff selected_output.txt selected_golden_output.txt > special_check.log
 
 echo "$LOG_FILE_NAME" > selected_output.txt
