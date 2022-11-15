@@ -67,6 +67,10 @@ typedef struct {
   uint32_t gridDimY;
   uint32_t gridDimZ;
   uint32_t maxregcount;
+  int32_t maxPredReg;
+  int32_t KernelPredReg;
+  uint32_t TotKerInstr;
+  uint32_t TotAppInstr;
   uint32_t num_threads;
   uint32_t MaxWarpsPerSM;
   uint32_t MaxThreadsPerSM;

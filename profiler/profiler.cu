@@ -42,6 +42,7 @@ std::string line_buffer;
 bool enable_instrumentation = false;
 int max_regcount=0;
 int max_reg_operands=0;
+int pred_reg=0;
 
 std::string get_profiled_details(std::string kname) {
 #ifdef SKIP_PROFILED_KERNELS
@@ -134,17 +135,25 @@ void instrument_function_if_needed(CUcontext ctx, CUfunction func) {
             std::string instType = i->getOpcodeShort();
 
             int cnt = 0;
+            int predicate=0;
             for (int idx = 0; idx < i->getNumOperands(); idx++) {
                 const InstrType::operand_t *op = i->getOperand(idx);
                 if(op->type == InstrType::OperandType::REG){
                     cnt++; 
-                }                      
+                }   
+                if(op->type == InstrType::OperandType::PRED && idx==0){
+                    predicate=op->u.pred.num;                    
+                }                  
             }
 
             if(max_reg_operands<cnt){
                 max_reg_operands=cnt;
             }
-            
+
+            if(pred_reg<predicate){
+                pred_reg=predicate;
+            }
+
             if (verbose) {
                 i->print();
                 printf("extracted instType: %s\n", instType.c_str());
@@ -267,6 +276,7 @@ void nvbit_at_cuda_event(CUcontext ctx, int is_exit, nvbit_api_cuda_t cbid, cons
                  << "; num_threads: " << num_threads
                  << "; max_regcount: " << max_regcount
                  << "; max_reg_operands: " << max_reg_operands
+                 << "; maxPredReg: " << pred_reg
                  << "; gridDimX: " << gridDimX
                  << "; gridDimY: " << gridDimY
                  << "; gridDimZ: " << gridDimZ
