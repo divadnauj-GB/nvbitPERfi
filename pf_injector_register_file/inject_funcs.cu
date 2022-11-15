@@ -367,8 +367,7 @@ int destGPRNum, int regval, int numDestGPRs, int blokDimm, int instridx, int Ins
                 }*/
                 if(inj_info->injStuck_at==0){
                     injAfterVal = injBeforeVal & (~inj_info->injMaskSeed);
-                }
-                else{
+                }else{
                     injAfterVal = injBeforeVal | inj_info->injMaskSeed;
                 }
                 //injAfterVal = injBeforeVal ^ inj_info->injMaskSeed;

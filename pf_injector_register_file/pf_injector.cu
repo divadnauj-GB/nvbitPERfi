@@ -89,7 +89,10 @@ void reset_inj_info() {
         inj_error_info.gridDimY=0;
         inj_error_info.gridDimZ=0;
         inj_error_info.maxregcount=0;
-        inj_error_info.num_threads=0;        
+        inj_error_info.num_threads=0;    
+        inj_error_info.TotKerInstr=0;
+        inj_error_info.TotAppInstr=0;
+        inj_error_info.maxPredReg=-1;    
         inj_error_info.errorInjected = false;
 }
 
@@ -356,6 +359,7 @@ void parse_paramsWV(std::string filename) {
                         idx++;
                     }
                 }        
+                inj_error_info.maxPredReg=-1;
         }
 }
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -390,23 +394,48 @@ fout <<"Kernel name: "<<kname<<"; kernel Index: "<< kernel_id
         << "; gridDimZ: " << inj_error_info.gridDimZ
         << "; blockDimX: " << inj_error_info.blockDimX
         << "; blockDimY: " << inj_error_info.blockDimY
-        << "; blockDimZ: " << inj_error_info.blockDimZ;
+        << "; blockDimZ: " << inj_error_info.blockDimZ
+        << "; NumThreads: " << inj_error_info.num_threads;
         if(inj_error_info.errorInjected==true) 
                 fout << "; ErrorInjected: True";
         else
                 fout << "; ErrorInjected: False"; 
-        fout << "; SmID: " << inj_error_info.injSMID
-        << "; SchID: " << inj_error_info.injScheduler
-        << "; WarpIDH: " << inj_error_info.injWarpMaskH
-        << "; WarpIDL: " << inj_error_info.injWarpMaskL
-        << "; LaneID: " << inj_error_info.injThreadMask
-        << "; RegField: " << inj_error_info.injRegID
-        << "; MaskSeed: " << inj_error_info.injMaskSeed
-        << "; Stuck_at/others: " << inj_error_info.injStuck_at
-        << "; MaxRegCount: " << inj_error_info.maxregcount
-        << "; RegOrigNum: " << inj_error_info.injRegOriginal
-        << "; RegRepNum: " << inj_error_info.injRegReplacement
-        << "; NumErrInstExeBefStop: " << inj_error_info.injInstrIdx
+        fout << "; injSmID: " << inj_error_info.injSMID
+        << "; injSchID: " << inj_error_info.injScheduler
+        << "; injWarpIDH: " << inj_error_info.injWarpMaskH
+        << "; injWarpIDL: " << inj_error_info.injWarpMaskL
+        << "; injLaneID: " << inj_error_info.injThreadMask;
+        if(inj_mode.compare("IRA")==0 or inj_mode.compare("IR")==0){
+                fout << "; injRegField: " << inj_error_info.injRegID
+                << "; injMaskSeed: " << inj_error_info.injMaskSeed
+                << "; resMaxRegCount: " << inj_error_info.maxregcount
+                << "; resRegOrigNum: " << inj_error_info.injRegOriginal
+                << "; resRegRepNum: " << inj_error_info.injRegReplacement
+                << "; resNumInstr: " << inj_error_info.TotKerInstr;
+        }else if(inj_mode.compare("IAT")==0){               
+                fout << "; injMaskSeed: " << inj_error_info.injMaskSeed
+                << "; InjDimention: " << inj_error_info.injDimension
+                << "; injStuck-at: " << inj_error_info.injStuck_at
+                << "; resNumInstr: " << inj_error_info.TotKerInstr;
+        }else if(inj_mode.compare("IAW")==0){
+                fout << "; injMaskSeed: " << inj_error_info.injMaskSeed
+                << "; InjDimention: " << inj_error_info.injDimension
+                << "; injStuck-at: " << inj_error_info.injStuck_at
+                << "; resNumInstr: " << inj_error_info.TotKerInstr;
+        }else if(inj_mode.compare("IAC")==0){
+                fout << "; injMaskSeed: " << inj_error_info.injMaskSeed
+                << "; InjDimention: " << inj_error_info.injDimension
+                << "; injStuck-at: " << inj_error_info.injStuck_at
+                << "; resNumInstr: " << inj_error_info.TotKerInstr;
+        }else if(inj_mode.compare("WV")==0){
+                fout << "; injPredReg: " << inj_error_info.injRegID
+                << "; injMaskSeed: " << inj_error_info.injMaskSeed
+                << "; injStuck-at: " << inj_error_info.injStuck_at
+                << "; resMaxPredReg: " << inj_error_info.KernelPredReg
+                << "; resNumInstr: " << inj_error_info.TotKerInstr;
+        }else {
+        }
+        fout << "; NumErrInstExeBefStop: " << inj_error_info.injInstrIdx
         << "; LastPCOffset: 0x" << std::hex << inj_error_info.injInstPC  << std::dec
         << "; LastOpcode: " << instTypeNames[inj_error_info.injInstOpcode]
         << "; TotErrAct: " << inj_error_info.injNumActivations << endl; 
@@ -432,27 +461,52 @@ fout << "Report_Summary: "
         fout << "; ErrorInjected: True";
         else
         fout << "; ErrorInjected: False"; 
-        fout << "; SmID: " << inj_error_info.injSMID
-        << "; SchID: " << inj_error_info.injScheduler
-        << "; WarpIDH: " << inj_error_info.injWarpMaskH
-        << "; WarpIDL: " << inj_error_info.injWarpMaskL
-        << "; LaneID: " << inj_error_info.injThreadMask
-        << "; RegField: " << inj_error_info.injRegID
-        << "; MaxRegCount: " << inj_error_info.maxregcount     
-        << "; RegOrigNum: " << inj_error_info.injRegOriginal
-        << "; RegRepNum: " << inj_error_info.injRegReplacement
-        << "; MaskSeed: " << inj_error_info.injMaskSeed
-        << "; Stuck_at/others: " << inj_error_info.injStuck_at
-        << "; NumErrInstExeBefStop: " << inj_error_info.injInstrIdx
+
+        fout << "; injSmID: " << inj_error_info.injSMID
+        << "; injSchID: " << inj_error_info.injScheduler
+        << "; injWarpIDH: " << inj_error_info.injWarpMaskH
+        << "; injWarpIDL: " << inj_error_info.injWarpMaskL
+        << "; injLaneID: " << inj_error_info.injThreadMask;
+        if(inj_mode.compare("IRA")==0 or inj_mode.compare("IR")==0){
+                fout << "; injRegField: " << inj_error_info.injRegID
+                << "; injMaskSeed: " << inj_error_info.injMaskSeed
+                << "; resMaxRegCount: " << inj_error_info.maxregcount
+                << "; resRegOrigNum: " << inj_error_info.injRegOriginal
+                << "; resRegRepNum: " << inj_error_info.injRegReplacement
+                << "; resNumInstr: " << inj_error_info.TotAppInstr;
+                if (inj_error_info.maxregcount > inj_error_info.injRegReplacement){
+                        fout << "; resRegLoc: InsideLims";
+                }else{
+                        fout << "; resRegLoc: OutsideLims";
+                }
+        }else if(inj_mode.compare("IAT")==0){               
+                fout << "; injMaskSeed: " << inj_error_info.injMaskSeed
+                << "; InjDimention: " << inj_error_info.injDimension
+                << "; injStuck-at: " << inj_error_info.injStuck_at
+                << "; resNumInstr: " << inj_error_info.TotAppInstr;
+        }else if(inj_mode.compare("IAW")==0){
+                fout << "; injMaskSeed: " << inj_error_info.injMaskSeed
+                << "; InjDimention: " << inj_error_info.injDimension
+                << "; injStuck-at: " << inj_error_info.injStuck_at
+                << "; resNumInstr: " << inj_error_info.TotAppInstr;
+        }else if(inj_mode.compare("IAC")==0){
+                fout << "; injMaskSeed: " << inj_error_info.injMaskSeed
+                << "; InjDimention: " << inj_error_info.injDimension
+                << "; injStuck-at: " << inj_error_info.injStuck_at
+                << "; resNumInstr: " << inj_error_info.TotAppInstr;
+        }else if(inj_mode.compare("WV")==0){
+                fout << "; injPredReg: " << inj_error_info.injRegID
+                << "; injMaskSeed: " << inj_error_info.injMaskSeed
+                << "; injStuck-at: " << inj_error_info.injStuck_at
+                << "; resMaxPredReg: " << inj_error_info.maxPredReg
+                << "; resNumInstr: " << inj_error_info.TotAppInstr;
+        }else {
+        }
+        fout << "; NumErrInstExeBefStop: " << inj_error_info.injInstrIdx
         << "; LastPCOffset: 0x" << std::hex << inj_error_info.injInstPC  << std::dec
         << "; LastOpcode: " << instTypeNames[inj_error_info.injInstOpcode]
         << "; TotErrAct: " << inj_error_info.injNumActivAcc+inj_error_info.injNumActivations;
-        if (inj_error_info.maxregcount > inj_error_info.injRegReplacement){
-                fout << "; RegLoc: InsideLims";
-        }else{
-                fout << ";  RegLoc: OutsideLims";
-        }
-        fout << SimEndRes ;
+        fout << SimEndRes << endl; 
 }
 
 
@@ -629,7 +683,7 @@ void instrument_function_if_needed(CUcontext ctx, CUfunction func) {
 }
 
 
-void instrument_function_if_neededv2(CUcontext ctx, CUfunction func) {
+void instrument_function_IRA(CUcontext ctx, CUfunction func) {
 
         //parse_params(injInputFilename);  // injParams are updated based on injection seed file
         update_verbose();        
@@ -644,7 +698,7 @@ void instrument_function_if_neededv2(CUcontext ctx, CUfunction func) {
         cudaGetDeviceProperties( &devProp, 0) ;
         int archmajor = devProp.major; 
         int archminor = devProp.minor;
-        int compute_cap = archmajor*10 + archminor;
+        int compute_cap = archmajor*10 + archminor;        
         /* iterate on function */
         for (auto f : related_functions) {                
                 /* "recording" function was instrumented, if set insertion failed
@@ -666,6 +720,7 @@ void instrument_function_if_neededv2(CUcontext ctx, CUfunction func) {
                 //assert(fout3.good());
                 int k=0;
                 int instridx=0;
+                inj_error_info.TotKerInstr=0;
                 //fout << "Inspecting: " << kname << ";num_static_instrs: " << instrs.size() << ";maxregs: " << maxregs << "(" << maxregs << ")" << std::endl;
                 for(auto i: instrs)  {
                         std::string opcode = i->getOpcode(); 
@@ -684,115 +739,121 @@ void instrument_function_if_neededv2(CUcontext ctx, CUfunction func) {
                         int numDestGPRs = 0;
                         fout << "0x" << std::hex << i->getOffset() << ":::" << i->getSass()  << std::dec << std::endl;
                         if (i->getNumOperands() > 1) { // an actual instruction that writes to either a GPR or PR register
-                        // Parse the first operand - this is the the destination register field
-                        const InstrType::operand_t *dst= i->getOperand(0);
-                        if(dst->type == InstrType::OperandType::REG ) { // GPR reg as a destination                                      
-                                numDestGPRs = (getOpGroupNum(instType) == G_FP64) ? 2 : 1;
-                                int szStr = i->getSize()*8; 
-                                if (szStr == 128) {
-                                        numDestGPRs = 4; 
-                                } else if (szStr == 64) {
-                                        numDestGPRs = 2; 
-                                }                                        
-                                if(inj_error_info.injRegID==0 ){ // and instType!=MOV inject when it is the destination register as target 
-                                        destGPRNum = dst->u.reg.num;
-                                        inj_error_info.injRegOriginal=destGPRNum;
-                                        inj_error_info.injRegReplacement = inj_error_info.injRegOriginal ^ inj_error_info.injMaskSeed;
-                                        replGPRNum = inj_error_info.injRegReplacement;
-                                        k++;
-                                        //fout <<"Kernel name: "<<kname<<"; kernel Index: "<< kernel_id <<"; Num_Activations: " << k <<";"<< std::endl;
-                                        //fout << "Instr Intrumented: " << i->getSass();
-                                        fout << i->getSass() << " instrumented; ";
-                                        fout << "Target_reg_field: "<< inj_error_info.injRegID
-                                                << "; Max_reg_count: "<< inj_error_info.maxregcount
-                                                << "; Original_register: "<< inj_error_info.injRegOriginal
-                                                <<"; Replacement_register: "<< inj_error_info.injRegReplacement
-                                                << "; Error Mask: " << inj_error_info.injMaskSeed
-                                                << "; NumThreads: " << inj_error_info.num_threads << endl;
-
-                                        nvbit_insert_call(i, "inject_error_IRA_dst", IPOINT_AFTER);
-                                        nvbit_add_call_arg_const_val64(i, (uint64_t)&inj_error_info);
-                                        nvbit_add_call_arg_const_val64(i, (uint64_t)&Injection_masks);
-                                        nvbit_add_call_arg_const_val64(i, (uint64_t)&verbose_device);
-                                        nvbit_add_call_arg_const_val32(i, destGPRNum); // destination GPR register number
-                                        nvbit_add_call_arg_const_val32(i, replGPRNum); // destination GPR register number
-                                        if (destGPRNum != -1) {
-                                                nvbit_add_call_arg_reg_val(i, destGPRNum); // destination GPR register val
-                                        } else {
-                                                nvbit_add_call_arg_const_val32(i, (unsigned int)-1); // destination GPR register val 
-                                        }
-                                        nvbit_add_call_arg_const_val32(i, numDestGPRs); // number of destination GPR registers
-                                        nvbit_add_call_arg_const_val32(i, compute_cap); // compute_capability
-                                        nvbit_add_call_arg_const_val32(i, instridx);
-                                        nvbit_add_call_arg_const_val32(i, i->getOffset());
-                                        nvbit_add_call_arg_const_val32(i, instType);
-                                        instridx++; 
-                                }else if(inj_error_info.injRegID>0){
-                                        int reg_src[5];
-                                        int cnt = 0;
-                                                for (int idx = 1; idx < i->getNumOperands(); idx++) {
-                                                const InstrType::operand_t *op = i->getOperand(idx);
-                                                if(op->type == InstrType::OperandType::REG){
-                                                reg_src[cnt]=op->u.reg.num;
-                                                cnt++; 
-                                                }                      
-                                        }
-                                        if(((uint32_t)cnt)>=inj_error_info.injRegID){
-                                                destGPRNum = (uint32_t)reg_src[inj_error_info.injRegID-1];
+                                // Parse the first operand - this is the the destination register field
+                                const InstrType::operand_t *dst= i->getOperand(0);
+                                if(dst->type == InstrType::OperandType::REG ) { // GPR reg as a destination                                      
+                                        numDestGPRs = (getOpGroupNum(instType) == G_FP64) ? 2 : 1;
+                                        int szStr = i->getSize()*8; 
+                                        if (szStr == 128) {
+                                                numDestGPRs = 4; 
+                                        } else if (szStr == 64) {
+                                                numDestGPRs = 2; 
+                                        }                                        
+                                        if(inj_error_info.injRegID==0 ){ // and instType!=MOV inject when it is the destination register as target 
+                                                destGPRNum = dst->u.reg.num;
                                                 inj_error_info.injRegOriginal=destGPRNum;
                                                 inj_error_info.injRegReplacement = inj_error_info.injRegOriginal ^ inj_error_info.injMaskSeed;
                                                 replGPRNum = inj_error_info.injRegReplacement;
-                                                k++; 
+                                                k++;
+                                                instridx++; 
+                                                inj_error_info.TotKerInstr++;
                                                 //fout <<"Kernel name: "<<kname<<"; kernel Index: "<< kernel_id <<"; Num_Activations: " << k <<";"<< std::endl;
                                                 //fout << "Instr Intrumented: " << i->getSass();
-                                                fout << i->getSass() << " instrumented; ";
+
+                                                fout << "0x" << std::hex << i->getOffset() << "; " << i->getSass() << std::dec << " instrumented intruction; ";
                                                 fout << "Target_reg_field: "<< inj_error_info.injRegID
-                                                << "; Max_reg_count: "<< inj_error_info.maxregcount
-                                                << "; Original_register: "<< inj_error_info.injRegOriginal
-                                                <<"; Replacement_register: "<< inj_error_info.injRegReplacement
-                                                << "; Error Mask: " << inj_error_info.injMaskSeed
-                                                << "; NumThreads: " << inj_error_info.num_threads << endl;
+                                                        << "; Max_reg_count: "<< inj_error_info.maxregcount
+                                                        << "; Original_register: "<< inj_error_info.injRegOriginal
+                                                        <<"; Replacement_register: "<< inj_error_info.injRegReplacement
+                                                        << "; Error Mask: " << inj_error_info.injMaskSeed
+                                                        << "; NumThreads: " << inj_error_info.num_threads << endl;
+
+                                                nvbit_insert_call(i, "inject_error_IRA_dst", IPOINT_AFTER);
+                                                nvbit_add_call_arg_const_val64(i, (uint64_t)&inj_error_info);
+                                                nvbit_add_call_arg_const_val64(i, (uint64_t)&Injection_masks);
+                                                nvbit_add_call_arg_const_val64(i, (uint64_t)&verbose_device);
+                                                nvbit_add_call_arg_const_val32(i, destGPRNum); // destination GPR register number
+                                                nvbit_add_call_arg_const_val32(i, replGPRNum); // destination GPR register number
+                                                if (destGPRNum != -1) {
+                                                        nvbit_add_call_arg_reg_val(i, destGPRNum); // destination GPR register val
+                                                } else {
+                                                        nvbit_add_call_arg_const_val32(i, (unsigned int)-1); // destination GPR register val 
+                                                }
+                                                nvbit_add_call_arg_const_val32(i, numDestGPRs); // number of destination GPR registers
+                                                nvbit_add_call_arg_const_val32(i, compute_cap); // compute_capability
+                                                nvbit_add_call_arg_const_val32(i, instridx);
+                                                nvbit_add_call_arg_const_val32(i, i->getOffset());
+                                                nvbit_add_call_arg_const_val32(i, instType);
                                                 
-                                                nvbit_insert_call(i, "inject_error_IRA_src_before", IPOINT_BEFORE);
-                                                nvbit_add_call_arg_const_val64(i, (uint64_t)&inj_error_info);
-                                                nvbit_add_call_arg_const_val64(i, (uint64_t)&Injection_masks);
-                                                nvbit_add_call_arg_const_val64(i, (uint64_t)&verbose_device);
-                                                nvbit_add_call_arg_const_val32(i, destGPRNum); // destination GPR register number
-                                                nvbit_add_call_arg_const_val32(i, replGPRNum);
-                                                if (destGPRNum != -1) {
-                                                nvbit_add_call_arg_reg_val(i, destGPRNum); // destination GPR register val
-                                                } else {
-                                                nvbit_add_call_arg_const_val32(i, (unsigned int)-1); // destination GPR register val 
+                                        }else if(inj_error_info.injRegID>0){
+                                                int reg_src[5];
+                                                int cnt = 0;
+                                                        for (int idx = 1; idx < i->getNumOperands(); idx++) {
+                                                        const InstrType::operand_t *op = i->getOperand(idx);
+                                                        if(op->type == InstrType::OperandType::REG){
+                                                        reg_src[cnt]=op->u.reg.num;
+                                                        cnt++; 
+                                                        }                      
                                                 }
-                                                nvbit_add_call_arg_const_val32(i, numDestGPRs); // number of destination GPR registers
-                                                nvbit_add_call_arg_const_val32(i, compute_cap); // compute_capability
-                                                nvbit_add_call_arg_const_val32(i, instridx); // compute_capability
-                                                nvbit_add_call_arg_const_val32(i, i->getOffset());
-                                                nvbit_add_call_arg_const_val32(i, instType);
+                                                if(((uint32_t)cnt)>=inj_error_info.injRegID){
+                                                        destGPRNum = (uint32_t)reg_src[inj_error_info.injRegID-1];
+                                                        inj_error_info.injRegOriginal=destGPRNum;
+                                                        inj_error_info.injRegReplacement = inj_error_info.injRegOriginal ^ inj_error_info.injMaskSeed;
+                                                        replGPRNum = inj_error_info.injRegReplacement;
+                                                        k++; 
+                                                        instridx++;  
+                                                        inj_error_info.TotKerInstr++;
+                                                        //fout <<"Kernel name: "<<kname<<"; kernel Index: "<< kernel_id <<"; Num_Activations: " << k <<";"<< std::endl;
+                                                        //fout << "Instr Intrumented: " << i->getSass();
+                                                        fout << "0x" << std::hex << i->getOffset() << "; " << i->getSass() << std::dec << " instrumented intruction; ";
+                                                        fout << "Target_reg_field: "<< inj_error_info.injRegID
+                                                        << "; Max_reg_count: "<< inj_error_info.maxregcount
+                                                        << "; Original_register: "<< inj_error_info.injRegOriginal
+                                                        <<"; Replacement_register: "<< inj_error_info.injRegReplacement
+                                                        << "; Error Mask: " << inj_error_info.injMaskSeed
+                                                        << "; NumThreads: " << inj_error_info.num_threads << endl;
+                                                        
+                                                        nvbit_insert_call(i, "inject_error_IRA_src_before", IPOINT_BEFORE);
+                                                        nvbit_add_call_arg_const_val64(i, (uint64_t)&inj_error_info);
+                                                        nvbit_add_call_arg_const_val64(i, (uint64_t)&Injection_masks);
+                                                        nvbit_add_call_arg_const_val64(i, (uint64_t)&verbose_device);
+                                                        nvbit_add_call_arg_const_val32(i, destGPRNum); // destination GPR register number
+                                                        nvbit_add_call_arg_const_val32(i, replGPRNum);
+                                                        if (destGPRNum != -1) {
+                                                        nvbit_add_call_arg_reg_val(i, destGPRNum); // destination GPR register val
+                                                        } else {
+                                                        nvbit_add_call_arg_const_val32(i, (unsigned int)-1); // destination GPR register val 
+                                                        }
+                                                        nvbit_add_call_arg_const_val32(i, numDestGPRs); // number of destination GPR registers
+                                                        nvbit_add_call_arg_const_val32(i, compute_cap); // compute_capability
+                                                        nvbit_add_call_arg_const_val32(i, instridx); // compute_capability
+                                                        nvbit_add_call_arg_const_val32(i, i->getOffset());
+                                                        nvbit_add_call_arg_const_val32(i, instType);
 
 
-                                                nvbit_insert_call(i, "inject_error_IRA_src_after", IPOINT_AFTER);
-                                                nvbit_add_call_arg_const_val64(i, (uint64_t)&inj_error_info);
-                                                nvbit_add_call_arg_const_val64(i, (uint64_t)&Injection_masks);
-                                                nvbit_add_call_arg_const_val64(i, (uint64_t)&verbose_device);
-                                                nvbit_add_call_arg_const_val32(i, destGPRNum); // destination GPR register number
-                                                nvbit_add_call_arg_const_val32(i, replGPRNum);
-                                                if (destGPRNum != -1) {
-                                                nvbit_add_call_arg_reg_val(i, destGPRNum); // destination GPR register val
-                                                } else {
-                                                nvbit_add_call_arg_const_val32(i, (unsigned int)-1); // destination GPR register val 
-                                                }
-                                                nvbit_add_call_arg_const_val32(i, numDestGPRs); // number of destination GPR registers
-                                                nvbit_add_call_arg_const_val32(i, compute_cap); // compute_capability
-                                                nvbit_add_call_arg_const_val32(i, instridx); // compute_capability
-                                                nvbit_add_call_arg_const_val32(i, i->getOffset());
-                                                nvbit_add_call_arg_const_val32(i, instType);
-                                                instridx++;                                                 
-                                        }                                
-                                }                                                                        
-                        }                            
+                                                        nvbit_insert_call(i, "inject_error_IRA_src_after", IPOINT_AFTER);
+                                                        nvbit_add_call_arg_const_val64(i, (uint64_t)&inj_error_info);
+                                                        nvbit_add_call_arg_const_val64(i, (uint64_t)&Injection_masks);
+                                                        nvbit_add_call_arg_const_val64(i, (uint64_t)&verbose_device);
+                                                        nvbit_add_call_arg_const_val32(i, destGPRNum); // destination GPR register number
+                                                        nvbit_add_call_arg_const_val32(i, replGPRNum);
+                                                        if (destGPRNum != -1) {
+                                                        nvbit_add_call_arg_reg_val(i, destGPRNum); // destination GPR register val
+                                                        } else {
+                                                        nvbit_add_call_arg_const_val32(i, (unsigned int)-1); // destination GPR register val 
+                                                        }
+                                                        nvbit_add_call_arg_const_val32(i, numDestGPRs); // number of destination GPR registers
+                                                        nvbit_add_call_arg_const_val32(i, compute_cap); // compute_capability
+                                                        nvbit_add_call_arg_const_val32(i, instridx); // compute_capability
+                                                        nvbit_add_call_arg_const_val32(i, i->getOffset());
+                                                        nvbit_add_call_arg_const_val32(i, instType);
+                                                                                                
+                                                }                                
+                                        }                                                                        
+                                }                            
                         }
                 }
+                inj_error_info.TotAppInstr+=inj_error_info.TotKerInstr;
                 fout << "=================================================================================" << endl;
                 fout << "The Instrumentation step Stops Here: " << removeSpaces(nvbit_get_func_name(ctx,f)) << endl;
                 fout << "=================================================================================" << endl;
@@ -801,7 +862,7 @@ void instrument_function_if_neededv2(CUcontext ctx, CUfunction func) {
 
 
 /* Instrumentation for IAT and IAW error models */
-void instrument_function_if_neededv3(CUcontext ctx, CUfunction func) {
+void instrument_function_IAT(CUcontext ctx, CUfunction func) {
 
         //parse_params(injInputFilename);  // injParams are updated based on injection seed file
         update_verbose();        
@@ -840,6 +901,7 @@ void instrument_function_if_neededv3(CUcontext ctx, CUfunction func) {
                 int instridx=0;
                 int blockDimm=0;
                 bool injectInstrunc=false;
+                inj_error_info.TotKerInstr=0;
                 //fout << "Inspecting: " << kname << ";num_static_instrs: " << instrs.size() << ";maxregs: " << maxregs << "(" << maxregs << ")" << std::endl;
                 for(auto i: instrs)  {
                         std::string opcode = i->getOpcode(); 
@@ -911,10 +973,12 @@ void instrument_function_if_neededv3(CUcontext ctx, CUfunction func) {
                                 }                                                                                                 
                                 if(injectInstrunc==true && inj_error_info.injDimension==blockDimm){
                                         printf("string: %s; blockDimm: %d\n",GenOperand.c_str(),blockDimm); 
-                                        fout << i->getSass() << " instrumented; " << endl;
+                                        fout << "0x" << std::hex << i->getOffset() << "; " << i->getSass() << std::dec << " instrumented intruction; " << endl;
                                         const InstrType::operand_t *dst= i->getOperand(0);
                                         destGPRNum=dst->u.reg.num;
                                         numDestGPRs=1;
+                                        instridx++;  
+                                        inj_error_info.TotKerInstr++;
                                         nvbit_insert_call(i, "inject_error_IAT", IPOINT_AFTER);
                                         nvbit_add_call_arg_const_val64(i, (uint64_t)&inj_error_info);
                                         nvbit_add_call_arg_const_val64(i, (uint64_t)&Injection_masks);
@@ -930,12 +994,13 @@ void instrument_function_if_neededv3(CUcontext ctx, CUfunction func) {
                                         nvbit_add_call_arg_const_val32(i, instridx); // compute_capability
                                         nvbit_add_call_arg_const_val32(i, i->getOffset());
                                         nvbit_add_call_arg_const_val32(i, instType);
-                                        instridx++;  
+                                        
                                 }
 
                         }
 
                 }
+                inj_error_info.TotAppInstr+=inj_error_info.TotKerInstr;
                 fout << "=================================================================================" << endl;
                 fout << "The Instrumentation step Stops Here: " << removeSpaces(nvbit_get_func_name(ctx,f)) << endl;
                 fout << "=================================================================================" << endl;
@@ -982,6 +1047,7 @@ void instrument_function_IAC(CUcontext ctx, CUfunction func) {
                 int instridx=0;
                 int gridDimm=0;
                 bool injectInstrunc=false;
+                inj_error_info.TotKerInstr=0;
                 //fout << "Inspecting: " << kname << ";num_static_instrs: " << instrs.size() << ";maxregs: " << maxregs << "(" << maxregs << ")" << std::endl;
                 for(auto i: instrs)  {
                         std::string opcode = i->getOpcode(); 
@@ -1030,10 +1096,12 @@ void instrument_function_IAC(CUcontext ctx, CUfunction func) {
                                 }                                                                                                 
                                 if(injectInstrunc==true && inj_error_info.injDimension==gridDimm){
                                         printf("string: %s; blockDimm: %d\n",GenOperand.c_str(),gridDimm); 
-                                        fout << i->getSass() << " instrumented; " << endl;
+                                        fout << "0x" << std::hex << i->getOffset() << "; " << i->getSass() << std::dec << " instrumented intruction; " << endl;
                                         const InstrType::operand_t *dst= i->getOperand(0);
                                         destGPRNum=dst->u.reg.num;
                                         numDestGPRs=1;
+                                        instridx++; 
+                                        inj_error_info.TotKerInstr++;
                                         nvbit_insert_call(i, "inject_error_IAC", IPOINT_AFTER);
                                         nvbit_add_call_arg_const_val64(i, (uint64_t)&inj_error_info);
                                         nvbit_add_call_arg_const_val64(i, (uint64_t)&Injection_masks);
@@ -1049,12 +1117,13 @@ void instrument_function_IAC(CUcontext ctx, CUfunction func) {
                                         nvbit_add_call_arg_const_val32(i, instridx); // compute_capability
                                         nvbit_add_call_arg_const_val32(i, i->getOffset());
                                         nvbit_add_call_arg_const_val32(i, instType);
-                                        instridx++;  
+                                         
                                 }
 
                         }
 
                 }
+                inj_error_info.TotAppInstr+=inj_error_info.TotKerInstr;
                 fout << "=================================================================================" << endl;
                 fout << "The Instrumentation step Stops Here: " << removeSpaces(nvbit_get_func_name(ctx,f)) << endl;
                 fout << "=================================================================================" << endl;
@@ -1102,6 +1171,8 @@ void instrument_function_WV(CUcontext ctx, CUfunction func) {
                 int instridx=0;
                 int gridDimm=0;
                 bool injectInstrunc=false;
+                inj_error_info.KernelPredReg=-1;
+                inj_error_info.TotKerInstr=0;
                 //fout << "Inspecting: " << kname << ";num_static_instrs: " << instrs.size() << ";maxregs: " << maxregs << "(" << maxregs << ")" << std::endl;
                 for(auto i: instrs)  {
                         std::string opcode = i->getOpcode(); 
@@ -1120,6 +1191,7 @@ void instrument_function_WV(CUcontext ctx, CUfunction func) {
                         int replGPRNum = -1;
                         int numDestGPRs = 0;
                         int predicateNum=-1;
+                        int tracePredRegs=0;
                         injectInstrunc=false;
                         fout << "0x" << std::hex << i->getOffset() << ":::" << i->getSass()  << std::dec << std::endl;
                         //i->printDecoded();
@@ -1135,14 +1207,22 @@ void instrument_function_WV(CUcontext ctx, CUfunction func) {
                                                 //predicateNum=6;                                                                                                                               
                                                 printf("pred:%s; num: %d\n", dst->str, dst->u.pred.num); 
                                                 injectInstrunc=true;                                                                                                                                                                                                               
-                                        }        
+                                        }  
+                                        if(dst->type == InstrType::OperandType::PRED && idx==0){
+                                                tracePredRegs=dst->u.pred.num;
+                                                if(inj_error_info.KernelPredReg<(tracePredRegs)){
+                                                        inj_error_info.KernelPredReg=(tracePredRegs);
+                                                }
+                                        }                                              
                                 }                                                                                                 
                                 if(injectInstrunc==true and inj_error_info.injRegID==predicateNum){
                                         printf("string: %s; blockDimm: %d\n",GenOperand.c_str(),gridDimm); 
-                                        fout << i->getSass() << " instrumented; " << endl;
+                                        fout << "0x" << std::hex << i->getOffset() << "; " << i->getSass() << std::dec << " instrumented intruction; " << endl;
                                         const InstrType::operand_t *dst= i->getOperand(0);
                                         destGPRNum=dst->u.reg.num;
                                         numDestGPRs=1;
+                                        instridx++; 
+                                        inj_error_info.TotKerInstr++; 
                                         nvbit_insert_call(i, "inject_error_WV", IPOINT_AFTER);
                                         nvbit_add_call_arg_const_val64(i, (uint64_t)&inj_error_info);
                                         nvbit_add_call_arg_const_val64(i, (uint64_t)&Injection_masks);
@@ -1158,17 +1238,22 @@ void instrument_function_WV(CUcontext ctx, CUfunction func) {
                                         nvbit_add_call_arg_const_val32(i, gridDimm); // compute_capability
                                         nvbit_add_call_arg_const_val32(i, instridx); // compute_capability
                                         nvbit_add_call_arg_const_val32(i, i->getOffset());
-                                        nvbit_add_call_arg_const_val32(i, instType);
-                                        instridx++;  
+                                        nvbit_add_call_arg_const_val32(i, instType);                                        
                                 }
 
                         }
 
                 }
+                
+                if(inj_error_info.maxPredReg<inj_error_info.KernelPredReg){
+                        inj_error_info.maxPredReg=inj_error_info.KernelPredReg;
+                }
+                inj_error_info.TotAppInstr+=inj_error_info.TotKerInstr;
                 fout << "=================================================================================" << endl;
                 fout << "The Instrumentation step Stops Here: " << removeSpaces(nvbit_get_func_name(ctx,f)) << endl;
                 fout << "=================================================================================" << endl;
         }       
+        
 }
 
 /* This call-back is triggered every time a CUDA event is encountered.
@@ -1233,9 +1318,9 @@ void nvbit_at_cuda_event(CUcontext ctx, int is_exit, nvbit_api_cuda_t cbid,
                             freopen ("nvbit_stdout.txt", "a", stdout);
                                 kname = removeSpaces(nvbit_get_func_name(ctx,p->f));
                                 if(inj_mode.compare("IRA")==0){
-                                        instrument_function_if_neededv2(ctx, p->f);
+                                        instrument_function_IRA(ctx, p->f);
                                 }else if(inj_mode.compare("IAT")==0 || inj_mode.compare("IAW")==0){
-                                        instrument_function_if_neededv3(ctx, p->f);
+                                        instrument_function_IAT(ctx, p->f);
                                 }else if(inj_mode.compare("IAC")==0) {
                                         instrument_function_IAC(ctx, p->f);
                                 }else if(inj_mode.compare("WV")==0) {
