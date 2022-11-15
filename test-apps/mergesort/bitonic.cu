@@ -13,7 +13,7 @@
 #include <assert.h>
 #include "mergeSort_common.h"
 
-#include "include/cuda_utils.h"
+#include "cuda_utils.h"
 
 inline __device__ void Comparator(uint &keyA, uint &valA, uint &keyB, uint &valB, uint arrowDir) {
 	uint t;

@@ -11,7 +11,7 @@
 #include "helper_cuda.h"
 #include "mergeSort_common.h"
 
-#include "include/cuda_utils.h"
+#include "cuda_utils.h"
 
 extern std::string get_multi_compiler_header();
 #define INPUTSIZE 134217728

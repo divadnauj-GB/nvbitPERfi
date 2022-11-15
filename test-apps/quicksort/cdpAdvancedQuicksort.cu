@@ -31,8 +31,8 @@
 #include <sys/time.h>
 #include <omp.h>
 
-#include "include/cuda_utils.h"
-#include "include/multi_compiler_analysis.h"
+#include "cuda_utils.h"
+#include "multi_compiler_analysis.h"
 
 #include "cdpQuicksort.h"
 
