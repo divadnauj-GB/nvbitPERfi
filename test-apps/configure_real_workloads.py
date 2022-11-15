@@ -106,6 +106,9 @@ def main():
     with open(REAL_WORKLOADS_PARAMETERS_FILE, 'w') as handle:
         handle.write(f"REAL_WORKLOAD_DICT = {json.dumps(real_workloads_dict_out, indent=4)}")
 
+    print(f"{Bcolors.OKBLUE}All the {len(REAL_WORKLOADS)} seem to be correctly configured,"
+          f" let's try FI for real now{Bcolors.ENDC}")
+
 
 REAL_WORKLOADS = {
     # ----------------------------------------------------------------------------------------------------------------
