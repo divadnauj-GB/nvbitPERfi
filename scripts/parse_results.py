@@ -42,11 +42,30 @@ runtime_app_nt_table = {} # app, igid, bfm, runtime without Timeouts
 results_kname_table = {} # app, kname, igid, bfm, outcome, 
 results_kiid_table = {} # app, kname, kid, igid, bfm, outcome, 
 
-def check_and_create_nested_dict(dict_name, k1, k2, k3, k4="", k5="", k6=""):
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+def check_and_create_nested_dict(dict_name, k1, k2, k3, k4="", k5="", k6="", k7="", k8="",k9="",k10=""):
 	if k1 not in dict_name:
-		dict_name[k1] = {}
+		dict_name[k1] = 0 if k2 == "" else {}
+	if k2=="":
+		return
 	if k2 not in dict_name[k1]:
-		dict_name[k1][k2] = {}
+		dict_name[k1][k2] = 0 if k3 == "" else {}
+	if k3=="":
+		return
 	if k3 not in dict_name[k1][k2]:
 		dict_name[k1][k2][k3] = 0 if k4 == "" else {}
 	if k4 == "":
@@ -60,7 +79,23 @@ def check_and_create_nested_dict(dict_name, k1, k2, k3, k4="", k5="", k6=""):
 	if k6 == "":
 		return
 	if k6 not in dict_name[k1][k2][k3][k4][k5]:
-		dict_name[k1][k2][k3][k4][k5][k6] = 0
+		dict_name[k1][k2][k3][k4][k5][k6] = 0 if k7=="" else {}
+	if k7 == "":
+		return
+	if k7 not in dict_name[k1][k2][k3][k4][k5][k6]:
+		dict_name[k1][k2][k3][k4][k5][k6][k7] = 0 if k8=="" else {}
+	if k8 == "":
+		return
+	if k8 not in dict_name[k1][k2][k3][k4][k5][k6][k7]:
+		dict_name[k1][k2][k3][k4][k5][k6][k7][k8] = 0 if k9=="" else {}
+	if k9 == "":
+		return
+	if k9 not in dict_name[k1][k2][k3][k4][k5][k6][k7][k8]:
+		dict_name[k1][k2][k3][k4][k5][k6][k7][k8][k9] = 0 if k10=="" else {}
+	if k10 == "":
+		return
+	if k10 not in dict_name[k1][k2][k3][k4][k5][k6][k7][k8][k9]:
+		dict_name[k1][k2][k3][k4][k5][k6][k7][k8][k9][k10] = 0
 
 ###############################################################################
 # Add the injection result to the results*table dictionary 
@@ -240,485 +275,447 @@ def print_detailed_results_tsv(typ):
 
 
 ###############################################################################
-# nvbitPERfi
-# xlsx file
+# 
+# 
 ###############################################################################
+IRA_report_reason={}
+IRA_report_regsrc={}
+IRA_report_tot={}
+IRA_report={}
 
-def parse_IRA_results(app,inj_mode):
-	log_file=p.app_log_dir[app] + "/results-mode" + inj_mode + str(p.NUM_INJECTIONS) + ".txt"
-	IRA_DUE={}
-	IRA_DUE_INJ={}
-	IRA_SDC=0
-	IRA_SDC_INJ={}
-	IRA_MASKED=0
-	IRA_MASKED_INJ={}
+def parse_results_IRA(app,log_file):
 
-	IR_DUE={}
-	IR_DUE_INJ={}
-	IR_SDC=0
-	IR_SDC_INJ={}
-	IR_MASKED=0	
-	IR_MASKED_INJ={}
-
-
+	IR_report_reason={}
+	IR_report_regsrc={}
+	IRreport_tot={}
+	
 	if os.path.isfile(log_file):
-		log_data=open(log_file,'r')
-		for eachErr in log_data:
-			Errfields=eachErr.split("$")
-			ErrDefinition=Errfields[0]
-			PC=Errfields[1]
-			OpCode=Errfields[2]
-			Tid=Errfields[3]
-			Bid=Errfields[4]
-			SimTime=Errfields[5]
-			Outcome=Errfields[7]
-			InjReportInfo=Errfields[8]
-			dmesreport=Errfields[9]
+		file_data=open(log_file,'r')
+		for line in file_data:
+			rep_fields=line.strip().split('$')	
+			sim_runtime=float(rep_fields[5])
+			Outcome=rep_fields[7].replace("Outcome","")
+			Outcome=Outcome.replace("(","")
+			Outcome=((Outcome.replace(")","")).strip()).lstrip()
 
 
-			if("InsideLims" in InjReportInfo):
-				if("DUE" in Outcome):
-					if("Timeout" in Outcome):
-						if("Timeout" not in IRA_DUE):
-							IRA_DUE["Timeout"]=1
-							ind=InjReportInfo.find("TotErrAct")
-							upind=InjReportInfo.find("RegLoc")
-							dat=InjReportInfo[ind:upind].replace("TotErrAct:","")
-							dat=dat.replace(";","")
-							IRA_DUE_INJ["Timeout"]=int(dat)
-						else:
-							IRA_DUE["Timeout"]+=1
-							ind=InjReportInfo.find("TotErrAct")
-							upind=InjReportInfo.find("RegLoc")
-							dat=InjReportInfo[ind:upind].replace("TotErrAct:","")
-							dat=dat.replace(";","")
-							IRA_DUE_INJ["Timeout"]+=int(dat)
+			for fields in (rep_fields[8].split(';')):
+				if("injSmID" in fields):
+					injSMID=int(fields.split(':')[1])
+				if("injSchID" in fields):
+					injSchID=int(fields.split(':')[1])
+				if("injWarpIDH" in fields):
+					injWarpIDH=int(fields.split(':')[1])					
+				if("injWarpIDL" in fields):
+					injWarpIDL=int(fields.split(':')[1])
+				if("injLaneID" in fields):
+					injLaneID=int(fields.split(':')[1])
+				if("injRegField" in fields):
+					injRegField=int(fields.split(':')[1])
+				if("TotErrAct" in fields):
+					TotErrAct=int(fields.split(':')[1])
+				if("resRegLoc" in fields):
+					if("InsideLims" in fields):
+						resRegLoc="IRA"
 					else:
-						if("Out Of Range Register" in dmesreport):
-							if("Out Of Range Register" not in IRA_DUE):
-								IRA_DUE["Out Of Range Register"]=1
-								ind=InjReportInfo.find("TotErrAct")
-								upind=InjReportInfo.find("RegLoc")
-								dat=InjReportInfo[ind:upind].replace("TotErrAct:","")
-								dat=dat.replace(";","")
-								IRA_DUE_INJ["Out Of Range Register"]=int(dat)
-							else:
-								IRA_DUE["Out Of Range Register"]+=1	
-								ind=InjReportInfo.find("TotErrAct")
-								upind=InjReportInfo.find("RegLoc")
-								dat=InjReportInfo[ind:upind].replace("TotErrAct:","")
-								dat=dat.replace(";","")
-								IRA_DUE_INJ["Out Of Range Register"]+=int(dat)
-						else:
-							if("ERROR FAIL in kernel execution (" in InjReportInfo):
-								Cause=InjReportInfo.split(';')[15].replace("ERROR FAIL in kernel execution (","")
-								if(Cause not in IRA_DUE):
-									IRA_DUE[Cause]=1
-									ind=InjReportInfo.find("TotErrAct")
-									upind=InjReportInfo.find("RegLoc")
-									dat=InjReportInfo[ind:upind].replace("TotErrAct:","")
-									dat=dat.replace(";","")
-									#print(ind,upind,InjReportInfo)
-									IRA_DUE_INJ[Cause]=int(dat)
-								else:
-									IRA_DUE[Cause]+=1
-									ind=InjReportInfo.find("TotErrAct")
-									upind=InjReportInfo.find("RegLoc")
-									dat=InjReportInfo[ind:upind].replace("TotErrAct:","")
-									dat=dat.replace(";","")
-									IRA_DUE_INJ[Cause]+=int(dat)
-							else:
-								assert(1==0)
-				elif("SDC" in Outcome):
-					IRA_SDC+=1
-					if("SDC" not in IRA_SDC_INJ):
-						ind=InjReportInfo.find("TotErrAct")
-						upind=InjReportInfo.find("RegLoc")
-						dat=InjReportInfo[ind:upind].replace("TotErrAct:","")
-						dat=dat.replace(";","")						
-						IRA_SDC_INJ["SDC"]=int(dat)
-					else:
-						ind=InjReportInfo.find("TotErrAct")
-						upind=InjReportInfo.find("RegLoc")
-						dat=InjReportInfo[ind:upind].replace("TotErrAct:","")
-						dat=dat.replace(";","")						
-						IRA_SDC_INJ["SDC"]+=int(dat)
+						resRegLoc="IR"	
+				Cause=""
+				if("SimEndRes" in fields):
+					Cause=fields.split(":::")[1]
 
-				elif("Masked" in Outcome):
-					IRA_MASKED+=1
-					if("Masked" not in IRA_MASKED_INJ):
-						ind=InjReportInfo.find("TotErrAct")
-						upind=InjReportInfo.find("RegLoc")
-						dat=InjReportInfo[ind:upind].replace("TotErrAct:","")
-						dat=dat.replace(";","")						
-						IRA_MASKED_INJ["Masked"]=int(dat)
-					else:
-						ind=InjReportInfo.find("TotErrAct")
-						upind=InjReportInfo.find("RegLoc")
-						dat=InjReportInfo[ind:upind].replace("TotErrAct:","")
-						dat=dat.replace(";","")						
-						IRA_MASKED_INJ["Masked"]+=int(dat)
+			DmesErrType=rep_fields[9].split(',')[0]
+			DmesErr=-1
+			if "Xid" in (DmesErrType):
+				DmesErr=int(DmesErrType.split()[4])
+			num_warps=bin(injWarpIDH).count('1')+bin(injWarpIDL).count('1')
+			num_LinesPerWarp=bin(injLaneID).count('1')
 
-
-			if("OutsideLims" in InjReportInfo):
-				if("DUE" in Outcome):
-					if("Timeout" in Outcome):
-						if("Timeout" not in IR_DUE):
-							IR_DUE["Timeout"]=1
-							ind=InjReportInfo.find("TotErrAct")
-							upind=InjReportInfo.find("RegLoc")
-							dat=InjReportInfo[ind:upind].replace("TotErrAct:","")
-							dat=dat.replace(";","")
-							IR_DUE_INJ["Timeout"]=int(dat)
-						else:
-							IR_DUE["Timeout"]+=1
-							ind=InjReportInfo.find("TotErrAct")
-							upind=InjReportInfo.find("RegLoc")
-							dat=InjReportInfo[ind:upind].replace("TotErrAct:","")
-							dat=dat.replace(";","")
-							IR_DUE_INJ["Timeout"]+=int(dat)
-					else:
-						if("Out Of Range Register" in dmesreport):
-							if("Out Of Range Register" not in IR_DUE):
-								IR_DUE["Out Of Range Register"]=1
-								ind=InjReportInfo.find("TotErrAct")
-								upind=InjReportInfo.find("RegLoc")
-								dat=InjReportInfo[ind:upind].replace("TotErrAct:","")
-								dat=dat.replace(";","")
-								IR_DUE_INJ["Out Of Range Register"]=int(dat)
-							else:
-								IR_DUE["Out Of Range Register"]+=1	
-								ind=InjReportInfo.find("TotErrAct")
-								upind=InjReportInfo.find("RegLoc")
-								dat=InjReportInfo[ind:upind].replace("TotErrAct:","")
-								dat=dat.replace(";","")
-								IR_DUE_INJ["Out Of Range Register"]+=int(dat)
-						else:
-							if("ERROR FAIL in kernel execution (" in InjReportInfo):
-								Cause=InjReportInfo.split(';')[15].replace("ERROR FAIL in kernel execution (","")
-								if(Cause not in IR_DUE):
-									IR_DUE[Cause]=1
-									ind=InjReportInfo.find("TotErrAct")
-									upind=InjReportInfo.find("RegLoc")
-									dat=InjReportInfo[ind:upind].replace("TotErrAct:","")
-									dat=dat.replace(";","")
-									IR_DUE_INJ[Cause]=int(dat)
-								else:
-									IR_DUE[Cause]+=1
-									ind=InjReportInfo.find("TotErrAct")
-									upind=InjReportInfo.find("RegLoc")
-									dat=InjReportInfo[ind:upind].replace("TotErrAct:","")
-									dat=dat.replace(";","")
-									IR_DUE_INJ[Cause]=int(dat)
-							else:
-								assert(1==0)
-				elif("SDC" in Outcome):
-					IR_SDC+=1
-					if("SDC" not in IR_SDC_INJ):
-						ind=InjReportInfo.find("TotErrAct")
-						upind=InjReportInfo.find("RegLoc")
-						dat=InjReportInfo[ind:upind].replace("TotErrAct:","")
-						dat=dat.replace(";","")						
-						IR_SDC_INJ["SDC"]=int(dat)
-					else:
-						ind=InjReportInfo.find("TotErrAct")
-						upind=InjReportInfo.find("RegLoc")
-						dat=InjReportInfo[ind:upind].replace("TotErrAct:","")
-						dat=dat.replace(";","")						
-						IR_SDC_INJ["SDC"]+=int(dat)
-
-				elif("Masked" in Outcome):
-					IR_MASKED+=1
-					if("Masked" not in IR_MASKED_INJ):
-						ind=InjReportInfo.find("TotErrAct")
-						upind=InjReportInfo.find("RegLoc")
-						dat=InjReportInfo[ind:upind].replace("TotErrAct:","")
-						dat=dat.replace(";","")						
-						IR_MASKED_INJ["Masked"]=int(dat)
-					else:
-						ind=InjReportInfo.find("TotErrAct")
-						upind=InjReportInfo.find("RegLoc")
-						dat=InjReportInfo[ind:upind].replace("TotErrAct:","")
-						dat=dat.replace(";","")						
-						IR_MASKED_INJ["Masked"]+=int(dat)
-
-		log_data.close()
-		if("Masked" in IRA_SDC_INJ):
-			idx="Masked"
-			print(f"IRA_MASKED: {IRA_MASKED} ; AvgErrAct: {IRA_MASKED_INJ[idx]/IRA_MASKED}")
-		else:
-			print(f"IRA_MASKED: {IRA_MASKED} ; AvgErrAct: {IRA_MASKED}")
-		
-		if("SDC" in IRA_SDC_INJ):
-			idx="SDC"
-			print(f"IRA_SDCs: {IRA_SDC}; AvgErrAct: {IRA_SDC_INJ[idx]/IRA_SDC}")	
-		else:
-			print(f"IRA_SDCs: {IRA_SDC}; AvgErrAct: {IRA_SDC}")
-
-		for due in IRA_DUE:
-			print(f"IRA_DUEs: {IRA_DUE[due]} {due}; AvgErrAct: {IRA_DUE_INJ[due]/IRA_DUE[due]}")
-		
-
-		if("Masked" in IR_SDC_INJ):
-			idx="Masked"
-			print(f"IR_MASKED: {IR_MASKED} ; AvgErrAct: {IR_MASKED_INJ[idx]/IR_MASKED}")
-		else:
-			print(f"IR_MASKED: {IR_MASKED} ; AvgErrAct: {IR_MASKED}")
-		
-		if("SDC" in IR_SDC_INJ):
-			idx="SDC"
-			print(f"IR_SDCs: {IR_SDC}; AvgErrAct: {IR_SDC_INJ[idx]/IR_SDC}")	
-		else:
-			print(f"IR_SDCs: {IR_SDC}; AvgErrAct: {IR_SDC}")
-
-		for due in IR_DUE:
-			print(f"IR_DUEs: {IR_DUE[due]} {due}; AvgErrAct: {IR_DUE_INJ[due]/IR_DUE[due]}")
-
-	else:
-		print(f"Error the log file {log_file} is not available")
-
-###############################################################################
-# nvbitPERfi
-# xlsx file
-###############################################################################
-
-def parse_IAT_results(app,inj_mode):
-	log_file=p.app_log_dir[app] + "/results-mode" + inj_mode + str(p.NUM_INJECTIONS) + ".txt"
-	IRA_DUE={}
-	IRA_DUE_INJ={}
-	IRA_SDC=0
-	IRA_SDC_INJ={}
-	IRA_MASKED=0
-	IRA_MASKED_INJ={}
-
-	IR_DUE={}
-	IR_DUE_INJ={}
-	IR_SDC=0
-	IR_SDC_INJ={}
-	IR_MASKED=0	
-	IR_MASKED_INJ={}
-
-
-	if os.path.isfile(log_file):
-		log_data=open(log_file,'r')
-		for eachErr in log_data:
-			Errfields=eachErr.split("$")
-			ErrDefinition=Errfields[0]
-			PC=Errfields[1]
-			OpCode=Errfields[2]
-			Tid=Errfields[3]
-			Bid=Errfields[4]
-			SimTime=Errfields[5]
-			Outcome=Errfields[7]
-			InjReportInfo=Errfields[8]
-			dmesreport=Errfields[9]
-
-			idxl=InjReportInfo.find("LaneID")
-			idxh=InjReportInfo.find("RegField")
-			mskseed=InjReportInfo[idxl:idxh].replace("LaneID:","")
-			mskseed=mskseed.replace("RegField","")
-			mskseed=int(mskseed.replace(";",""))
-			
-			if(mskseed!= 0xffffffff):
-				if("DUE" in Outcome):
-					if("Timeout" in Outcome):
-						if("Timeout" not in IRA_DUE):
-							IRA_DUE["Timeout"]=1
-							ind=InjReportInfo.find("TotErrAct")
-							upind=InjReportInfo.find("RegLoc")
-							dat=InjReportInfo[ind:upind].replace("TotErrAct:","")
-							dat=dat.replace(";","")
-							IRA_DUE_INJ["Timeout"]=int(dat)
-						else:
-							IRA_DUE["Timeout"]+=1
-							ind=InjReportInfo.find("TotErrAct")
-							upind=InjReportInfo.find("RegLoc")
-							dat=InjReportInfo[ind:upind].replace("TotErrAct:","")
-							dat=dat.replace(";","")
-							IRA_DUE_INJ["Timeout"]+=int(dat)
-					else:
-						if("Out Of Range Register" in dmesreport):
-							if("Out Of Range Register" not in IRA_DUE):
-								IRA_DUE["Out Of Range Register"]=1
-								ind=InjReportInfo.find("TotErrAct")
-								upind=InjReportInfo.find("RegLoc")
-								dat=InjReportInfo[ind:upind].replace("TotErrAct:","")
-								dat=dat.replace(";","")
-								IRA_DUE_INJ["Out Of Range Register"]=int(dat)
-							else:
-								IRA_DUE["Out Of Range Register"]+=1	
-								ind=InjReportInfo.find("TotErrAct")
-								upind=InjReportInfo.find("RegLoc")
-								dat=InjReportInfo[ind:upind].replace("TotErrAct:","")
-								dat=dat.replace(";","")
-								IRA_DUE_INJ["Out Of Range Register"]+=int(dat)
-						else:
-							if("ERROR FAIL in kernel execution (" in InjReportInfo):
-								Cause=InjReportInfo.split(';')[15].replace("ERROR FAIL in kernel execution (","")
-								if(Cause not in IRA_DUE):
-									IRA_DUE[Cause]=1
-									ind=InjReportInfo.find("TotErrAct")
-									upind=InjReportInfo.find("RegLoc")
-									dat=InjReportInfo[ind:upind].replace("TotErrAct:","")
-									dat=dat.replace(";","")
-									#print(ind,upind,InjReportInfo)
-									IRA_DUE_INJ[Cause]=int(dat)
-								else:
-									IRA_DUE[Cause]+=1
-									ind=InjReportInfo.find("TotErrAct")
-									upind=InjReportInfo.find("RegLoc")
-									dat=InjReportInfo[ind:upind].replace("TotErrAct:","")
-									dat=dat.replace(";","")
-									IRA_DUE_INJ[Cause]+=int(dat)
-							else:
-								assert(1==0)
-				elif("SDC" in Outcome):
-					IRA_SDC+=1
-					if("SDC" not in IRA_SDC_INJ):
-						ind=InjReportInfo.find("TotErrAct")
-						upind=InjReportInfo.find("RegLoc")
-						dat=InjReportInfo[ind:upind].replace("TotErrAct:","")
-						dat=dat.replace(";","")						
-						IRA_SDC_INJ["SDC"]=int(dat)
-					else:
-						ind=InjReportInfo.find("TotErrAct")
-						upind=InjReportInfo.find("RegLoc")
-						dat=InjReportInfo[ind:upind].replace("TotErrAct:","")
-						dat=dat.replace(";","")						
-						IRA_SDC_INJ["SDC"]+=int(dat)
-
-				elif("Masked" in Outcome):
-					IRA_MASKED+=1
-					if("Masked" not in IRA_MASKED_INJ):
-						ind=InjReportInfo.find("TotErrAct")
-						upind=InjReportInfo.find("RegLoc")
-						dat=InjReportInfo[ind:upind].replace("TotErrAct:","")
-						dat=dat.replace(";","")						
-						IRA_MASKED_INJ["Masked"]=int(dat)
-					else:
-						ind=InjReportInfo.find("TotErrAct")
-						upind=InjReportInfo.find("RegLoc")
-						dat=InjReportInfo[ind:upind].replace("TotErrAct:","")
-						dat=dat.replace(";","")						
-						IRA_MASKED_INJ["Masked"]+=int(dat)
-
-
+			if("SDC" in Outcome.upper()):
+				classE="SDC"
+			elif("MASKED" in Outcome.upper()):
+				classE="Masked"
+			elif("TIMEOUT" in Outcome.upper()):
+				classE="Timeout"
+			elif("DUE" in Outcome.upper()):
+				classE="DUE"
 			else:
-				if("DUE" in Outcome):
-					if("Timeout" in Outcome):
-						if("Timeout" not in IR_DUE):
-							IR_DUE["Timeout"]=1
-							ind=InjReportInfo.find("TotErrAct")
-							upind=InjReportInfo.find("RegLoc")
-							dat=InjReportInfo[ind:upind].replace("TotErrAct:","")
-							dat=dat.replace(";","")
-							IR_DUE_INJ["Timeout"]=int(dat)
-						else:
-							IR_DUE["Timeout"]+=1
-							ind=InjReportInfo.find("TotErrAct")
-							upind=InjReportInfo.find("RegLoc")
-							dat=InjReportInfo[ind:upind].replace("TotErrAct:","")
-							dat=dat.replace(";","")
-							IR_DUE_INJ["Timeout"]+=int(dat)
-					else:
-						if("Out Of Range Register" in dmesreport):
-							if("Out Of Range Register" not in IR_DUE):
-								IR_DUE["Out Of Range Register"]=1
-								ind=InjReportInfo.find("TotErrAct")
-								upind=InjReportInfo.find("RegLoc")
-								dat=InjReportInfo[ind:upind].replace("TotErrAct:","")
-								dat=dat.replace(";","")
-								IR_DUE_INJ["Out Of Range Register"]=int(dat)
-							else:
-								IR_DUE["Out Of Range Register"]+=1	
-								ind=InjReportInfo.find("TotErrAct")
-								upind=InjReportInfo.find("RegLoc")
-								dat=InjReportInfo[ind:upind].replace("TotErrAct:","")
-								dat=dat.replace(";","")
-								IR_DUE_INJ["Out Of Range Register"]+=int(dat)
-						else:
-							if("ERROR FAIL in kernel execution (" in InjReportInfo):
-								Cause=InjReportInfo.split(';')[15].replace("ERROR FAIL in kernel execution (","")
-								if(Cause not in IR_DUE):
-									IR_DUE[Cause]=1
-									ind=InjReportInfo.find("TotErrAct")
-									upind=InjReportInfo.find("RegLoc")
-									dat=InjReportInfo[ind:upind].replace("TotErrAct:","")
-									dat=dat.replace(";","")
-									IR_DUE_INJ[Cause]=int(dat)
-								else:
-									IR_DUE[Cause]+=1
-									ind=InjReportInfo.find("TotErrAct")
-									upind=InjReportInfo.find("RegLoc")
-									dat=InjReportInfo[ind:upind].replace("TotErrAct:","")
-									dat=dat.replace(";","")
-									IR_DUE_INJ[Cause]=int(dat)
-							else:
-								assert(1==0)
-				elif("SDC" in Outcome):
-					IR_SDC+=1
-					if("SDC" not in IR_SDC_INJ):
-						ind=InjReportInfo.find("TotErrAct")
-						upind=InjReportInfo.find("RegLoc")
-						dat=InjReportInfo[ind:upind].replace("TotErrAct:","")
-						dat=dat.replace(";","")						
-						IR_SDC_INJ["SDC"]=int(dat)
-					else:
-						ind=InjReportInfo.find("TotErrAct")
-						upind=InjReportInfo.find("RegLoc")
-						dat=InjReportInfo[ind:upind].replace("TotErrAct:","")
-						dat=dat.replace(";","")						
-						IR_SDC_INJ["SDC"]+=int(dat)
+				classE="-"
+			check_and_create_nested_dict(IRA_report,app,resRegLoc,classE)
+			IRA_report[app][resRegLoc][classE]+=1
 
-				elif("Masked" in Outcome):
-					IR_MASKED+=1
-					if("Masked" not in IR_MASKED_INJ):
-						ind=InjReportInfo.find("TotErrAct")
-						upind=InjReportInfo.find("RegLoc")
-						dat=InjReportInfo[ind:upind].replace("TotErrAct:","")
-						dat=dat.replace(";","")						
-						IR_MASKED_INJ["Masked"]=int(dat)
-					else:
-						ind=InjReportInfo.find("TotErrAct")
-						upind=InjReportInfo.find("RegLoc")
-						dat=InjReportInfo[ind:upind].replace("TotErrAct:","")
-						dat=dat.replace(";","")						
-						IR_MASKED_INJ["Masked"]+=int(dat)
+			check_and_create_nested_dict(IRA_report_tot,app,resRegLoc,Outcome)
+			IRA_report_tot[app][resRegLoc][Outcome]+=1
 
-		log_data.close()
-		if("Masked" in IRA_SDC_INJ):
-			idx="Masked"
-			print(f"IAT_MASKED: {IRA_MASKED} ; AvgErrAct: {IRA_MASKED_INJ[idx]/IRA_MASKED}")
-		else:
-			print(f"IAT_MASKED: {IRA_MASKED} ; AvgErrAct: {IRA_MASKED}")
-		
-		if("SDC" in IRA_SDC_INJ):
-			idx="SDC"
-			print(f"IAT_SDCs: {IRA_SDC}; AvgErrAct: {IRA_SDC_INJ[idx]/IRA_SDC}")	
-		else:
-			print(f"IAT_SDCs: {IRA_SDC}; AvgErrAct: {IRA_SDC}")
-
-		for due in IRA_DUE:
-			print(f"IAT_DUEs: {IRA_DUE[due]} {due}; AvgErrAct: {IRA_DUE_INJ[due]/IRA_DUE[due]}")
-		
-
-		if("Masked" in IR_SDC_INJ):
-			idx="Masked"
-			print(f"IAW_MASKED: {IR_MASKED} ; AvgErrAct: {IR_MASKED_INJ[idx]/IR_MASKED}")
-		else:
-			print(f"IAW_MASKED: {IR_MASKED} ; AvgErrAct: {IR_MASKED}")
-		
-		if("SDC" in IR_SDC_INJ):
-			idx="SDC"
-			print(f"IAW_SDCs: {IR_SDC}; AvgErrAct: {IR_SDC_INJ[idx]/IR_SDC}")	
-		else:
-			print(f"IAW_SDCs: {IR_SDC}; AvgErrAct: {IR_SDC}")
-
-		for due in IR_DUE:
-			print(f"IAW_DUEs: {IR_DUE[due]} {due}; AvgErrAct: {IR_DUE_INJ[due]/IR_DUE[due]}")
+			check_and_create_nested_dict(IRA_report_regsrc,app,resRegLoc,injRegField,Outcome)
+			IRA_report_regsrc[app][resRegLoc][injRegField][Outcome]+=1
 			
+			if "DUE" in Outcome:
+				if "TIMEOUT" not in Outcome.upper(): 
+					check_and_create_nested_dict(IRA_report_reason,app,resRegLoc,injRegField,Outcome,Cause)
+					IRA_report_reason[app][resRegLoc][injRegField][Outcome][Cause]+=1
+				else:
+					check_and_create_nested_dict(IRA_report_reason,app,resRegLoc,injRegField,Outcome,"Timeout")
+					IRA_report_reason[app][resRegLoc][injRegField][Outcome]["Timeout"]+=1
+			
+		file_data.close()
+		print(IRA_report_tot)
+		print(IRA_report_regsrc)
+		print(IRA_report_reason)	
+		
+
 	else:
-		print(f"Error the log file {log_file} is not available")
+		print(f"The file: {log_file}; doesn't exist..")
+	return
+
+IAT_report_reason={}
+IAT_report_regsrc={}
+IAT_report_tot={}
+IAT_report={}
+def parse_results_IAT(app,log_file):
+	
+	inj_err="IAT"
+	if os.path.isfile(log_file):
+		file_data=open(log_file,'r')
+		for line in file_data:
+			rep_fields=line.strip().split('$')	
+			sim_runtime=float(rep_fields[5])
+			Outcome=rep_fields[7].replace("Outcome","")
+			Outcome=Outcome.replace("(","")
+			Outcome=((Outcome.replace(")","")).strip()).lstrip()
+			
+			for fields in (rep_fields[8].split(';')):
+				if("injSmID" in fields):
+					injSMID=int(fields.split(':')[1])
+				if("injSchID" in fields):
+					injSchID=int(fields.split(':')[1])
+				if("injWarpIDH" in fields):
+					injWarpIDH=int(fields.split(':')[1])					
+				if("injWarpIDL" in fields):
+					injWarpIDL=int(fields.split(':')[1])
+				if("injLaneID" in fields):
+					injLaneID=int(fields.split(':')[1])
+				if("injMaskSeed" in fields):
+					injMaskSeed=int(fields.split(':')[1])
+				if("InjDimention" in fields):
+					InjDimention=int(fields.split(':')[1])
+				if("injStuck-at" in fields):
+					injStuck_at=int(fields.split(':')[1])
+				if("TotErrAct" in fields):
+					TotErrAct=int(fields.split(':')[1])			
+				Cause=""
+				if("SimEndRes" in fields):
+					Cause=fields.split(":::")[1]
+			DmesErrType=rep_fields[9].split(',')[0]
+			DmesErr=-1
+			if "Xid" in (DmesErrType):
+				DmesErr=int(DmesErrType.split()[4])
+			num_warps=bin(injWarpIDH).count('1')+bin(injWarpIDL).count('1')
+			num_LinesPerWarp=bin(injLaneID).count('1')
+			
+			if("SDC" in Outcome.upper()):
+				classE="SDC"
+			elif("MASKED" in Outcome.upper()):
+				classE="Masked"
+			elif("TIMEOUT" in Outcome.upper()):
+				classE="Timeout"
+			elif("DUE" in Outcome.upper()):
+				classE="DUE"
+			else:
+				classE="-"
+			check_and_create_nested_dict(IAT_report,app,inj_err,classE)
+			IAT_report[app][inj_err][classE]+=1
+
+			check_and_create_nested_dict(IAT_report_tot,app,inj_err,Outcome)
+			IAT_report_tot[app][inj_err][Outcome]+=1
+
+			check_and_create_nested_dict(IAT_report_regsrc,app,inj_err,InjDimention,Outcome)
+			IAT_report_regsrc[app][inj_err][InjDimention][Outcome]+=1
+			
+			if "DUE" in Outcome:
+				if "TIMEOUT" not in Outcome.upper(): 
+					check_and_create_nested_dict(IAT_report_reason,app,inj_err,InjDimention,Outcome,Cause)
+					IAT_report_reason[app][inj_err][InjDimention][Outcome][Cause]+=1
+				else:
+					check_and_create_nested_dict(IAT_report_reason,app,inj_err,InjDimention,Outcome,"Timeout")
+					IAT_report_reason[app][inj_err][InjDimention][Outcome]["Timeout"]+=1			
+		file_data.close()
+		print(IAT_report_tot)
+		print(IAT_report_regsrc)
+		print(IAT_report_reason)	
+		
+
+	else:
+		print(f"The file: {log_file}; doesn't exist..")
+	return
+
+
+IAW_report_reason={}
+IAW_report_regsrc={}
+IAW_report_tot={}
+IAW_report={}
+def parse_results_IAW(app,log_file):
+
+	inj_err="IAW"
+	if os.path.isfile(log_file):
+		file_data=open(log_file,'r')
+		for line in file_data:
+			rep_fields=line.strip().split('$')	
+			sim_runtime=float(rep_fields[5])
+			Outcome=rep_fields[7].replace("Outcome","")
+			Outcome=Outcome.replace("(","")
+			Outcome=((Outcome.replace(")","")).strip()).lstrip()
+			
+			for fields in (rep_fields[8].split(';')):
+				if("injSmID" in fields):
+					injSMID=int(fields.split(':')[1])
+				if("injSchID" in fields):
+					injSchID=int(fields.split(':')[1])
+				if("injWarpIDH" in fields):
+					injWarpIDH=int(fields.split(':')[1])					
+				if("injWarpIDL" in fields):
+					injWarpIDL=int(fields.split(':')[1])
+				if("injLaneID" in fields):
+					injLaneID=int(fields.split(':')[1])
+				if("injMaskSeed" in fields):
+					injMaskSeed=int(fields.split(':')[1])
+				if("InjDimention" in fields):
+					InjDimention=int(fields.split(':')[1])
+				if("injStuck-at" in fields):
+					injStuck_at=int(fields.split(':')[1])
+				if("TotErrAct" in fields):
+					TotErrAct=int(fields.split(':')[1])			
+				Cause=""
+				if("SimEndRes" in fields):
+					Cause=fields.split(":::")[1]
+			DmesErrType=rep_fields[9].split(',')[0]
+			DmesErr=-1
+			if "Xid" in (DmesErrType):
+				DmesErr=int(DmesErrType.split()[4])
+			num_warps=bin(injWarpIDH).count('1')+bin(injWarpIDL).count('1')
+			num_LinesPerWarp=bin(injLaneID).count('1')
+			
+			if("SDC" in Outcome.upper()):
+				classE="SDC"
+			elif("MASKED" in Outcome.upper()):
+				classE="Masked"
+			elif("TIMEOUT" in Outcome.upper()):
+				classE="Timeout"
+			elif("DUE" in Outcome.upper()):
+				classE="DUE"
+			else:
+				classE="-"
+			check_and_create_nested_dict(IAW_report,app,inj_err,classE)
+			IAW_report[app][inj_err][classE]+=1
+
+			check_and_create_nested_dict(IAW_report_tot,app,inj_err,Outcome)
+			IAW_report_tot[app][inj_err][Outcome]+=1
+
+			check_and_create_nested_dict(IAW_report_regsrc,app,inj_err,InjDimention,Outcome)
+			IAW_report_regsrc[app][inj_err][InjDimention][Outcome]+=1
+			
+			if "DUE" in Outcome:
+				if "TIMEOUT" not in Outcome.upper(): 
+					check_and_create_nested_dict(IAW_report_reason,app,inj_err,InjDimention,Outcome,Cause)
+					IAW_report_reason[app][inj_err][InjDimention][Outcome][Cause]+=1
+				else:
+					check_and_create_nested_dict(IAW_report_reason,app,inj_err,InjDimention,Outcome,"Timeout")
+					IAW_report_reason[app][inj_err][InjDimention][Outcome]["Timeout"]+=1			
+		file_data.close()
+		print(IAW_report_tot)
+		print(IAW_report_regsrc)
+		print(IAW_report_reason)	
+		
+
+	else:
+		print(f"The file: {log_file}; doesn't exist..")
+	return
+
+IAC_report_reason={}
+IAC_report_regsrc={}
+IAC_report_tot={}
+IAC_report={}
+def parse_results_IAC(app,log_file):
+
+	inj_err="IAC"
+	if os.path.isfile(log_file):
+		file_data=open(log_file,'r')
+		for line in file_data:
+			rep_fields=line.strip().split('$')	
+			sim_runtime=float(rep_fields[5])
+			Outcome=rep_fields[7].replace("Outcome","")
+			Outcome=Outcome.replace("(","")
+			Outcome=((Outcome.replace(")","")).strip()).lstrip()
+			
+			for fields in (rep_fields[8].split(';')):
+				if("injSmID" in fields):
+					injSMID=int(fields.split(':')[1])
+				if("injSchID" in fields):
+					injSchID=int(fields.split(':')[1])
+				if("injWarpIDH" in fields):
+					injWarpIDH=int(fields.split(':')[1])					
+				if("injWarpIDL" in fields):
+					injWarpIDL=int(fields.split(':')[1])
+				if("injLaneID" in fields):
+					injLaneID=int(fields.split(':')[1])
+				if("injMaskSeed" in fields):
+					injMaskSeed=int(fields.split(':')[1])
+				if("InjDimention" in fields):
+					InjDimention=int(fields.split(':')[1])
+				if("injStuck-at" in fields):
+					injStuck_at=int(fields.split(':')[1])
+				if("TotErrAct" in fields):
+					TotErrAct=int(fields.split(':')[1])			
+				Cause=""
+				if("SimEndRes" in fields):
+					Cause=fields.split(":::")[1]
+			DmesErrType=rep_fields[9].split(',')[0]
+			DmesErr=-1
+			if "Xid" in (DmesErrType):
+				DmesErr=int(DmesErrType.split()[4])
+			num_warps=bin(injWarpIDH).count('1')+bin(injWarpIDL).count('1')
+			num_LinesPerWarp=bin(injLaneID).count('1')
+
+			if("SDC" in Outcome.upper()):
+				classE="SDC"
+			elif("MASKED" in Outcome.upper()):
+				classE="Masked"
+			elif("TIMEOUT" in Outcome.upper()):
+				classE="Timeout"
+			elif("DUE" in Outcome.upper()):
+				classE="DUE"
+			else:
+				classE="-"
+			check_and_create_nested_dict(IAC_report,app,inj_err,classE)
+			IAC_report[app][inj_err][classE]+=1
+
+			check_and_create_nested_dict(IAC_report_tot,app,inj_err,Outcome)
+			IAC_report_tot[app][inj_err][Outcome]+=1
+
+			check_and_create_nested_dict(IAC_report_regsrc,app,inj_err,InjDimention,Outcome)
+			IAC_report_regsrc[app][inj_err][InjDimention][Outcome]+=1
+			
+			if "DUE" in Outcome:
+				if "TIMEOUT" not in Outcome.upper(): 
+					check_and_create_nested_dict(IAC_report_reason,app,inj_err,InjDimention,Outcome,Cause)
+					IAC_report_reason[app][inj_err][InjDimention][Outcome][Cause]+=1
+				else:
+					check_and_create_nested_dict(IAC_report_reason,app,inj_err,InjDimention,Outcome,"Timeout")
+					IAC_report_reason[app][inj_err][InjDimention][Outcome]["Timeout"]+=1			
+		file_data.close()
+		print(IAC_report_tot)
+		print(IAC_report_regsrc)
+		print(IAC_report_reason)	
+		
+
+	else:
+		print(f"The file: {log_file}; doesn't exist..")
+	return
+
+WV_report_reason={}
+WV_report_regsrc={}
+WV_report_tot={}
+WV_report={}
+def parse_results_WV(app,log_file):
+
+	inj_err="WV"
+	if os.path.isfile(log_file):
+		file_data=open(log_file,'r')
+		for line in file_data:
+			rep_fields=line.strip().split('$')	
+			sim_runtime=float(rep_fields[5])
+			Outcome=rep_fields[7].replace("Outcome","")
+			Outcome=Outcome.replace("(","")
+			Outcome=((Outcome.replace(")","")).strip()).lstrip()
+			
+			for fields in (rep_fields[8].split(';')):
+				if("injSmID" in fields):
+					injSMID=int(fields.split(':')[1])
+				if("injSchID" in fields):
+					injSchID=int(fields.split(':')[1])
+				if("injWarpIDH" in fields):
+					injWarpIDH=int(fields.split(':')[1])					
+				if("injWarpIDL" in fields):
+					injWarpIDL=int(fields.split(':')[1])
+				if("injLaneID" in fields):
+					injLaneID=int(fields.split(':')[1])
+				if("injPredReg" in fields):
+					injPredReg=int(fields.split(':')[1])
+				if("injMaskSeed" in fields):
+					injMaskSeed=int(fields.split(':')[1])
+				if("injStuck-at" in fields):
+					injStuck_at=int(fields.split(':')[1])
+				if("TotErrAct" in fields):
+					TotErrAct=int(fields.split(':')[1])			
+				Cause=""
+				if("SimEndRes" in fields):
+					Cause=fields.split(":::")[1]
+			DmesErrType=rep_fields[9].split(',')[0]
+			DmesErr=-1
+			if "Xid" in (DmesErrType):
+				DmesErr=int(DmesErrType.split()[4])
+			num_warps=bin(injWarpIDH).count('1')+bin(injWarpIDL).count('1')
+			num_LinesPerWarp=bin(injLaneID).count('1')
+
+			if("SDC" in Outcome.upper()):
+				classE="SDC"
+			elif("MASKED" in Outcome.upper()):
+				classE="Masked"
+			elif("TIMEOUT" in Outcome.upper()):
+				classE="Timeout"
+			elif("DUE" in Outcome.upper()):
+				classE="DUE"
+			else:
+				classE="-"
+			check_and_create_nested_dict(WV_report,app,inj_err,classE)
+			WV_report[app][inj_err][classE]+=1
+
+			check_and_create_nested_dict(WV_report_tot,app,inj_err,Outcome)
+			WV_report_tot[app][inj_err][Outcome]+=1
+
+			check_and_create_nested_dict(WV_report_regsrc,app,inj_err,injPredReg,Outcome)
+			WV_report_regsrc[app][inj_err][injPredReg][Outcome]+=1
+			
+			if "DUE" in Outcome:
+				if "TIMEOUT" not in Outcome.upper(): 
+					check_and_create_nested_dict(WV_report_reason,app,inj_err,injPredReg,Outcome,Cause)
+					WV_report_reason[app][inj_err][injPredReg][Outcome][Cause]+=1
+				else:
+					check_and_create_nested_dict(WV_report_reason,app,inj_err,injPredReg,Outcome,"Timeout")
+					WV_report_reason[app][inj_err][injPredReg][Outcome]["Timeout"]+=1			
+		file_data.close()
+		print(WV_report_tot)
+		print(WV_report_regsrc)
+		print(WV_report_reason)	
+		
+
+	else:
+		print(f"The file: {log_file}; doesn't exist..")
+	return
+###############################################################################
+# 
+# 
+###############################################################################
+def parse_results_app(app,inj_mode):
+	log_file=p.app_log_dir[app] + "/results-mode" + inj_mode + str(p.NUM_INJECTIONS) + ".txt"
+	if inj_mode=="IRA" or inj_mode=="IR":
+		parse_results_IRA(app,log_file)
+	elif inj_mode=="IAT":
+		parse_results_IAT(app,log_file)
+	elif inj_mode=="IAW":
+		parse_results_IAW(app,log_file)
+	elif inj_mode=="IAC":
+		parse_results_IAC(app,log_file)
+	elif inj_mode=="WV":
+		parse_results_WV(app,log_file)
+	else:
+		print("Oops: This error model is not available...")
+
+
+
+
+	
+
+
 
 ###############################################################################
 # Main function that processes files, analyzes results and prints them to an
@@ -726,29 +723,130 @@ def parse_IAT_results(app,inj_mode):
 ###############################################################################
 def main():
 
-	inj_type = os.environ['nvbitPERfi']
-	app= os.environ['BENCHMARK']	
-	cf.set_env(app,False,inj_type)
+	#inj_type = os.environ['nvbitPERfi']
+	#app= os.environ['BENCHMARK']		
+	ERR_MOD=["IRA","IR","IAT","IAW","IAC","WV"]
+	for inj_type in ERR_MOD:
+		os.environ['nvbitPERfi']=inj_type
+		p.set_paths()
+		for app in p.apps:
+			print(app)
+			cf.set_env(app,False,inj_type)
+			parse_results_app(app,inj_type)		
 
-	"""		
-	parse_results_apps(inj_type) # parse sassifi results into local data structures
-	# populate instruction fractions
-	populate_inst_fraction()
+	file_csv=open("FinalReport.csv",'w')
+	line=f"app,err_type,Masked,SDC,DUE,Timeout\n"
+	file_csv.write(line)
+	for app in p.apps:
+		for err_type in ERR_MOD:
+			if err_type=="IRA":
+				masked=0
+				sdc=0
+				due=0
+				timeout=0								
+				for clasE in IRA_report[app][err_type]:
+					if "SDC" in clasE.upper():					
+						sdc=IRA_report[app][err_type][clasE]
+					if "DUE" in clasE.upper():					
+						due=IRA_report[app][err_type][clasE]
+					if "MASKED" in clasE.upper():					
+						masked=IRA_report[app][err_type][clasE]
+					if "TIMEOUT" in clasE.upper():					
+						timeout=IRA_report[app][err_type][clasE]				
+				line=f"{app},{err_type},{masked},{sdc},{due},{timeout}\n"
+				file_csv.write(line)
 
-	global fname_prefix 
-	fname_prefix = p.NVBITFI_HOME + "/logs/" + "results/results_" + inj_type + "_" + str(p.NUM_INJECTIONS) + "_"
+			if err_type=="IR":
+				masked=0
+				sdc=0
+				due=0
+				timeout=0	
+				#print(IRA_report[app]["IR"]	)
+				for clasE in IRA_report[app][err_type]:
+					#print(clasE)
+					if "SDC" in clasE.upper():					
+						sdc=IRA_report[app][err_type][clasE]
+					if "DUE" in clasE.upper():					
+						due=IRA_report[app][err_type][clasE]
+					if "MASKED" in clasE.upper():					
+						masked=IRA_report[app][err_type][clasE]
+					if "TIMEOUT" in clasE.upper():					
+						timeout=IRA_report[app][err_type][clasE]				
+				line=f"{app},{err_type},{masked},{sdc},{due},{timeout}\n"
+				file_csv.write(line)
 
-	print_inst_fractions_tsv()
-	print_detailed_results_tsv(inj_type)
-	print_stats_tsv(inj_type)
+			if err_type=="IAT":
+				masked=0
+				sdc=0
+				due=0
+				timeout=0								
+				for clasE in IAT_report[app][err_type]:
+					if "SDC" in clasE.upper():					
+						sdc=IAT_report[app][err_type][clasE]
+					if "DUE" in clasE.upper():					
+						due=IAT_report[app][err_type][clasE]
+					if "MASKED" in clasE.upper():					
+						masked=IAT_report[app][err_type][clasE]
+					if "TIMEOUT" in clasE.upper():					
+						timeout=IAT_report[app][err_type][clasE]				
+				line=f"{app},{err_type},{masked},{sdc},{due},{timeout}\n"
+				file_csv.write(line)
+			if err_type=="IAW":
+				masked=0
+				sdc=0
+				due=0
+				timeout=0								
+				for clasE in IAW_report[app][err_type]:
+					if "SDC" in clasE.upper():					
+						sdc=IAW_report[app][err_type][clasE]
+					if "DUE" in clasE.upper():					
+						due=IAW_report[app][err_type][clasE]
+					if "MASKED" in clasE.upper():					
+						masked=IAW_report[app][err_type][clasE]
+					if "TIMEOUT" in clasE.upper():					
+						timeout=IAW_report[app][err_type][clasE]				
+				line=f"{app},{err_type},{masked},{sdc},{due},{timeout}\n"
+				file_csv.write(line)
+			if err_type=="IAC":
+				masked=0
+				sdc=0
+				due=0
+				timeout=0								
+				for clasE in IAC_report[app][err_type]:
+					if "SDC" in clasE.upper():					
+						sdc=IAC_report[app][err_type][clasE]
+					if "DUE" in clasE.upper():					
+						due=IAC_report[app][err_type][clasE]
+					if "MASKED" in clasE.upper():					
+						masked=IAC_report[app][err_type][clasE]
+					if "TIMEOUT" in clasE.upper():					
+						timeout=IAC_report[app][err_type][clasE]				
+				line=f"{app},{err_type},{masked},{sdc},{due},{timeout}\n"
+				file_csv.write(line)
 
-	print ("Results: %s" %(p.NVBITFI_HOME + "/logs/" + "results/"))
-	"""
-	
-	if inj_type=="IRA" or inj_type=="IR":
-		parse_IRA_results(app,inj_type)
-	elif inj_type=="IAT" or inj_type=="IAW":
-		parse_IAT_results(app,inj_type)
+			if err_type=="WV":
+				masked=0
+				sdc=0
+				due=0
+				timeout=0								
+				for clasE in WV_report[app][err_type]:
+					if "SDC" in clasE.upper():					
+						sdc=WV_report[app][err_type][clasE]
+					if "DUE" in clasE.upper():					
+						due=WV_report[app][err_type][clasE]
+					if "MASKED" in clasE.upper():					
+						masked=WV_report[app][err_type][clasE]
+					if "TIMEOUT" in clasE.upper():					
+						timeout=WV_report[app][err_type][clasE]				
+				line=f"{app},{err_type},{masked},{sdc},{due},{timeout}\n"
+				file_csv.write(line)
+	print(IRA_report)
+	print(IAT_report)
+	print(IAW_report)
+	print(IAC_report)
+	print(WV_report)
+	file_csv.close()
+
 
 if __name__ == "__main__":
     main()
