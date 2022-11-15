@@ -40,7 +40,7 @@ Parameters::Parameters(int argc, char* argv[]) {
 
 std::ostream& operator<<(std::ostream& os, const Parameters& p) {
 	os << std::boolalpha;
-	os << "Testing CFD on " << p.device << std::endl;
+	os << "Testing BFS on " << p.device << std::endl;
 	os << "Input path: " << p.input << std::endl;
 	os << "Gold path: " << p.gold << std::endl;
 	os << "Iterations: " << p.iterations << std::endl;

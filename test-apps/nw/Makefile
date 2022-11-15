@@ -5,10 +5,9 @@ LOGS=1
 OMP=1
 BUILDPROFILER=0
 SIZE=16384
-ITERATIONS=10
-RADDIR=../../..
+ITERATIONS=1
 PENALTY=10
-DATADIR=$(RADDIR)/data/nw
+DATADIR=.
 INPUT=$(DATADIR)/input_$(SIZE)_$(PENALTY)
 GOLD=$(DATADIR)/gold_$(SIZE)_$(PENALTY)
 
@@ -26,7 +25,7 @@ CXXFLAGS= -std=c++11 -o3  -fPIC -fopenmp -Wall -Wfatal-errors  -Wunknown-pragmas
 SMS= 35 53 70 86
 $(foreach sm,$(SMS), $(eval ARCH += -gencode arch=compute_$(sm),code=sm_$(sm)))
 
-INCLUDE= -I./src -I$(CUDAPATH)/include -I$(CUDAPATH)/samples/common/inc -I$(RADDIR)/libLogHelper/include -I$(RADDIR)/src/cuda/common
+INCLUDE= -I./src -I$(LOG_HELPER_PATH)/include -I$(CUDAPATH)/samples/common/inc -I../common/include -I$(CUDAPATH)/include
 
 OBJDIR=./obj/
 OBJ= needle.o needle_kernel.o
@@ -39,7 +38,7 @@ endif
 ifeq ($(LOGS), 1)
 CXXFLAGS+= -DLOGS
 NVCCFLAGS+= -DLOGS
-LDFLAGS+= -L$(RADDIR)/libLogHelper/  -lLogHelper
+LDFLAGS+= -L$(LOG_HELPER_PATH)/build  -lLogHelper
 endif
 
 ifeq ($(OMP), 1) 
@@ -85,3 +84,10 @@ generate:
 
 test:
 	./$(EXEC) $(SIZE) $(PENALTY) $(INPUT) $(GOLD) $(ITERATIONS) 0
+
+
+golden:
+	./$(EXEC) $(SIZE) $(PENALTY) $(INPUT) $(GOLD) $(ITERATIONS) 0 > golden_stdout.txt 2>golden_stderr.txt
+	sed -i '/kernel time/c\REPLACED.' golden_stdout.txt 
+	sed -i '/read../c\REPLACED.' golden_stdout.txt 
+

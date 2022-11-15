@@ -5,20 +5,19 @@ BUILDPROFILER=0
 DEBUG=0
 #SIZE=134217728
 SIZE=1048576
-ITERATIONS=10
+ITERATIONS=1
 
 VPATH=./
 CUDAPATH=/usr/local/cuda
 NVCC=$(CUDAPATH)/bin/nvcc
 
-NVCCFLAGS= -std=c++11 -Xptxas -v -rdc=true -Xcompiler -fopenmp -Xcompiler -fPIC  -Xcompiler  -pthread 
+NVCCFLAGS= -std=c++11 -Xptxas -v -rdc=true -Xcompiler -fopenmp -Xcompiler -fPIC  -Xcompiler  -pthread
 CXXFLAGS= -std=c++11 -O3 -fPIC -pthread -fopenmp
 
-RADDIR=../../..
-DATADIR=$(RADDIR)/data/mergesort
-INCLUDE= -I$(CUDAPATH)/include -I$(CUDAPATH)/samples/common/inc -I$(RADDIR)/libLogHelper/include -I$(RADDIR)/src/cuda/common
+DATADIR=.
+INCLUDE= -I./src -I$(LOG_HELPER_PATH)/include -I$(CUDAPATH)/samples/common/inc -I../common/include -I$(CUDAPATH)/include
 # Kepler, Volta
-SMS= 35 70 86
+SMS= 70 86
 $(foreach sm,$(SMS),$(eval ARCH += -gencode arch=compute_$(sm),code=sm_$(sm)))
 
 OBJDIR=./obj/
@@ -32,7 +31,7 @@ endif
 ifeq ($(LOGS), 1)
 CXXFLAGS+= -DLOGS
 NVCCFLAGS+= -DLOGS
-LDFLAGS+= -L$(RADDIR)/libLogHelper  -lLogHelper
+LDFLAGS+= -L$(LOG_HELPER_PATH)/build  -lLogHelper
 endif
 
 ifeq ($(BUILDPROFILER), 1)
@@ -82,3 +81,13 @@ test:
 	 		   -gold=$(DATADIR)/gold_$(SIZE) \
 	 		   -iterations=$(ITERATIONS)
 	 		   #-noinputensurance
+
+golden:
+	  ./$(EXEC) -size=$(SIZE) -verbose \
+	 		   -input=$(DATADIR)/input_$(SIZE) \
+	 		   -gold=$(DATADIR)/gold_$(SIZE) \
+	 		   -iterations=1 > golden_stdout.txt 2>golden_stderr.txt
+	sed -i '/Time/c\' golden_stdout.txt 
+	sed -i '/time/c\' golden_stdout.txt 
+	sed -i '/Perf/c\' golden_stdout.txt
+	sed -i '/Starting/c\' golden_stdout.txt

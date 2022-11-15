@@ -7,32 +7,31 @@ LOGS=1
 USE_OMP=1
 
 BUILDPROFILER=0
-RADDIR=../../..
+RADDIR=/home/carol/radiation-benchmarks
 
 ITERATIONS=10
 STREAMS=1
 SIZE=1024
-SIM_TIME=1000
-DATA_DIR=$(RADDIR)/data/hotspot
+SIM_TIME=100
+DATA_DIR=.
 DEF_INPUT_POWER=$(DATA_DIR)/power_$(SIZE)
 DEF_INPUT_TEMP=$(DATA_DIR)/temp_$(SIZE)
 DEF_GOLD=$(DATA_DIR)/gold_$(PRECISION)_$(SIZE)_$(SIM_TIME)
 
 # Kepler, Volta
-SMS= 35 53 70 86
+SMS= 70 86
 $(foreach sm,$(SMS),$(eval ARCH += -gencode arch=compute_$(sm),code=sm_$(sm)))
 
-LOGHELPER_INC=$(RADDIR)/libLogHelper/include/
-LOGHELPER_LIB=$(RADDIR)/libLogHelper/
+LOGHELPER_INC=$(LOG_HELPER_PATH)/include/
+LOGHELPER_LIB=$(LOG_HELPER_PATH)/build
 
-NVCCFLAGS= $(ARCH) -std=c++11
-INCLUDE= -I$(CUDAPATH)/include -I$(RADDIR)/src/cuda/common/include  -I$(LOGHELPER_INC)
+NVCCFLAGS= $(ARCH) -std=c++11 -Xptxas -v
+INCLUDE= -I$(CUDAPATH)/include -I../common/include  -I$(LOGHELPER_INC)
 LIBRARY= -L$(CUDAPATH)/lib64/
 CXXFLAGS= -I$(CUDAPATH)/include -L$(CUDAPATH)/lib64/ -lcudart  -std=c++11
 
 TARGET=cuda_hotspot
 RUN_SOURCES=./cuda_hotspot.cu
-
 
 ifeq ($(LOGS), 1)
 #INCLUDE+= -I$(LOGHELPER_INC)
@@ -78,3 +77,13 @@ test: $(TARGET)
 				-sim_time=$(SIM_TIME) -verbose -iterations=$(ITERATIONS) \
 				 -streams=$(STREAMS) -precision=$(PRECISION)
 				
+
+
+golden:
+	./$(TARGET) -size=$(SIZE) -input_power=$(DEF_INPUT_POWER) \
+					-input_temp=$(DEF_INPUT_TEMP) -gold_temp=$(DEF_GOLD) \
+					-sim_time=$(SIM_TIME) -verbose -iterations=1 \
+					 -streams=$(STREAMS) -precision=$(PRECISION) > golden_stdout.txt 2>golden_stderr.txt
+	sed -i '/Time/c\' golden_stdout.txt
+	sed -i '/time/c\' golden_stdout.txt
+	sed -i '/Performance/c\' golden_stdout.txt

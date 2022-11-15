@@ -21,8 +21,8 @@
 //#include <helper_cuda.h>
 #include "mergeSort_common.h"
 
-#include "include/cuda_utils.h"
-#include "include/multi_compiler_analysis.h"
+#include "cuda_utils.h"
+#include "multi_compiler_analysis.h"
 
 std::string get_multi_compiler_header() {
 	return rad::get_multi_compiler_header();

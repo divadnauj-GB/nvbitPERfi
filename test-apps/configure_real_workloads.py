@@ -20,8 +20,20 @@ REAL_WORKLOADS_PARAMETERS_FILE = f"{NVBITFI_HOME}/scripts/real_workloads_paramet
 CUDA_PATH = "/usr/local/cuda"
 
 
+class Bcolors:
+    HEADER = '\033[95m'
+    OKBLUE = '\033[94m'
+    OKCYAN = '\033[96m'
+    OKGREEN = '\033[92m'
+    WARNING = '\033[93m'
+    FAIL = '\033[91m'
+    ENDC = '\033[0m'
+    BOLD = '\033[1m'
+    UNDERLINE = '\033[4m'
+
+
 def execute_cmd(cmd: str, err_message: str):
-    print("EXECUTING:", cmd)
+    print(Bcolors.HEADER + "EXECUTING:", cmd + Bcolors.ENDC)
     if os.system(cmd) != 0:
         raise ValueError(f"Failed to execute CMD:{cmd}, message:{err_message}")
 
@@ -59,15 +71,27 @@ def build_benchmark_with_fi_parameters(app: str, parameters: dict):
     os.chdir(TEST_APPS_DIR)
 
 
-def main():
+def treat_specific_cases():
     # Create a link from gemm to mxm just to allow runPERfi to work properly
     execute_cmd(cmd="rm -f mxm && ln -s gemm mxm", err_message="Failed to create the mxm link")
+    # Uncompress hotspot files
+    execute_cmd(cmd="cd hotspot/ && tar xzf power_and_temp_files.tar.gz && cd -",
+                err_message="Failed to uncompress hotspot files")
+    # Uncompress bfs files
+    execute_cmd(cmd="cd bfs/ && tar xzf graphs_rodinia.tar.gz && cd -", err_message="Failed to uncompress bfs files")
+    # Uncompress cfd files
+    if os.path.isfile("cfd/missile.domn.0.2M") is False:
+        execute_cmd(cmd="cd cfd/ && xz -df missile.domn.0.2M.xz && cd -", err_message="Failed to uncompress cfd files")
+
+
+def main():
+    treat_specific_cases()
     # Build libLogHelper first
     build_and_set_lib_log_helper()
     real_workloads_dict_out = dict()
     common_additional_run_parameters = f"{CUDA_PATH} {LOG_HELPER_LIB_PATH}"
     for workload_name, workload_parameters in REAL_WORKLOADS.items():
-        print("Building and setting", workload_name)
+        print(Bcolors.WARNING + "Building and setting", workload_name + Bcolors.ENDC)
         build_benchmark_with_fi_parameters(app=workload_name, parameters=workload_parameters)
         app_dir, app_bin = workload_parameters["APP_DIR"], workload_parameters["APP_BIN"]
         specific_run_parameters = " ".join(map(str, workload_parameters["MAKE_PARAMETERS"].values()))
@@ -78,12 +102,12 @@ def main():
             5,  # expected runtime secs
             f"{common_additional_run_parameters} {specific_run_parameters}"  # additional parameters to the run.sh
         ]
-        # Debug break
-        if workload_name == "gemm":
-            break
 
     with open(REAL_WORKLOADS_PARAMETERS_FILE, 'w') as handle:
         handle.write(f"REAL_WORKLOAD_DICT = {json.dumps(real_workloads_dict_out, indent=4)}")
+
+    print(f"{Bcolors.OKBLUE}All the {len(REAL_WORKLOADS)} seem to be correctly configured,"
+          f" let's try FI for real now{Bcolors.ENDC}")
 
 
 REAL_WORKLOADS = {

@@ -3,15 +3,15 @@ CXXFLAGS= -std=c++11 -o3  -fPIC -fopenmp
 EXEC=cudaGaussian
 LOGS=1
 BUILDPROFILER=0
-ITERATIONS=10
-SIZE=1024
+ITERATIONS=1
+SIZE=512
 
 VPATH=./src/
 CUDAPATH=/usr/local/cuda
 NVCC=$(CUDAPATH)/bin/nvcc
 
-RADDIR=../../..
-DATADIR=$(RADDIR)/data/gaussian
+RADDIR=/home/carol/radiation-benchmarks
+DATADIR=.
 
 NVCCFLAGS= -std=c++11 -Xptxas -v
 # NVCC optmizations flags
@@ -19,10 +19,10 @@ NVCCOPTFLAGS=
 
 # This is what I use, uncomment if you know your arch and want to specify
 # Kepler, Volta
-SMS= 35 53 70 86
+SMS= 70 86
 $(foreach sm,$(SMS), $(eval ARCH += -gencode arch=compute_$(sm),code=sm_$(sm)))
 
-INCLUDE= -I./src -I$(CUDAPATH)/include -I$(CUDAPATH)/samples/common/inc -I$(RADDIR)/libLogHelper/include -I$(RADDIR)/src/cuda/common/include
+INCLUDE= -I./src -I$(LOG_HELPER_PATH)/include -I$(CUDAPATH)/samples/common/inc -I../common/include -I$(CUDAPATH)/include
 
 OBJDIR=./obj/
 OBJ=  gaussian.o  main.o Parameters.o
@@ -35,7 +35,7 @@ endif
 ifeq ($(LOGS), 1)
 CXXFLAGS+= -DLOGS
 NVCCFLAGS+= -DLOGS
-LDFLAGS+= -L$(RADDIR)/libLogHelper  -lLogHelper
+LDFLAGS+= -L$(LOG_HELPER_PATH)/build  -lLogHelper
 endif
 
 ifeq ($(BUILDPROFILER), 1)
@@ -80,4 +80,6 @@ test:
 	./$(EXEC) --size $(SIZE) --input $(DATADIR)/input_$(SIZE).data \
 							 --gold  $(DATADIR)/gold_$(SIZE).data --verbose --iterations $(ITERATIONS)
 	
-
+golden:
+	./$(EXEC) --size $(SIZE) --input $(DATADIR)/input_$(SIZE).data --gold  $(DATADIR)/gold_$(SIZE).data --verbose --iterations 1 > golden_stdout.txt 2>golden_stderr.txt
+	sed -i '/time/c\' golden_stdout.txt 

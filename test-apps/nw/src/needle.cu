@@ -12,9 +12,9 @@
 #include <numeric>
 
 //helper kernels
-#include "include/cuda_utils.h"
-#include "include/device_vector.h"
-#include "include/multi_compiler_analysis.h"
+#include "cuda_utils.h"
+#include "device_vector.h"
+#include "multi_compiler_analysis.h"
 
 // includes, kernels
 #include "needle.h"
@@ -22,7 +22,7 @@
 //#ifdef LOGS
 //#include "log_helper.h"
 //#endif
-#include "include/generic_log.h"
+#include "generic_log.h"
 //====================================
 
 #define GCHK_BLOCK_SIZE 32
