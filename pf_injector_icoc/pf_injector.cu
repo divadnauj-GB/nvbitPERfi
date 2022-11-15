@@ -23,6 +23,7 @@ int limit;
 std::string inj_input_filename;
 // Output log file
 std::string inj_output_filename;
+std::string simulation_end_result;
 
 pthread_mutex_t mutex;
 
@@ -93,12 +94,114 @@ int get_max_regs(CUfunction func) {
     return max_regs;
 }
 
+
+void report_summary_results() {
+    std::string activation_string;
+    auto total_activations = 0ull;
+    for (auto i = 0; i < NUM_ISA_INSTRUCTIONS; i++) {
+        if (count_activations_inst[i]) {
+//            verbose_printf(instTypeNames[i], ":", count_activations_inst[i], "\n");
+//            fout << instTypeNames[i] << ":" << count_activations_inst[i] << "\n";
+            activation_string += std::string(instTypeNames[i]) + ":" + std::to_string(count_activations_inst[i]) + "\n";
+            total_activations += count_activations_inst[i];
+        }
+    }
+    if (fout.good()) {
+
+        fout << "=================================================================================" << std::endl;
+        fout << "Final Report" << std::endl;
+        fout << "=================================================================================" << std::endl;
+        fout << "Report_Summary: ";
+//             << "; DeviceName: " << inj_error_info.DeviceName
+//             << "; MaxThreadsPerSM: " << inj_error_info.MaxThreadsPerSM
+//             << "; MaxWarpsPerSm: " << inj_error_info.MaxWarpsPerSM
+//             << "; MaxThreadsPerWarp: " << inj_error_info.MaxThreadsPerWarp
+//             << "; gridDimX: " << inj_error_info.gridDimX
+//             << "; gridDimY: " << inj_error_info.gridDimY
+//             << "; gridDimZ: " << inj_error_info.gridDimZ
+//             << "; blockDimX: " << inj_error_info.blockDimX
+//             << "; blockDimY: " << inj_error_info.blockDimY
+//             << "; blockDimZ: " << inj_error_info.blockDimZ;
+        if (activation_string.empty())
+            fout << "; ErrorInjected: False";
+        else
+            fout << "; ErrorInjected: True";
+        fout << "; SmID: " << inj_info.sm_id
+             << "; SchID: " << inj_info.warp_group
+             << "; WarpID: " << inj_info.warp_id
+             //             << "; WarpIDL: " << inj_error_info.injWarpMaskL
+             //             << "; LaneID: " << inj_error_info.injThreadMask
+             //             << "; RegField: " << inj_error_info.injRegID
+             //             << "; MaxRegCount: " << inj_error_info.maxregcount
+             //             << "; RegOrigNum: " << inj_error_info.injRegOriginal
+             //             << "; RegRepNum: " << inj_error_info.injRegReplacement
+             //             << "; MaskSeed: " << inj_error_info.injMaskSeed
+             //             << "; Stuck_at/others: " << inj_error_info.injStuck_at
+             //             << "; NumErrInstExeBefStop: " << inj_error_info.injInstrIdx
+             << "; LastPCOffset: 0x" << std::hex << last_pc_offset << std::dec
+             << "; LastOpcode: " << current_instruction_opcode
+             << "; TotErrAct: " << total_activations << std::endl;
+//        if (inj_error_info.maxregcount > inj_error_info.injRegReplacement) {
+//            fout << "; RegLoc: InsideLims";
+//        } else {
+//            fout << ";  RegLoc: OutsideLims";
+//        }
+//        fout << SimEndRes;
+    }
+    verbose_printf(activation_string, "\n");
+    fout << activation_string;
+    fout << simulation_end_result << std::endl;
+}
+
+void report_kernel_results() {
+    std::string activation_string;
+    auto total_activations = 0ull;
+    for (auto i = 0; i < NUM_ISA_INSTRUCTIONS; i++) {
+        if (count_activations_inst[i]) {
+//            verbose_printf(instTypeNames[i], ":", count_activations_inst[i], "\n");
+//            fout << instTypeNames[i] << ":" << count_activations_inst[i] << "\n";
+            activation_string += std::string(instTypeNames[i]) + ":" + std::to_string(count_activations_inst[i]) + "\n";
+            total_activations += count_activations_inst[i];
+        }
+    }
+    fout << "Kernel name: " << last_kernel << "; kernel Index: " << kernel_id;
+//         << "; DeviceName: " << inj_error_info.DeviceName
+//         << "; MaxThreadsPerSM: " << inj_error_info.MaxThreadsPerSM
+//         << "; MaxWarpsPerSm: " << inj_error_info.MaxWarpsPerSM
+//         << "; MaxThreadsPerWarp: " << inj_error_info.MaxThreadsPerWarp
+//         << "; gridDimX: " << inj_error_info.gridDimX
+//         << "; gridDimY: " << inj_error_info.gridDimY
+//         << "; gridDimZ: " << inj_error_info.gridDimZ
+//         << "; blockDimX: " << inj_error_info.blockDimX
+//         << "; blockDimY: " << inj_error_info.blockDimY
+//         << "; blockDimZ: " << inj_error_info.blockDimZ;
+    if (activation_string.empty())
+        fout << "; ErrorInjected: False";
+    else
+        fout << "; ErrorInjected: True";
+    fout << "; SmID: " << inj_info.sm_id
+         << "; SchID: " << inj_info.warp_group
+         << "; WarpID: " << inj_info.warp_id
+         << "; LastPCOffset: 0x" << std::hex << last_pc_offset << std::dec
+         << "; LastOpcode: " << current_instruction_opcode
+         << "; TotErrAct: " << total_activations << std::endl;
+    verbose_printf(activation_string, "\n");
+    fout << activation_string;
+    fout << simulation_end_result << std::endl;
+}
+
+
 void sig_int_handler(int sig) {
     signal(sig, SIG_IGN); // disable Ctrl-C
 
 //    std::ofstream fout(inj_output_filename);
     if (fout.good()) {
-        fout << ":::NVBit-inject-error; ERROR FAIL Detected Singal SIGKILL;";
+        fout << "=================================================================================" << std::endl;
+        fout << "Report for: " << last_kernel << "; kernel Index: " << kernel_id << std::endl;
+        fout << "=================================================================================" << std::endl;
+        fout << ":::NVBit-inject-error; ERROR FAIL Detected Singal SIGKILL;" << std::endl;
+        report_kernel_results();
+        simulation_end_result = "; SimEndRes:::ERROR FAIL Detected Singal SIGKILL::: ";
 //        fout << " num_activations: " << inj_info.num_activations << ":::";
         fout << inj_info << std::endl;
         fout.flush();
@@ -177,11 +280,15 @@ void instrument_function_if_needed(CUcontext ctx, CUfunction func) {
         }
 
         std::string kname = removeSpaces(nvbit_get_func_name(ctx, f));
+        assert_condition(fout.good(), "Output file " + inj_output_filename + " not opened");
+
+        fout << "=================================================================================" << std::endl;
+        fout << "The Instrumentation step Begins Here: " << kname << std::endl;
+        fout << "=================================================================================" << std::endl;
         /* Get the vector of instruction composing the loaded CUFunction "func" */
         const std::vector<Instr *> &instrs = nvbit_get_instrs(ctx, f);
 
         int max_regs = get_max_regs(f);
-        assert_condition(fout.good(), "Output file " + inj_output_filename + " not opened");
         fout << "Inspecting: " << kname << ";num_static_instrs: " << instrs.size() << ";max_regs: " << max_regs << "("
              << max_regs << ")" << std::endl;
         for (auto i: instrs) {
@@ -237,6 +344,11 @@ void instrument_function_if_needed(CUcontext ctx, CUfunction func) {
                         auto is_float = uint32_t(op_group == G_FP32);
                         auto replace_instruction_opcode = generate_current_instruction_type(current_instruction_opcode);
                         auto num_operands = i->getNumOperands();
+//                        fout << "; current opcode:" << inst_type_str
+//                             << "; replace_instruction_opcode_num:" << replace_instruction_opcode
+//                             << "; num_operands:" << num_operands
+//                             << "; last_inst:" << last_instruction_sass_str
+//                             << "; last_pc_offset:" << last_pc_offset << std::endl;
 
                         nvbit_insert_call(i, "inject_error", IPOINT_AFTER);
                         nvbit_add_call_arg_const_val64(i, uint64_t(&inj_info));
@@ -321,16 +433,9 @@ void instrument_function_if_needed(CUcontext ctx, CUfunction func) {
                 }
             }
         }
-    }
-}
-
-
-void dump_count_activations_inst() {
-    for (auto i = 0; i < NUM_ISA_INSTRUCTIONS; i++) {
-        if (count_activations_inst[i]) {
-            verbose_printf(instTypeNames[i], ":", count_activations_inst[i], "\n");
-            fout << instTypeNames[i] << ":" << count_activations_inst[i] << "\n";
-        }
+        fout << "=================================================================================" << std::endl;
+        fout << "The Instrumentation step Stops Here: " << kname << std::endl;
+        fout << "=================================================================================" << std::endl;
     }
 }
 
@@ -361,7 +466,13 @@ void nvbit_at_cuda_event(CUcontext ctx, int is_exit, nvbit_api_cuda_t cbid,
             if (kernel_id < limit) {
                 instrument_function_if_needed(ctx, p->f);
                 // cudaDeviceSynchronize();
-
+                fout << "================================================================================="
+                     << std::endl;
+                fout << "Running instrumented Kernel: " << removeSpaces(nvbit_get_func_name(ctx, p->f))
+                     << "; kernel Index: " << kernel_id << std::endl;
+                fout << "..............." << std::endl;
+                fout << "================================================================================="
+                     << std::endl;
                 nvbit_enable_instrumented(ctx, p->f, true); // run the instrumented version
                 // cudaDeviceSynchronize();
             } else {
@@ -383,7 +494,11 @@ void nvbit_at_cuda_event(CUcontext ctx, int is_exit, nvbit_api_cuda_t cbid,
                     num_ctas = p2->gridDimX * p2->gridDimY * p2->gridDimZ;
                 }
                 assert_condition(fout.good(), "Output file " + inj_output_filename + " not opened");
-
+                fout << "================================================================================="
+                     << std::endl;
+                fout << "Report for: " << kname << "; kernel Index: " << kernel_id << std::endl;
+                fout << "================================================================================="
+                     << std::endl;
                 fout << "Injection data; ";
                 fout << "index: " << kernel_id << ";";
                 fout << "kernel_name: " << kname << ";";
@@ -392,17 +507,22 @@ void nvbit_at_cuda_event(CUcontext ctx, int is_exit, nvbit_api_cuda_t cbid,
                 fout << " LastOpcode: " << current_instruction_opcode << ";";
                 fout << " LastInstSASS: " << last_instruction_sass_str << ";";
                 fout << inj_info << std::endl;
-                dump_count_activations_inst();
+//                dump_count_activations_inst();
                 last_kernel = kname;
+                report_kernel_results();
 
                 if (cudaSuccess != le) {
                     assert_condition(fout.good(), "Output file " + inj_output_filename + " not opened");
 
-                    fout << "ERROR FAIL in kernel execution (" << cudaGetErrorString(le) << "); " << std::endl;
+                    simulation_end_result =
+                            "; SimEndRes:::ERROR FAIL in kernel execution (" + std::string(cudaGetErrorString(le)) +
+                            "); ";
                     assert_condition(false,
-                                     "ERROR FAIL in kernel execution (" + std::string(cudaGetErrorString(le)) + "); ");
+                                     "; SimEndRes:::ERROR FAIL in kernel execution (" +
+                                     std::string(cudaGetErrorString(le)) + "); ");
                 }
                 verbose_printf("\n index: ", kernel_id, "; kernel_name: ", kname, "\n");
+                simulation_end_result = "; SimEndRes:::PASS without fails:::";
                 kernel_id++; // always increment kernel_id on kernel exit
 
                 // cudaDeviceSynchronize();
@@ -422,5 +542,6 @@ void nvbit_at_term() {
     fout << inj_info << std::endl;
 
     cudaDeviceSynchronize();
-    dump_count_activations_inst();
+//    dump_count_activations_inst();
+    report_summary_results();
 }

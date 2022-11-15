@@ -1,0 +1,5 @@
+#!/bin/bash
+
+sudo @HOME_DIR@/atBoot.sh &
+
+exit 0

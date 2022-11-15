@@ -118,7 +118,7 @@ def create_p_file(p_filename, inj_mode, error_mode):
     outf = open(p_filename, "w")
 
     if inj_mode == 'ICOC':
-        for fields in error_mode[:4]:
+        for fields in error_mode[:5]:
             outf.write(fields+"\n")
     elif inj_mode=='IRA' or inj_mode=='IR':
         if len(error_mode)==7:

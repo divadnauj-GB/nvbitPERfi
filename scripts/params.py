@@ -25,6 +25,7 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 import os, sys
+from real_workloads_parameters import REAL_WORKLOAD_DICT
 
 PYTHON_P = "python3"
 
@@ -222,6 +223,7 @@ apps = {
         3.1, # expected runtime secs
         'float '+NVBITFI_HOME + '/test-apps/gemm_cublas/a.data '+NVBITFI_HOME + '/test-apps/gemm_cublas/b.data '+NVBITFI_HOME +'/test-apps/gemm_cublas/gold.data 0' # additional parameters to the run.sh
         ],
+    **REAL_WORKLOAD_DICT
 }
 
 #########################################################################
