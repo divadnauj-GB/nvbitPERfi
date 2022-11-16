@@ -40,12 +40,6 @@ static void assert_exception(bool condition, const std::string &message, const s
 
 #define assert_condition(condition, message) assert_exception(condition, message, __FILE__, __LINE__)
 
-struct OperandDescriptor {
-    InstrType::OperandType operand_type;
-    bool is_this_operand_valid;
-//    int32_t data;
-};
-
 enum ICOCSubpartition {
     SCHEDULER = 0,
     DECODER,
@@ -95,6 +89,7 @@ struct InjectionInfo {
         this->warp_group = 0;
 //        this->error_injected = false;
         this->icoc_subpartition = ICOCSubpartition::SCHEDULER;
+        this->is_iio_fault_model = 0;
 //        this->last_opcode = NUM_ISA_INSTRUCTIONS;
 //        this->last_pc_offset = 0;
     }

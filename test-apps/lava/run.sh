@@ -21,3 +21,4 @@ eval LD_LIBRARY_PATH="${LIB_LOG_HELPER}":"${CUDAPATH}"/lib64:"$LD_LIBRARY_PATH" 
 
 sed -i '/Time/c\' stdout.txt
 sed -i '/time/c\' stdout.txt
+sed -i '/FLOPS:/c\' stdout.txt
