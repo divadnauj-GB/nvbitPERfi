@@ -742,7 +742,7 @@ def gen_WV_fault_list(app,inj_mode,num_injections,blockDim):
 
 
 def gen_ICOC_fault_list(app, inj_mode_str, num_injections):
-    max_warp_per_sm = getMaxWarpsPerSM(app)
+    # max_warp_per_sm = getMaxWarpsPerSM(app)
     scheduler, decoder, fetch = range(3)
     subpartitions = [scheduler, decoder, fetch]
     is_iio_fault_model = 1 if inj_mode_str == 'IIO' else 0
@@ -753,7 +753,8 @@ def gen_ICOC_fault_list(app, inj_mode_str, num_injections):
     with open(f_name, "w") as f:
         sm_id, scheduler_id = int(os.environ['SMID']), int(os.environ['SCHID'])
         for _ in range(num_injections):
-            warp_id = random.choice([w_id_i for w_id_i in range(max_warp_per_sm) if (w_id_i % 4) == scheduler_id])
+            # warp_id = random.choice([w_id_i for w_id_i in range(max_warp_per_sm) if (w_id_i % 4) == scheduler_id])
+            warp_id = random.randint(0, 31)
             icoc_subpartition = random.choice(subpartitions)
             err_string = f"{sm_id} {scheduler_id} {icoc_subpartition} {warp_id} {is_iio_fault_model}\n"
             f.write(err_string)  # print injection site information

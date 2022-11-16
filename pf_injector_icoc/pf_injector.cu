@@ -122,7 +122,7 @@ void report_summary_results() {
 //             << "; blockDimX: " << inj_error_info.blockDimX
 //             << "; blockDimY: " << inj_error_info.blockDimY
 //             << "; blockDimZ: " << inj_error_info.blockDimZ;
-        if (activation_string.empty())
+        if (total_activations == 0)
             fout << "; ErrorInjected: False";
         else
             fout << "; ErrorInjected: True";
@@ -175,7 +175,7 @@ void report_kernel_results() {
 //         << "; blockDimX: " << inj_error_info.blockDimX
 //         << "; blockDimY: " << inj_error_info.blockDimY
 //         << "; blockDimZ: " << inj_error_info.blockDimZ;
-    if (activation_string.empty())
+    if (total_activations == 0)
         fout << "; ErrorInjected: False";
     else
         fout << "; ErrorInjected: True";
