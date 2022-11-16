@@ -320,6 +320,8 @@ void runTest(int argc, char** argv) {
 								ea++;
 								host_errors++;
 								log.log_error_detail(error_detail);
+                                if (host_errors <= 10)
+                                    std::cout << error_detail << std::endl;
 							}
 
 						}
