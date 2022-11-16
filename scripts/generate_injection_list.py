@@ -753,8 +753,7 @@ def gen_ICOC_fault_list(app, inj_mode_str, num_injections):
     with open(f_name, "w") as f:
         sm_id, scheduler_id = int(os.environ['SMID']), int(os.environ['SCHID'])
         for _ in range(num_injections):
-            # warp_id = random.choice([w_id_i for w_id_i in range(max_warp_per_sm) if (w_id_i % 4) == scheduler_id])
-            warp_id = random.randint(0, 31)
+            warp_id = random.choice([w_id_i for w_id_i in range(32) if (w_id_i % 4) == scheduler_id])
             icoc_subpartition = random.choice(subpartitions)
             err_string = f"{sm_id} {scheduler_id} {icoc_subpartition} {warp_id} {is_iio_fault_model}\n"
             f.write(err_string)  # print injection site information
