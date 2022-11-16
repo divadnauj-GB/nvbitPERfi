@@ -20,7 +20,7 @@ CXXFLAGS= -std=c++11 -o3  -fPIC -fopenmp
 NVCCFLAGS= -std=c++11 -rdc=true
 
 # Kepler, Volta
-SMS= 35 70 86
+SMS= 70 86
 $(foreach sm,$(SMS),$(eval ARCH += -gencode arch=compute_$(sm),code=sm_$(sm)))
 
 INCLUDE= -I./src -I$(LOG_HELPER_PATH)/include -I$(CUDAPATH)/samples/common/inc -I../common/include -I$(CUDAPATH)/include
