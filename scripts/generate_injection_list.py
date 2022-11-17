@@ -34,7 +34,7 @@ import common_functions as cf
 MAX_INJ = p.NUM_INJECTIONS
 verbose = False
 inj_mode = ""
-DUMMY=1
+DUMMY=0
 #################################################################
 # Generate injection list of each
 #   - app
