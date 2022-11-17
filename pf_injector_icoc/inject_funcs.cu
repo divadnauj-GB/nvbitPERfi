@@ -84,14 +84,14 @@ void inject_error_icoc(
                                                             reg_data[0], reg_data[1], reg_data[2], reg_data[3],
                                                             bool(is_float), verbose_device);
     if (DUMMY == 0 && is_fault_injection_necessary(inj_info)) {
-        nvbit_write_reg(dest_GPR_num, (int) dest_reg_after_val);
+        nvbit_write_reg(dest_GPR_num, dest_reg_after_val);
         if (verbose_device)
             printf("register=%d, beforeInst=%d, afterInst=%d, before=0x%x, after=0x%x, expected_after=0x%x\n",
                    dest_GPR_num, current_opcode, replace_opcode, dest_reg_before_val, nvbit_read_reg(dest_GPR_num),
                    dest_reg_after_val);
-        atomicAdd((unsigned long long *) &(inj_info->num_activations), 1LL);
+        atomicAdd((unsigned long long *) &(inj_info->num_activations), 1ULL);
         // Count the activations
-        atomicAdd(&count_activations_inst[current_opcode], 1);
+        atomicAdd(&count_activations_inst[current_opcode], 1ULL);
     }
 }
 
@@ -99,25 +99,30 @@ extern "C" __device__ __noinline__
 void inject_error_iio(
         uint64_t injection_info_ptr,        //nvbit_add_call_arg_const_val64(i, uint64_t(&inj_info));
         uint64_t verbose_device_ptr,        //nvbit_add_call_arg_const_val64(i, uint64_t(&verbose_device));
+        uint64_t count_activations_inst_ptr,//nvbit_add_call_arg_const_val64(i, uint64_t(count_activations_inst));
         uint32_t dest_GPR_num,              //nvbit_add_call_arg_const_val32(i, dest_GPR_num);
         uint32_t num_dest_GPRs,             //nvbit_add_call_arg_const_val32(i, num_dest_GPRs);
-        uint32_t destination_mask          //nvbit_add_call_arg_const_val32(i, dest_reg_after_val);
+        uint32_t current_opcode,            //nvbit_add_call_arg_const_val32(i, current_opcode);
+        int32_t destination_mask            //nvbit_add_call_arg_const_val32(i, dest_reg_after_val);
 ) {
     auto *inj_info = (InjectionInfo *) injection_info_ptr;
+    auto *count_activations_inst = (unsigned long long *) count_activations_inst_ptr;
 
     uint32_t verbose_device = *((uint32_t *) verbose_device_ptr);
     assert_gpu(num_dest_GPRs > 0, "num_dest_GPRs equals to 0", verbose_device);
 
     int32_t dest_reg_before_val = nvbit_read_reg(dest_GPR_num); // read the register value
-
+    dest_reg_before_val = dest_reg_before_val ^ destination_mask;
 
     if (DUMMY == 0 && is_fault_injection_necessary(inj_info)) {
-        nvbit_write_reg(dest_GPR_num, (int) destination_mask);
+        nvbit_write_reg(dest_GPR_num, dest_reg_before_val);
         if (verbose_device)
             printf("register=%d, before=0x%x, after=0x%x, expected_after=0x%x\n", dest_GPR_num, dest_reg_before_val,
                    nvbit_read_reg(dest_GPR_num),
                    destination_mask);
-        atomicAdd((unsigned long long *) &(inj_info->num_activations), 1LL);
+        atomicAdd((unsigned long long *) &(inj_info->num_activations), 1ULL);
+        // Count the activations
+        atomicAdd(&count_activations_inst[current_opcode], 1ULL);
     }
 }
 

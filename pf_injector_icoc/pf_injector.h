@@ -115,6 +115,7 @@ struct InjectionInfo {
         os << " selected WarpGroup: " << inj_info.warp_group << ";";
         os << " selected ICOCSubpartition: " << inj_info.icoc_subpartition << ";";
         os << " num_activations: " << inj_info.num_activations << ";";
+        os << " is_iio_fault_model: " << inj_info.is_iio_fault_model << ";";
 //        os << " LastPCOffset: " << inj_info.last_pc_offset << ";";
 //        os << " LastOpcode: " << inj_info.last_opcode << ";";
         return os;
@@ -143,19 +144,6 @@ struct InjectionInfo {
             assert_condition(this->warp_group < 4,
                              std::to_string(this->icoc_subpartition) + " Invalid warp group must be 0 <= wg < 4.\n" +
                              message_str);
-
-//            auto inst_type_in = 0, inst_type_out = 0;
-//            ifs >> inst_type_in; // instruction type
-//            ifs >> inst_type_out; // instruction type
-//            this->instruction_type_in = static_cast<InstructionType>(inst_type_in);
-//            // ensure that the value is in the expected range
-//            assert_condition(this->instruction_type_in < NUM_ISA_INSTRUCTIONS,
-//                             std::to_string(this->instruction_type_in) + " Invalid instruction type.\n" + message_str);
-//
-//            this->instruction_type_out = static_cast<InstructionType>(inst_type_out);
-//            // ensure that the value is in the expected range
-//            assert_condition(this->instruction_type_out < NUM_ISA_INSTRUCTIONS,
-//                             std::to_string(this->instruction_type_out) + " Invalid instruction type.\n" + message_str);
 
             // Read the syndrome type
             auto subpart = 0;

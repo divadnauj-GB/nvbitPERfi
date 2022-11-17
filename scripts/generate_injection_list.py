@@ -745,7 +745,10 @@ def gen_ICOC_fault_list(app, inj_mode_str, num_injections):
     max_warp_per_sm = getMaxWarpsPerSM(app)
     scheduler, decoder, fetch = range(3)
     subpartitions = [scheduler, decoder, fetch]
-    is_iio_fault_model = 1 if inj_mode_str == 'IIO' else 0
+    is_iio_fault_model = 0
+    if inj_mode_str == 'IIO':
+        is_iio_fault_model = 1
+        subpartitions.remove(scheduler)
     sm_id, scheduler_id = int(os.environ['SMID']), int(os.environ['SCHID'])
     possible_warp_ids = [w_id_i for w_id_i in range(max_warp_per_sm) if (w_id_i % 4) == scheduler_id]
     if verbose:

@@ -95,87 +95,10 @@ int get_max_regs(CUfunction func) {
 }
 
 
-void report_summary_results() {
-    std::string activation_string;
-    auto total_activations = 0ull;
-    for (auto i = 0; i < NUM_ISA_INSTRUCTIONS; i++) {
-        if (count_activations_inst[i]) {
-//            verbose_printf(instTypeNames[i], ":", count_activations_inst[i], "\n");
-//            fout << instTypeNames[i] << ":" << count_activations_inst[i] << "\n";
-            activation_string += std::string(instTypeNames[i]) + ":" + std::to_string(count_activations_inst[i]) + "\n";
-            total_activations += count_activations_inst[i];
-        }
-    }
-    if (fout.good()) {
-
-        fout << "=================================================================================" << std::endl;
-        fout << "Final Report" << std::endl;
-        fout << "=================================================================================" << std::endl;
-        fout << "Report_Summary: ";
-//             << "; DeviceName: " << inj_error_info.DeviceName
-//             << "; MaxThreadsPerSM: " << inj_error_info.MaxThreadsPerSM
-//             << "; MaxWarpsPerSm: " << inj_error_info.MaxWarpsPerSM
-//             << "; MaxThreadsPerWarp: " << inj_error_info.MaxThreadsPerWarp
-//             << "; gridDimX: " << inj_error_info.gridDimX
-//             << "; gridDimY: " << inj_error_info.gridDimY
-//             << "; gridDimZ: " << inj_error_info.gridDimZ
-//             << "; blockDimX: " << inj_error_info.blockDimX
-//             << "; blockDimY: " << inj_error_info.blockDimY
-//             << "; blockDimZ: " << inj_error_info.blockDimZ;
-        if (total_activations == 0)
-            fout << "; ErrorInjected: False";
-        else
-            fout << "; ErrorInjected: True";
-        fout << "; SmID: " << inj_info.sm_id
-             << "; SchID: " << inj_info.warp_group
-             << "; WarpID: " << inj_info.warp_id
-             //             << "; WarpIDL: " << inj_error_info.injWarpMaskL
-             //             << "; LaneID: " << inj_error_info.injThreadMask
-             //             << "; RegField: " << inj_error_info.injRegID
-             //             << "; MaxRegCount: " << inj_error_info.maxregcount
-             //             << "; RegOrigNum: " << inj_error_info.injRegOriginal
-             //             << "; RegRepNum: " << inj_error_info.injRegReplacement
-             //             << "; MaskSeed: " << inj_error_info.injMaskSeed
-             //             << "; Stuck_at/others: " << inj_error_info.injStuck_at
-             //             << "; NumErrInstExeBefStop: " << inj_error_info.injInstrIdx
-             << "; LastPCOffset: 0x" << std::hex << last_pc_offset << std::dec
-             << "; LastOpcode: " << current_instruction_opcode
-             << "; TotErrAct: " << total_activations << std::endl;
-//        if (inj_error_info.maxregcount > inj_error_info.injRegReplacement) {
-//            fout << "; RegLoc: InsideLims";
-//        } else {
-//            fout << ";  RegLoc: OutsideLims";
-//        }
-//        fout << SimEndRes;
-    }
-    verbose_printf(activation_string, "\n");
-    fout << activation_string;
-    fout << simulation_end_result << std::endl;
-}
-
 void report_kernel_results() {
-    std::string activation_string;
-    auto total_activations = 0ull;
-    for (auto i = 0; i < NUM_ISA_INSTRUCTIONS; i++) {
-        if (count_activations_inst[i]) {
-//            verbose_printf(instTypeNames[i], ":", count_activations_inst[i], "\n");
-//            fout << instTypeNames[i] << ":" << count_activations_inst[i] << "\n";
-            activation_string += std::string(instTypeNames[i]) + ":" + std::to_string(count_activations_inst[i]) + "\n";
-            total_activations += count_activations_inst[i];
-        }
-    }
+    assert_condition(fout.good(), "Output file " + inj_output_filename + " not good for writing");
     fout << "Kernel name: " << last_kernel << "; kernel Index: " << kernel_id;
-//         << "; DeviceName: " << inj_error_info.DeviceName
-//         << "; MaxThreadsPerSM: " << inj_error_info.MaxThreadsPerSM
-//         << "; MaxWarpsPerSm: " << inj_error_info.MaxWarpsPerSM
-//         << "; MaxThreadsPerWarp: " << inj_error_info.MaxThreadsPerWarp
-//         << "; gridDimX: " << inj_error_info.gridDimX
-//         << "; gridDimY: " << inj_error_info.gridDimY
-//         << "; gridDimZ: " << inj_error_info.gridDimZ
-//         << "; blockDimX: " << inj_error_info.blockDimX
-//         << "; blockDimY: " << inj_error_info.blockDimY
-//         << "; blockDimZ: " << inj_error_info.blockDimZ;
-    if (total_activations == 0)
+    if (inj_info.num_activations == 0)
         fout << "; ErrorInjected: False";
     else
         fout << "; ErrorInjected: True";
@@ -184,10 +107,26 @@ void report_kernel_results() {
          << "; WarpID: " << inj_info.warp_id
          << "; LastPCOffset: 0x" << std::hex << last_pc_offset << std::dec
          << "; LastOpcode: " << current_instruction_opcode
-         << "; TotErrAct: " << total_activations << std::endl;
+         << "; TotErrAct: " << inj_info.num_activations << std::endl;
+
+    // Write the activation per instructions
+    std::string activation_string = "perInstructionActivations:";
+    for (auto i = 0; i < NUM_ISA_INSTRUCTIONS; i++) {
+        if (count_activations_inst[i]) {
+            activation_string += std::string(instTypeNames[i]) + ":" + std::to_string(count_activations_inst[i]) + "\n";
+        }
+    }
     verbose_printf(activation_string, "\n");
     fout << activation_string;
     fout << simulation_end_result << std::endl;
+}
+
+void report_summary_results() {
+    fout << "=================================================================================" << std::endl;
+    fout << "Final Report" << std::endl;
+    fout << "=================================================================================" << std::endl;
+    fout << "Report_Summary: ";
+    report_kernel_results();
 }
 
 
@@ -360,10 +299,13 @@ void insert_instrumentation_for_iio(Instr *i, int dest_GPR_num, int num_dest_GPR
             nvbit_insert_call(i, "inject_error_iio", IPOINT_AFTER);
             nvbit_add_call_arg_const_val64(i, uint64_t(&inj_info));
             nvbit_add_call_arg_const_val64(i, uint64_t(&verbose_device));
+            nvbit_add_call_arg_const_val64(i, uint64_t(count_activations_inst));
             // destination GPR register number
             nvbit_add_call_arg_const_val32(i, dest_GPR_num);
             // number of destination GPR registers
             nvbit_add_call_arg_const_val32(i, num_dest_GPRs);
+            // Put last opcode index
+            nvbit_add_call_arg_const_val32(i, current_instruction_opcode);
             // Put the final value destination
             nvbit_add_call_arg_const_val32(i, destination_mask);
             fout << "; destination_mask:" << destination_mask
