@@ -13,7 +13,7 @@ NVCC_PATH=-L$(subst bin/nvcc,lib64,$(shell which nvcc | tr -s /))
 
 # No error will be injected if this flag is set. It is a good method to test
 # the tool and ensure that no crashes/output corruptions occur with this flag
-DUMMY=1
+DUMMY=0
 
 SOURCES=$(wildcard *.cu)
 OBJECTS=$(SOURCES:.cu=.o)
