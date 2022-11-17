@@ -111,15 +111,14 @@ void inject_error_iio(
     uint32_t verbose_device = *((uint32_t *) verbose_device_ptr);
     assert_gpu(num_dest_GPRs > 0, "num_dest_GPRs equals to 0", verbose_device);
 
-    int32_t dest_reg_before_val = nvbit_read_reg(dest_GPR_num); // read the register value
-    dest_reg_before_val = dest_reg_before_val ^ destination_mask;
+    auto dest_reg_before_val = nvbit_read_reg(dest_GPR_num); // read the register value
+    auto dest_reg_after_val = dest_reg_before_val ^ destination_mask;
 
     if (DUMMY == 0 && is_fault_injection_necessary(inj_info)) {
-        nvbit_write_reg(dest_GPR_num, dest_reg_before_val);
+        nvbit_write_reg(dest_GPR_num, dest_reg_after_val);
         if (verbose_device)
-            printf("register=%d, before=0x%x, after=0x%x, expected_after=0x%x\n", dest_GPR_num, dest_reg_before_val,
-                   nvbit_read_reg(dest_GPR_num),
-                   destination_mask);
+            printf("register=%d, before=0x%x, after=0x%x, expected_after=0x%x\n",
+                   dest_GPR_num, dest_reg_before_val, nvbit_read_reg(dest_GPR_num), dest_reg_after_val);
         atomicAdd((unsigned long long *) &(inj_info->num_activations), 1ULL);
         // Count the activations
         atomicAdd(&count_activations_inst[current_opcode], 1ULL);

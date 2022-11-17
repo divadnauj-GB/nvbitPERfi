@@ -58,7 +58,6 @@ void update_inst_counters() {
     static bool update_flag = false;
     if (!update_flag) {
         update_flag = true;
-//        CUDA_SAFECALL(cudaMallocManaged(&count_activations_inst, sizeof(unsigned long long) * NUM_ISA_INSTRUCTIONS))
         cudaDeviceSynchronize();
         std::fill(count_activations_inst, count_activations_inst + NUM_ISA_INSTRUCTIONS, 0);
         cudaDeviceSynchronize();
@@ -113,9 +112,10 @@ void report_kernel_results() {
     std::string activation_string = "perInstructionActivations:";
     for (auto i = 0; i < NUM_ISA_INSTRUCTIONS; i++) {
         if (count_activations_inst[i]) {
-            activation_string += std::string(instTypeNames[i]) + ":" + std::to_string(count_activations_inst[i]) + "\n";
+            activation_string += "#" + std::string(instTypeNames[i]) + ":" + std::to_string(count_activations_inst[i]);
         }
     }
+    activation_string += ";";
     verbose_printf(activation_string, "\n");
     fout << activation_string;
     fout << simulation_end_result << std::endl;
@@ -132,19 +132,15 @@ void report_summary_results() {
 
 void sig_int_handler(int sig) {
     signal(sig, SIG_IGN); // disable Ctrl-C
-
-//    std::ofstream fout(inj_output_filename);
-    if (fout.good()) {
-        fout << "=================================================================================" << std::endl;
-        fout << "Report for: " << last_kernel << "; kernel Index: " << kernel_id << std::endl;
-        fout << "=================================================================================" << std::endl;
-        fout << ":::NVBit-inject-error; ERROR FAIL Detected Singal SIGKILL;" << std::endl;
-        report_kernel_results();
-        simulation_end_result = "; SimEndRes:::ERROR FAIL Detected Singal SIGKILL::: ";
-//        fout << " num_activations: " << inj_info.num_activations << ":::";
-        fout << inj_info << std::endl;
-        fout.flush();
-    }
+    assert_condition(fout.good(), "Output file " + inj_output_filename + " not good for writing");
+    fout << "=================================================================================" << std::endl;
+    fout << "Report for: " << last_kernel << "; kernel Index: " << kernel_id << std::endl;
+    fout << "=================================================================================" << std::endl;
+    fout << ":::NVBit-inject-error; ERROR FAIL Detected Singal SIGKILL;" << std::endl;
+    report_kernel_results();
+    simulation_end_result = "; SimEndRes:::ERROR FAIL Detected Singal SIGKILL::: ";
+    fout << inj_info << std::endl;
+    fout.flush();
     assert_condition(false, "Ctrl-C pressed, stopping execution!");
 }
 
@@ -221,16 +217,10 @@ void insert_instrumentation_for_icoc(Instr *i, int dest_GPR_num, int num_dest_GP
         /* get the operand_i "i" */
         const InstrType::operand_t *op = i->getOperand(operand_i);
         InstrType::OperandType operand_type = op->type;
-//                            auto casted_operand_type = static_cast<uint32_t>(operand_type);
-        /**
-         * Always put in the following order
-         * 1 operand type const 32 bits
-         * 2 if the operand is valid const 32bits (0 or 1)
-         * 3 operand val, can be 32 bits or mem ref 64 bits
+        /** Always put in the following order
+         * 1 if the operand is valid const 32bits (0 or 1)
+         * 2 operand val, can be 32 bits or mem ref 64 bits
          */
-//                            nvbit_add_call_arg_const_val32(i, casted_operand_type, true);
-//                            verbose_printf("casted_operand_type ", casted_operand_type, "\nnum_dest_GPRS ",
-//                                           num_dest_GPRs, " num operands ", num_operands);
         switch (operand_type) {
             case InstrType::OperandType::REG: {
                 nvbit_add_call_arg_const_val32(i, 1, true);
@@ -259,21 +249,6 @@ void insert_instrumentation_for_icoc(Instr *i, int dest_GPR_num, int num_dest_GP
                 break;
             }
             case InstrType::OperandType::MREF:
-//                                {
-//                                    nvbit_add_call_arg_const_val32(i, 1, true);
-////                                    verbose_printf("HAS RA ", op->u.mref.has_ra, " has mmr ", op->u.mref.has_imm, "\n");
-//                                    nvbit_add_call_arg_const_val32(i, op->u.mref.has_ra, true);
-//                                    nvbit_add_call_arg_const_val32(i, op->u.mref.has_imm, true);
-//                                    if (op->u.mref.has_ra){
-//                                        nvbit_add_call_arg_reg_val(i, op->u.mref.ra_num, true);
-//                                    }
-//                                    if (op->u.mref.has_imm){
-//                                        assert_condition(mem_id == 0, "Interesting case here\n");
-//                                        nvbit_add_call_arg_mref_addr64(i, mem_id, true);
-//                                        mem_id++;
-//                                    }
-//                                    break;
-//                                }
             case InstrType::OperandType::GENERIC:
             case InstrType::OperandType::UREG:
             case InstrType::OperandType::UPRED:
