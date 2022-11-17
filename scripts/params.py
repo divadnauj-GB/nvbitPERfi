@@ -68,13 +68,13 @@ NUM_INJECTIONS = 2
 # Specify how many injections you want to perform per IGID and BFM combination. 
 # Only the first THRESHOLD_JOBS will be selected from the generated NUM_INJECTIONS.
 #
-# THRESHOLD_JOBS = 384
-THRESHOLD_JOBS = 1000
-# THRESHOLD_JOBS = 1
+# # THRESHOLD_JOBS = 384
+# THRESHOLD_JOBS = 1000
+# # THRESHOLD_JOBS = 1
 THRESHOLD_JOBS = 1
 
 # THRESHOLD_JOBS sould be <= NUM_INJECTIONS
-assert THRESHOLD_JOBS <= NUM_INJECTIONS
+# assert THRESHOLD_JOBS <= NUM_INJECTIONS
 
 
 #######################################################################

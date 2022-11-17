@@ -34,7 +34,7 @@ import common_functions as cf
 MAX_INJ = p.NUM_INJECTIONS
 verbose = False
 inj_mode = ""
-
+DUMMY=1
 #################################################################
 # Generate injection list of each
 #   - app
@@ -322,6 +322,14 @@ def gen_IRA_fault_list(app,inj_mode,num_injections,regcount,opercount):
     smid=int(os.environ['SMID'])
     schid=int(os.environ['SCHID'])
 
+    if DUMMY==1:
+        for opsrc in range(opercount):
+            error =f"{0} {0} {0xffffffff} {0xffffffff} {0xffffffff} {0xffffffff} {opsrc}\n"       
+            f.write(error) # print injection site information
+        f.close()
+        return
+
+
     for i in range(0,MaxWarpSize):
         if((i%4)==schid):
             Warps.append(1)
@@ -383,7 +391,6 @@ def gen_IAT_fault_list(app,inj_mode,num_injections,blockDim):
     NumSch=4
     error_list=[]
     
-
     if verbose:
         print ("num_injections = %d" %(num_injections))
     fName = p.app_log_dir[app] + "/injection-list/mode" + inj_mode+str(num_injections) + ".txt"
@@ -392,7 +399,17 @@ def gen_IAT_fault_list(app,inj_mode,num_injections,blockDim):
     smid=int(os.environ['SMID'])
     schid=int(os.environ['SCHID'])
 
-    while num_injections>0:
+    if DUMMY==1:
+        error =f"{0} {0} {0xffffffff} {0xffffffff} {0xffffffff} {0xffffffff} {0} {1}\n"    
+        f.write(error) # print injection site information
+        error =f"{0} {0} {0xffffffff} {0xffffffff} {0xffffffff} {0xffffffff} {1} {1}\n"    
+        f.write(error) # print injection site information
+        error =f"{0} {0} {0xffffffff} {0xffffffff} {0xffffffff} {0xffffffff} {2} {1}\n"    
+        f.write(error) # print injection site information
+        f.close()
+        return
+
+    while num_injections>0:        
         Warps=[0]*MaxWarpSize
 
         ErrWarps=random.randint(1,(ValidWarps)/4)
@@ -469,6 +486,7 @@ def gen_IAT_fault_list(app,inj_mode,num_injections,blockDim):
         if(dim==2): # error in the dimention z
             MaskSeed=random.randint(1,maxDimz-1)
         """
+        
         active=random.randint(0,1)  #Always Inactive thread
         error =f"{smid} {schid} {WarpH} {WarpL} {Threads} {MaskSeed} {dim} {active}\n"
         #print(Warps,WarpH, WarpL, error)
@@ -497,6 +515,17 @@ def gen_IAW_fault_list(app,inj_mode,num_injections,blockDim):
     f = open(fName, "w")
     smid=int(os.environ['SMID'])
     schid=int(os.environ['SCHID'])
+
+    if DUMMY==1:
+        error =f"{0} {0} {0xffffffff} {0xffffffff} {0xffffffff} {0xffffffff} {0} {1}\n"    
+        f.write(error) # print injection site information
+        error =f"{0} {0} {0xffffffff} {0xffffffff} {0xffffffff} {0xffffffff} {1} {1}\n"    
+        f.write(error) # print injection site information
+        error =f"{0} {0} {0xffffffff} {0xffffffff} {0xffffffff} {0xffffffff} {2} {1}\n"    
+        f.write(error) # print injection site information
+        f.close()
+        return
+
 
     while num_injections>0:
         Warps=[0]*MaxWarpSize
@@ -595,6 +624,16 @@ def gen_IAC_fault_list(app,inj_mode,num_injections,blockDim):
     smid=int(os.environ['SMID'])
     schid=int(os.environ['SCHID'])
 
+    if DUMMY==1:
+        error =f"{0} {0} {0xffffffff} {0xffffffff} {0xffffffff} {0xffffffff} {0} {1}\n"    
+        f.write(error) # print injection site information
+        error =f"{0} {0} {0xffffffff} {0xffffffff} {0xffffffff} {0xffffffff} {1} {1}\n"    
+        f.write(error) # print injection site information
+        error =f"{0} {0} {0xffffffff} {0xffffffff} {0xffffffff} {0xffffffff} {2} {1}\n"    
+        f.write(error) # print injection site information
+        f.close()
+        return
+
     while num_injections>0:
         Warps=[0]*MaxWarpSize
 
@@ -674,7 +713,6 @@ def gen_WV_fault_list(app,inj_mode,num_injections,blockDim):
     NumSch=4
     error_list=[]
     
-
     if verbose:
         print ("num_injections = %d" %(num_injections))
     fName = p.app_log_dir[app] + "/injection-list/mode" + inj_mode+str(num_injections) + ".txt"
@@ -682,6 +720,13 @@ def gen_WV_fault_list(app,inj_mode,num_injections,blockDim):
     f = open(fName, "w")
     smid=int(os.environ['SMID'])
     schid=int(os.environ['SCHID'])
+
+    if DUMMY==1:
+        for reg in range(getMaxPredReg(app)+1):
+            error =f"{0} {0} {0xffffffff} {0xffffffff} {0xffffffff} {reg} {0xFFFFFFFF} {1}\n"    
+            f.write(error) # print injection site information        
+        f.close()
+        return
 
     while num_injections>0:
         Warps=[0]*MaxWarpSize
@@ -750,15 +795,19 @@ def gen_ICOC_fault_list(app, inj_mode_str, num_injections):
     max_warp_per_sm = getMaxWarpsPerSM(app)
     scheduler, decoder, fetch = range(3)
     subpartitions = [scheduler, decoder, fetch]
-    is_iio_fault_model = 1 if inj_mode_str == 'IIO' else 0
+    is_iio_fault_model = 0
+    if inj_mode_str == 'IIO':
+        is_iio_fault_model = 1
+        subpartitions.remove(scheduler)
+    sm_id, scheduler_id = int(os.environ['SMID']), int(os.environ['SCHID'])
+    possible_warp_ids = [w_id_i for w_id_i in range(max_warp_per_sm) if (w_id_i % 4) == scheduler_id]
     if verbose:
         print("num_injections =", num_injections)
     f_name = p.app_log_dir[app] + "/injection-list/mode" + inj_mode_str + str(num_injections) + ".txt"
     print(f_name)
     with open(f_name, "w") as f:
-        sm_id, scheduler_id = int(os.environ['SMID']), int(os.environ['SCHID'])
         for _ in range(num_injections):
-            warp_id = random.choice([w_id_i for w_id_i in range(max_warp_per_sm) if (w_id_i % 4) == scheduler_id])
+            warp_id = random.choice(possible_warp_ids)
             icoc_subpartition = random.choice(subpartitions)
             err_string = f"{sm_id} {scheduler_id} {icoc_subpartition} {warp_id} {is_iio_fault_model}\n"
             f.write(err_string)  # print injection site information
