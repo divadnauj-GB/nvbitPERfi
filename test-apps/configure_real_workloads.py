@@ -165,7 +165,7 @@ REAL_WORKLOADS = {
     # NW
     "nw": {
         # "MAKE_PARAMETERS": dict(SIZE=16384, PENALTY=10),
-        "MAKE_PARAMETERS": dict(SIZE=16384, PENALTY=10), "APP_DIR": "nw", "APP_BIN": "nw",
+        "MAKE_PARAMETERS": dict(SIZE=8192, PENALTY=10), "APP_DIR": "nw", "APP_BIN": "nw",
     },
     # ------------------------------------------------------------------------------------------------------------------
     # CFD
