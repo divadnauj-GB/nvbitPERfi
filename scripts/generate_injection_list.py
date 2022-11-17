@@ -341,11 +341,16 @@ def gen_IRA_fault_list(app,inj_mode,num_injections,regcount,opercount):
             WarpH=WarpH | tmp
     Threads=0xffffffff
 
-    if num_injections==10: #debug purposes
-        error =f"{smid} {schid} {WarpH} {WarpL} {Threads} {2} {2}\n"
+    if num_injections==2: #debug purposes
+        error =f"{smid} {schid} {WarpH} {WarpL} {Threads} {Threads} {0}\n"
         error_list.append(error)
         f.write(error) # print injection site information
-        num_injections-=1
+        error =f"{smid} {schid} {WarpH} {WarpL} {Threads} {Threads} {1}\n"
+        error_list.append(error)
+        f.write(error) # print injection site information
+        error =f"{smid} {schid} {WarpH} {WarpL} {Threads} {Threads} {2}\n"
+        error_list.append(error)
+        num_injections-=2
 
     for i in range(opercount):
         for j in range(256):
