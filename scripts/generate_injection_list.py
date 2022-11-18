@@ -849,8 +849,6 @@ def main():
             elif inj_mode=='WV':
                 gridkDim=get_BlockDim(app)
                 gen_WV_fault_list(app,inj_mode,p.NUM_INJECTIONS,gridkDim)
-            elif inj_mode=='IIO':
-                print('Sorry! This error model is not implemented yet, give us a hand ;)')
             else:
                 print(f"Ops.. the {inj_mode} error model does not exist, perhaps it is a new model you can implement in the future ;)")
 
