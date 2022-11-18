@@ -112,10 +112,10 @@ void report_kernel_results() {
     std::string activation_string = "perInstructionActivations:";
     for (auto i = 0; i < NUM_ISA_INSTRUCTIONS; i++) {
         if (count_activations_inst[i]) {
-            activation_string += "#" + std::string(instTypeNames[i]) + ":" + std::to_string(count_activations_inst[i]);
+            activation_string += " #" + std::string(instTypeNames[i]) + ":" + std::to_string(count_activations_inst[i]);
         }
     }
-    activation_string += ";";
+    activation_string += ";\n";
     verbose_printf(activation_string, "\n");
     fout << activation_string;
     fout << simulation_end_result << std::endl;
@@ -192,6 +192,11 @@ void nvbit_at_init() {
 
 void insert_instrumentation_for_icoc(Instr *i, int dest_GPR_num, int num_dest_GPRs, uint32_t is_float,
                                      uint32_t replace_instruction_opcode, int num_operands) {
+//    fout << "; current opcode:" << i->getSass()
+//         << "; replace_instruction_opcode_num:" << replace_instruction_opcode
+//         << "; num_operands:" << num_operands
+//         << "; last_inst:" << last_instruction_sass_str
+//         << "; last_pc_offset:" << last_pc_offset << std::endl;
     nvbit_insert_call(i, "inject_error_icoc", IPOINT_AFTER);
     nvbit_add_call_arg_const_val64(i, uint64_t(&inj_info));
     nvbit_add_call_arg_const_val64(i, uint64_t(&verbose_device));
@@ -293,7 +298,11 @@ void insert_instrumentation_for_iio(Instr *i, int dest_GPR_num, int num_dest_GPR
 }
 
 void instrument_function_if_needed(CUcontext ctx, CUfunction func) {
-
+    // For this version of the injection we don't cover uniform instructions
+    static const auto forbidden_instructions = {
+            R2UR, REDUX, S2UR, UBMSK, UBREV, UCLEA, UF2FP, UFLO, UIADD3, UIADD3_64, UIMAD, UISETP, ULDC, ULEA, ULOP,
+            ULOP3, ULOP32I, UMOV, UP2UR, UPLOP3, UPOPC, UPRMT, UPSETP, UR2UP, USEL, USGXT, USHF, USHL, USHR, VOTEU
+    };
     inj_info.parse_params(inj_input_filename, verbose);  // injParams are updated based on injection seed file
     update_verbose();
     update_inst_counters();
@@ -336,7 +345,7 @@ void instrument_function_if_needed(CUcontext ctx, CUfunction func) {
                            instTypeNameMap[inst_type_str], "\n");
 
 //            if (inst_type == inj_info.instruction_type_in || inj_info.instruction_type_in == NUM_ISA_INSTRUCTIONS)
-            {
+            if (std::count(forbidden_instructions.begin(), forbidden_instructions.end(), inst_type) == 0) {
                 verbose_printf("instruction selected for instrumentation: ");
                 if (verbose) {
                     i->print();
@@ -381,11 +390,6 @@ void instrument_function_if_needed(CUcontext ctx, CUfunction func) {
                         auto is_float = uint32_t(op_group == G_FP32);
                         auto replace_instruction_opcode = generate_current_instruction_type(current_instruction_opcode);
                         auto num_operands = i->getNumOperands();
-//                        fout << "; current opcode:" << inst_type_str
-//                             << "; replace_instruction_opcode_num:" << replace_instruction_opcode
-//                             << "; num_operands:" << num_operands
-//                             << "; last_inst:" << last_instruction_sass_str
-//                             << "; last_pc_offset:" << last_pc_offset << std::endl;
                         if (inj_info.is_iio_fault_model) {
                             insert_instrumentation_for_iio(i, dest_GPR_num, num_dest_GPRs, num_operands);
                         } else {

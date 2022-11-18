@@ -68,9 +68,8 @@ void inject_error_icoc(
     va_start(vl, num_operands);
     for (uint32_t operand_i = num_dest_GPRs, i = 0; operand_i < num_operands; operand_i++) {
         /** Always put in the following order
-         * 1 operand type const 32 bits
-         * 2 if the operand is valid const 32bits (0 or 1)
-         * 3 operand val, can be 32 bits or mem ref 64 bits
+         * 1 if the operand is valid const 32bits (0 or 1)
+         * 2 operand val, 32 bits
          */
 //        uint32_t operand_type = va_arg(vl, uint32_t);
         uint32_t is_operand_valid = va_arg(vl, uint32_t);
