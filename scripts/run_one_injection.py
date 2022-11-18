@@ -117,7 +117,7 @@ def record_result(inj_mode, app, error_model, cat, pc, inst_type, tid, injBID, r
 def create_p_file(p_filename, inj_mode, error_mode):
     outf = open(p_filename, "w")
 
-    if inj_mode == ['ICOC', 'IIO']:
+    if inj_mode in ['ICOC', 'IIO']:
         for fields in error_mode[:5]:
             outf.write(fields+"\n")
     elif inj_mode=='IRA' or inj_mode=='IR':
