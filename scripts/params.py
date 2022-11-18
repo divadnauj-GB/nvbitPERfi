@@ -26,7 +26,7 @@
 
 import os, sys
 from real_workloads_parameters import REAL_WORKLOAD_DICT
-
+from TGSIM import TGSIM
 PYTHON_P = "python3"
 
 TIMEOUT_THRESHOLD = 10 # 10X usual runtime 
@@ -226,6 +226,7 @@ apps = {
     **REAL_WORKLOAD_DICT
 }
 
+
 #########################################################################
 # Separate list of apps and error models for parsing because one may want to
 # parse results for a differt set of applications and error models 
@@ -256,7 +257,12 @@ def set_paths():
         app_data_dir[app] = merged_apps[app][0]
         app_bin[app]=merged_apps[app][1]
         app_args[app] = merged_apps[app][4]
-        app_time[app] = merged_apps[app][3]
+        #app_time[app] = merged_apps[app][3]
+        if app in TGSIM:
+            app_time[app] = TGSIM[app][os.environ['nvbitPERfi']]
+        else:
+            app_time[app] = merged_apps[app][3]
+
 
 set_paths()
 
