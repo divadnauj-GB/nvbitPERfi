@@ -258,7 +258,7 @@ def set_paths():
         app_bin[app]=merged_apps[app][1]
         app_args[app] = merged_apps[app][4]
         #app_time[app] = merged_apps[app][3]
-        if app in TGSIM:
+        if app in TGSIM and os.environ['nvbitPERfi'] in TGSIM[app]:
             app_time[app] = TGSIM[app][os.environ['nvbitPERfi']]
         else:
             app_time[app] = merged_apps[app][3]

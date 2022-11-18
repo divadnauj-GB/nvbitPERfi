@@ -117,7 +117,7 @@ def record_result(inj_mode, app, error_model, cat, pc, inst_type, tid, injBID, r
 def create_p_file(p_filename, inj_mode, error_mode):
     outf = open(p_filename, "w")
 
-    if inj_mode == 'ICOC':
+    if inj_mode == ['ICOC', 'IIO']:
         for fields in error_mode[:5]:
             outf.write(fields+"\n")
     elif inj_mode=='IRA' or inj_mode=='IR':
@@ -150,8 +150,6 @@ def create_p_file(p_filename, inj_mode, error_mode):
                 outf.write(fields+"\n")
         else:
             print("Ops... it seems the error descriptor has missing arguments  :(")
-    elif inj_mode=='IIO':
-        print('Sorry! This error model is not implemented yet, give us a hand ;)')
     else:
         print(f"Ops.. the {inj_mode} error model does not exist, perhaps it is a new model you can implement in the future ;)")	
 
