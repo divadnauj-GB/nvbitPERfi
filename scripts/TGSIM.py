@@ -84,6 +84,7 @@ TGSIM = {
         "IRA": 5
     },
     "VectorAdd": {
+        "IAT": 3,
         "IAW": 3,
         "IAC": 3,
         "WV": 3,
