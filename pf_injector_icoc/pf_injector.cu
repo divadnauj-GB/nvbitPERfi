@@ -288,10 +288,10 @@ void insert_instrumentation_for_iio(Instr *i, int dest_GPR_num, int num_dest_GPR
             nvbit_add_call_arg_const_val32(i, current_instruction_opcode);
             // Put the final value destination
             nvbit_add_call_arg_const_val32(i, destination_mask);
-            fout << "; destination_mask:" << destination_mask
-                 << "; num_operands:" << num_operands
-                 << "; last_inst:" << last_instruction_sass_str
-                 << "; last_pc_offset:" << last_pc_offset << std::endl;
+//            fout << "; destination_mask:" << destination_mask
+//                 << "; num_operands:" << num_operands
+//                 << "; last_inst:" << last_instruction_sass_str
+//                 << "; last_pc_offset:" << last_pc_offset << std::endl;
             break;
         }
     }
