@@ -240,7 +240,7 @@ def main():
                                    f"mv {p.app_dir[app]}/{p.stdout_file} {p.app_dir[app]}/golden_{p.stdout_file}",
                                    f"mv {p.app_dir[app]}/{p.stderr_file} {p.app_dir[app]}/golden_{p.stderr_file}",
                                    "cd -"])
-
+                                                   
                 if p.verbose: print (cmd)
                 pr = subprocess.Popen(cmd, shell=True, executable='/bin/bash', preexec_fn=os.setsid) # run the injection job
                 StopTime = datetime.datetime.now()

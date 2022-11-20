@@ -60,6 +60,7 @@ typedef struct {
   uint32_t injInstrIdx;
   uint32_t injInstPC;
   uint32_t injInstOpcode;  
+  uint32_t injIALtype;
   uint32_t blockDimX;
   uint32_t blockDimY;
   uint32_t blockDimZ;

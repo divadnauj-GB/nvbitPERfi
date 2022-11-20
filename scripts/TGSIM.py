@@ -18,7 +18,8 @@ TGSIM = {
         "IAW": 6,
         "IAC": 6,
         "WV": 6,
-        "IRA": 6
+        "IRA": 6,
+        "IAL": 6
     },
     "hotspot": {
         "IAT": 4,

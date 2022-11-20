@@ -425,6 +425,132 @@ void parse_paramsIMS(std::string filename) {
 }
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+/////////////////////////////////////////////////////////////////////////////////////////////////////
+// Parse error injection site info from a file. This should be done on host side.
+void parse_paramsIMD(std::string filename) {
+        static bool parse_flag = false; // file will be parsed only once - performance enhancement
+        if (!parse_flag) {
+                parse_flag = true;
+                reset_inj_info(); 
+                float random=0;
+                std::ifstream ifs (filename.c_str(), std::ifstream::in);
+                if (ifs.is_open()) {
+                        
+                        ifs >> inj_error_info.injSMID;
+                        ifs >> inj_error_info.injScheduler;
+                        ifs >> inj_error_info.injWarpMaskH;
+                        ifs >> inj_error_info.injWarpMaskL;
+                        ifs >> inj_error_info.injThreadMask;
+                        ifs >> inj_error_info.injMaskSeed;  // 0: inactive thread 1: active thread  
+                        ifs >> inj_error_info.injRegID;
+
+                        assert(inj_error_info.injSMID < 1000); 
+                        inj_error_info.injNumActivations=0;
+                        inj_error_info.injInstrIdx=-1;
+                        inj_error_info.injInstOpcode=NOP;
+                        inj_error_info.injInstPC=-1;
+
+                } else {
+                        printf(" File %s does not exist!", filename.c_str());
+                        printf(" This file should contain enough information about the fault site to perform a permanent error injection run: ");
+                        printf("Documentation to be deifined...\n"); 
+                        assert(false);
+                }
+                ifs.close();
+
+                if (verbose) {
+                        print_inj_info();
+                }
+
+                CUDA_SAFECALL(cudaMallocManaged(&(Injection_masks.Warp_thread_active),(inj_error_info.MaxWarpsPerSM*inj_error_info.MaxThreadsPerWarp)*sizeof(uint32_t)));
+                CUDA_SAFECALL(cudaMallocManaged(&(Injection_masks.warp_thread_mask),(inj_error_info.MaxWarpsPerSM*inj_error_info.MaxThreadsPerWarp)*sizeof(uint32_t)));
+
+                int idx=0;
+                int validW=0;
+                int validT=0;
+                int integer_mask=0;
+                for(int i=0;i<inj_error_info.MaxWarpsPerSM;++i){
+                    if (i>31){
+                        validW=(inj_error_info.injWarpMaskH>>i)&1;
+                    }else{
+                        validW=(inj_error_info.injWarpMaskL>>i)&1;
+                    }
+                    for(int j=0;j<inj_error_info.MaxThreadsPerWarp;++j){   
+                        validT= (inj_error_info.injThreadMask>>j)&1;
+                        //printf("valid %d, %d\n",idx,validW&validT) ;                   
+                        Injection_masks.Warp_thread_active[idx]=(validW&validT);
+                        idx++;
+                    }
+                }        
+                inj_error_info.maxPredReg=-1;
+        }
+}
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////
+// Parse error injection site info from a file. This should be done on host side.
+void parse_paramsIAL(std::string filename) {
+        static bool parse_flag = false; // file will be parsed only once - performance enhancement
+        if (!parse_flag) {
+                parse_flag = true;
+                reset_inj_info(); 
+                float random=0;
+                std::ifstream ifs (filename.c_str(), std::ifstream::in);
+                if (ifs.is_open()) {
+                        
+                        ifs >> inj_error_info.injSMID;
+                        ifs >> inj_error_info.injScheduler;
+                        ifs >> inj_error_info.injWarpMaskH;
+                        ifs >> inj_error_info.injWarpMaskL;
+                        ifs >> inj_error_info.injThreadMask;
+                        ifs >> inj_error_info.injIALtype;  // 0: inactive thread 1: active thread  
+                        
+                        assert(inj_error_info.injSMID < 1000); 
+                        inj_error_info.injNumActivations=0;
+                        inj_error_info.injInstrIdx=-1;
+                        inj_error_info.injInstOpcode=NOP;
+                        inj_error_info.injInstPC=-1;
+
+                } else {
+                        printf(" File %s does not exist!", filename.c_str());
+                        printf(" This file should contain enough information about the fault site to perform a permanent error injection run: ");
+                        printf("Documentation to be deifined...\n"); 
+                        assert(false);
+                }
+                ifs.close();
+
+                if (verbose) {
+                        print_inj_info();
+                }
+
+                CUDA_SAFECALL(cudaMallocManaged(&(Injection_masks.Warp_thread_active),(inj_error_info.MaxWarpsPerSM*inj_error_info.MaxThreadsPerWarp)*sizeof(uint32_t)));
+                CUDA_SAFECALL(cudaMallocManaged(&(Injection_masks.warp_thread_mask),(inj_error_info.MaxWarpsPerSM*inj_error_info.MaxThreadsPerWarp)*sizeof(uint32_t)));
+
+                int idx=0;
+                int validW=0;
+                int validT=0;
+                int integer_mask=0;
+                for(int i=0;i<inj_error_info.MaxWarpsPerSM;++i){
+                    if (i>31){
+                        validW=(inj_error_info.injWarpMaskH>>i)&1;
+                    }else{
+                        validW=(inj_error_info.injWarpMaskL>>i)&1;
+                    }
+                    for(int j=0;j<inj_error_info.MaxThreadsPerWarp;++j){   
+                        validT= (inj_error_info.injThreadMask>>j)&1;
+                        //printf("valid %d, %d\n",idx,validW&validT) ;                   
+                        Injection_masks.Warp_thread_active[idx]=(validW&validT);
+                        idx++;
+                    }
+                }        
+                inj_error_info.maxPredReg=-1;
+        }
+}
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+
 void update_verbose() {
         static bool update_flag = false; // update it only once - performance enhancement
         if (!update_flag) {
@@ -497,8 +623,15 @@ fout <<"Kernel name: "<<kname<<"; kernel Index: "<< kernel_id
         }else if(inj_mode.compare("IMS")==0){
                 fout << "; injMaskSeed: " << inj_error_info.injMaskSeed  
                 << "; resNumInstr: " << inj_error_info.TotKerInstr;
+        }else if(inj_mode.compare("IMD")==0){
+                fout << "; injMaskSeed: " << inj_error_info.injMaskSeed        
+                << "; resNumInstr: " << inj_error_info.TotAppInstr;
+        }else if(inj_mode.compare("IAL")==0){
+                fout << "; injMaskSeed: " << inj_error_info.injIALtype        
+                << "; resNumInstr: " << inj_error_info.TotAppInstr;
         }else {
-        }
+                assert(1==0);
+        }        
         fout << "; NumErrInstExeBefStop: " << inj_error_info.injInstrIdx
         << "; LastPCOffset: 0x" << std::hex << inj_error_info.injInstPC  << std::dec
         << "; LastOpcode: " << instTypeNames[inj_error_info.injInstOpcode]
@@ -567,7 +700,14 @@ fout << "Report_Summary: "
         }else if(inj_mode.compare("IMS")==0){
                 fout << "; injMaskSeed: " << inj_error_info.injMaskSeed        
                 << "; resNumInstr: " << inj_error_info.TotAppInstr;
+        }else if(inj_mode.compare("IMD")==0){
+                fout << "; injMaskSeed: " << inj_error_info.injMaskSeed        
+                << "; resNumInstr: " << inj_error_info.TotAppInstr;
+        }else if(inj_mode.compare("IAL")==0){
+                fout << "; injMaskSeed: " << inj_error_info.injIALtype        
+                << "; resNumInstr: " << inj_error_info.TotAppInstr;
         }else {
+                assert(1==0);
         }
         fout << "; NumErrInstExeBefStop: " << inj_error_info.injInstrIdx
         << "; LastPCOffset: 0x" << std::hex << inj_error_info.injInstPC  << std::dec
@@ -1458,6 +1598,272 @@ void instrument_function_IMS(CUcontext ctx, CUfunction func) {
 }
 
 
+/////////////////////////////////////////////////////////////////////////////////////////////
+//
+/////////////////////////////////////////////////////////////////////////////////////////////
+void instrument_function_IMD(CUcontext ctx, CUfunction func) {
+        //parse_params(injInputFilename);  // injParams are updated based on injection seed file
+        update_verbose();        
+        /* Get related functions of the kernel (device function that can be
+        * called by the kernel) */
+        std::vector<CUfunction> related_functions =
+        nvbit_get_related_functions(ctx, func);
+
+        /* add kernel itself to the related function vector */
+        related_functions.push_back(func);
+        cudaDeviceProp devProp;
+        cudaGetDeviceProperties( &devProp, 0) ;
+        int archmajor = devProp.major; 
+        int archminor = devProp.minor;
+        int compute_cap = archmajor*10 + archminor;
+        /* iterate on function */
+        for (auto f : related_functions) {                
+                /* "recording" function was instrumented, if set insertion failed
+                        * we have already encountered this function */
+                if (!already_instrumented.insert(f).second) {
+                        continue;
+                }
+                fout << "=================================================================================" << endl;
+                fout << "The Instrumentation step Begins Here: " << removeSpaces(nvbit_get_func_name(ctx,f)) << endl;
+                fout << "=================================================================================" << endl;
+
+                std::string kname = removeSpaces(nvbit_get_func_name(ctx,f));
+                /* Get the vector of instruction composing the loaded CUFunction "func" */
+                const std::vector<Instr *> &instrs = nvbit_get_instrs(ctx, f);
+
+                int maxregs = get_maxregs(f);
+                inj_error_info.maxregcount=maxregs;
+
+                assert(fout.good());
+                //assert(fout3.good());
+                int k=0;
+                int instridx=0;
+                int gridDimm=0;
+                bool injectInstrunc=false;
+                inj_error_info.KernelPredReg=-1;
+                inj_error_info.TotKerInstr=0;
+                //fout << "Inspecting: " << kname << ";num_static_instrs: " << instrs.size() << ";maxregs: " << maxregs << "(" << maxregs << ")" << std::endl;
+                for(auto i: instrs)  {
+                        std::string opcode = i->getOpcode(); 
+                        std::string instTypeStr = i->getOpcodeShort();
+                        std::string GenOperand;
+                        int instType = instTypeNameMap[instTypeStr]; 
+
+                        if (verbose) printf("extracted instType: %s, ", instTypeStr.c_str());
+                        if (verbose) printf("index of instType: %d\n", instTypeNameMap[instTypeStr]);
+                        //if ((uint32_t)instType == inj_info.injInstType || inj_info.injInstType == NUM_ISA_INSTRUCTIONS) {
+                        
+                        //if ((uint32_t)instType == inj_info.injInstType) {
+                        if (verbose) { printf("instruction selected for instrumentation: "); i->print(); }
+
+                        int destGPRNum = -1;
+                        int replGPRNum = -1;
+                        int numDestGPRs = 0;
+                        int predicateNum=-1;
+                        int tracePredRegs=0;
+                        int isregdest=-1;
+                        injectInstrunc=false;
+                        fout << "0x" << std::hex << i->getOffset() << ":::" << i->getSass()  << std::dec << std::endl;
+                        if(i->isStore() && (i->getMemorySpace()==InstrType::MemorySpace::GLOBAL_TO_SHARED || i->getMemorySpace()==InstrType::MemorySpace::SHARED || i->getMemorySpace()==InstrType::MemorySpace::LOCAL)){
+                                const const InstrType::MemorySpace memspace=i->getMemorySpace();
+                                std::string var=InstrType::MemorySpaceStr[int(memspace)];
+                                
+                                if (i->getNumOperands() > 1){
+                                        printf("%s %d %s\n",i->getSass(),i->hasPred()==true ? i->getPredNum():-1, var.c_str());                                
+                                        const InstrType::operand_t *dst=i->getOperand(1);
+                                        if(dst->type==InstrType::OperandType::REG){                                                
+                                                destGPRNum=dst->u.reg.num;
+                                                numDestGPRs=1;
+                                                injectInstrunc=true;
+                                        }
+
+                                }
+                        }
+                                                                                                                                 
+                        if(injectInstrunc==true){
+                                printf("string: %s; blockDimm: %d\n",GenOperand.c_str(),gridDimm); 
+                                fout << "0x" << std::hex << i->getOffset() << "; " << i->getSass() << std::dec << " instrumented intruction; " << endl;                                
+                                instridx++; 
+                                inj_error_info.TotKerInstr++; 
+                                nvbit_insert_call(i, "inject_error_IMD", IPOINT_BEFORE);
+                                nvbit_add_call_arg_const_val64(i, (uint64_t)&inj_error_info);
+                                nvbit_add_call_arg_const_val64(i, (uint64_t)&Injection_masks);
+                                nvbit_add_call_arg_const_val64(i, (uint64_t)&verbose_device);                                
+                                nvbit_add_call_arg_const_val32(i, destGPRNum); // number of destination GPR registers
+                                if (destGPRNum != -1) {
+                                nvbit_add_call_arg_reg_val(i,destGPRNum); // destination GPR register val
+                                } else {
+                                nvbit_add_call_arg_const_val32(i, (unsigned int)-1); // destination GPR register val 
+                                }
+                                nvbit_add_call_arg_const_val32(i, instridx); // compute_capability
+                                nvbit_add_call_arg_const_val32(i, i->getOffset());
+                                nvbit_add_call_arg_const_val32(i, instType);                                        
+                        }
+
+
+                }
+                
+                if(inj_error_info.maxPredReg<inj_error_info.KernelPredReg){
+                        inj_error_info.maxPredReg=inj_error_info.KernelPredReg;
+                }
+                inj_error_info.TotAppInstr+=inj_error_info.TotKerInstr;
+                fout << "=================================================================================" << endl;
+                fout << "The Instrumentation step Stops Here: " << removeSpaces(nvbit_get_func_name(ctx,f)) << endl;
+                fout << "=================================================================================" << endl;
+        }               
+}
+
+
+/////////////////////////////////////////////////////////////////////////////////////////////
+//
+/////////////////////////////////////////////////////////////////////////////////////////////
+void instrument_function_IAL(CUcontext ctx, CUfunction func) {
+        //parse_params(injInputFilename);  // injParams are updated based on injection seed file
+        update_verbose();        
+        /* Get related functions of the kernel (device function that can be
+        * called by the kernel) */
+        std::vector<CUfunction> related_functions =
+        nvbit_get_related_functions(ctx, func);
+
+        /* add kernel itself to the related function vector */
+        related_functions.push_back(func);
+        cudaDeviceProp devProp;
+        cudaGetDeviceProperties( &devProp, 0) ;
+        int archmajor = devProp.major; 
+        int archminor = devProp.minor;
+        int compute_cap = archmajor*10 + archminor;
+        /* iterate on function */
+        for (auto f : related_functions) {                
+                /* "recording" function was instrumented, if set insertion failed
+                        * we have already encountered this function */
+                if (!already_instrumented.insert(f).second) {
+                        continue;
+                }
+                fout << "=================================================================================" << endl;
+                fout << "The Instrumentation step Begins Here: " << removeSpaces(nvbit_get_func_name(ctx,f)) << endl;
+                fout << "=================================================================================" << endl;
+
+                std::string kname = removeSpaces(nvbit_get_func_name(ctx,f));
+                /* Get the vector of instruction composing the loaded CUFunction "func" */
+                const std::vector<Instr *> &instrs = nvbit_get_instrs(ctx, f);
+
+                int maxregs = get_maxregs(f);
+                inj_error_info.maxregcount=maxregs;
+
+                assert(fout.good());
+                //assert(fout3.good());
+                int k=0;
+                int instridx=0;
+                int gridDimm=0;
+                bool injectInstrunc=false;
+                int isPredNeg=0;
+                int PredNum=0;
+
+                inj_error_info.KernelPredReg=-1;
+                inj_error_info.TotKerInstr=0;
+                //fout << "Inspecting: " << kname << ";num_static_instrs: " << instrs.size() << ";maxregs: " << maxregs << "(" << maxregs << ")" << std::endl;
+                for(auto i: instrs)  {
+                        std::string opcode = i->getOpcode(); 
+                        std::string instTypeStr = i->getOpcodeShort();
+                        std::string GenOperand;
+                        int instType = instTypeNameMap[instTypeStr]; 
+
+                        if (verbose) printf("extracted instType: %s, ", instTypeStr.c_str());
+                        if (verbose) printf("index of instType: %d\n", instTypeNameMap[instTypeStr]);
+                        //if ((uint32_t)instType == inj_info.injInstType || inj_info.injInstType == NUM_ISA_INSTRUCTIONS) {
+                        
+                        //if ((uint32_t)instType == inj_info.injInstType) {
+                        if (verbose) { printf("instruction selected for instrumentation: "); i->print(); }
+
+                        int destGPRNum = -1;
+                        int replGPRNum = -1;
+                        int numDestGPRs = 0;
+                        int predicateNum=-1;
+                        int tracePredRegs=0;
+                        int isregdest=-1;
+                        injectInstrunc=false;
+                        fout << "0x" << std::hex << i->getOffset() << ":::" << i->getSass()  << std::dec << std::endl;
+                        if(instType<=InstructionType::XMAD){
+                                if(inj_error_info.injIALtype==1){ // flag chose IAL opt
+                                        if (i->getNumOperands() > 1) {
+                                                const InstrType::operand_t *dst=i->getOperand(0);
+                                                if(dst->type == InstrType::OperandType::REG){
+                                                        fout << "0x" << std::hex << i->getOffset() << "; " << i->getSass() << std::dec << " instrumented intruction; " << endl;
+                                                        destGPRNum=dst->u.reg.num;
+                                                        instridx++; 
+                                                        inj_error_info.TotKerInstr++; 
+                                                        // instrument bypass
+                                                        nvbit_insert_call(i, "inject_error_IAL_1_1b", IPOINT_BEFORE);
+                                                        nvbit_add_call_arg_const_val64(i, (uint64_t)&inj_error_info);
+                                                        nvbit_add_call_arg_const_val64(i, (uint64_t)&Injection_masks);
+                                                        nvbit_add_call_arg_const_val64(i, (uint64_t)&verbose_device);                                                       
+                                                        nvbit_add_call_arg_const_val32(i, destGPRNum); // number of destination GPR registers
+                                                        if (destGPRNum != -1) {
+                                                        nvbit_add_call_arg_reg_val(i,destGPRNum); // destination GPR register val
+                                                        } else {
+                                                        nvbit_add_call_arg_const_val32(i, (unsigned int)-1); // destination GPR register val 
+                                                        }
+                                                        nvbit_add_call_arg_const_val32(i, instridx); // compute_capability
+                                                        nvbit_add_call_arg_const_val32(i, i->getOffset());
+                                                        nvbit_add_call_arg_const_val32(i, instType); 
+
+                                                        nvbit_insert_call(i, "inject_error_IAL_1_2b", IPOINT_AFTER);
+                                                        nvbit_add_call_arg_const_val64(i, (uint64_t)&inj_error_info);
+                                                        nvbit_add_call_arg_const_val64(i, (uint64_t)&Injection_masks);
+                                                        nvbit_add_call_arg_const_val64(i, (uint64_t)&verbose_device);                                                       
+                                                        nvbit_add_call_arg_const_val32(i, destGPRNum); // number of destination GPR registers
+                                                        if (destGPRNum != -1) {
+                                                        nvbit_add_call_arg_reg_val(i,destGPRNum); // destination GPR register val
+                                                        } else {
+                                                        nvbit_add_call_arg_const_val32(i, (unsigned int)-1); // destination GPR register val 
+                                                        }
+                                                        nvbit_add_call_arg_const_val32(i, instridx); // compute_capability
+                                                        nvbit_add_call_arg_const_val32(i, i->getOffset());
+                                                        nvbit_add_call_arg_const_val32(i, instType); 
+                                                }
+                                        }
+                                }else{
+                                        if(i->hasPred()==true){
+                                                fout << "0x" << std::hex << i->getOffset() << "; " << i->getSass() << std::dec << " instrumented intruction; " << endl;
+                                                PredNum=i->getPredNum();
+                                                isPredNeg = i->isPredNeg()==true ? 1 : 0;
+                                                instridx++; 
+                                                inj_error_info.TotKerInstr++; 
+                                                nvbit_insert_call(i, "inject_error_IAL_2p", IPOINT_BEFORE);
+                                                nvbit_add_call_arg_const_val64(i, (uint64_t)&inj_error_info);
+                                                nvbit_add_call_arg_const_val64(i, (uint64_t)&Injection_masks);
+                                                nvbit_add_call_arg_const_val64(i, (uint64_t)&verbose_device); 
+                                                nvbit_add_call_arg_const_val32(i,isPredNeg);
+                                                nvbit_add_call_arg_const_val32(i, PredNum); // destination GPR register number                                        
+                                                if (PredNum != -1) {
+                                                nvbit_add_call_arg_pred_val_at(i, PredNum); // destination GPR register val
+                                                } else {
+                                                nvbit_add_call_arg_const_val32(i, (unsigned int)-1); // destination GPR register val 
+                                                }
+                                                nvbit_add_call_arg_pred_reg(i);
+                                                nvbit_add_call_arg_const_val32(i, instridx); // compute_capability
+                                                nvbit_add_call_arg_const_val32(i, i->getOffset());
+                                                nvbit_add_call_arg_const_val32(i, instType);
+                                                // call intrumentation IAL2
+                                        }
+                                        
+                                }
+                                
+                        }
+                                                                        
+
+                }
+                
+                if(inj_error_info.maxPredReg<inj_error_info.KernelPredReg){
+                        inj_error_info.maxPredReg=inj_error_info.KernelPredReg;
+                }
+                inj_error_info.TotAppInstr+=inj_error_info.TotKerInstr;
+                fout << "=================================================================================" << endl;
+                fout << "The Instrumentation step Stops Here: " << removeSpaces(nvbit_get_func_name(ctx,f)) << endl;
+                fout << "=================================================================================" << endl;
+        }               
+}
+
 /* This call-back is triggered every time a CUDA event is encountered.
  * Here, we identify CUDA kernel launch events and reset the "counter" before
  * th kernel is launched, and print the counter after the kernel has completed
@@ -1499,7 +1905,12 @@ void nvbit_at_cuda_event(CUcontext ctx, int is_exit, nvbit_api_cuda_t cbid,
                                 parse_paramsWV(injInputFilename); 
                         }else if(inj_mode.compare("IMS")==0){
                                 parse_paramsIMS(injInputFilename); 
+                        }else if(inj_mode.compare("IMD")==0){
+                                parse_paramsIMD(injInputFilename);
+                        }else if(inj_mode.compare("IAL")==0) {
+                                parse_paramsIAL(injInputFilename);
                         }else{
+                        
                                 assert(1==0);
                         }         
                                        
@@ -1531,8 +1942,11 @@ void nvbit_at_cuda_event(CUcontext ctx, int is_exit, nvbit_api_cuda_t cbid,
                                         instrument_function_WV(ctx, p->f);
                                 }else if(inj_mode.compare("IMS")==0) {
                                         instrument_function_IMS(ctx, p->f);
-                                }else{
-                                
+                                }else if(inj_mode.compare("IMD")==0) {
+                                        instrument_function_IMD(ctx, p->f);
+                                }else if(inj_mode.compare("IAL")==0) {
+                                        instrument_function_IAL(ctx, p->f);
+                                }else{                                
                                         assert(1==0);
                                 }
                             cudaDeviceSynchronize();
