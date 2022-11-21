@@ -347,7 +347,7 @@ def run_one_injection_job(inj_mode, app, error_model, icount):
     cwd = os.getcwd()
     os.chdir(new_directory) # go to app dir
     if p.verbose: start_main = datetime.datetime.now() # current time
-    cmd = p.script_dir[app] + "/" + p.run_script + " " + p.apps[app][4]
+    cmd = p.script_dir[app] + "/" + p.run_script + " " + p.app_args[app]
     if p.verbose: print (cmd)
     pr = subprocess.Popen(cmd, shell=True, executable='/bin/bash', preexec_fn=os.setsid) # run the injection job
 
