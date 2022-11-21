@@ -64,7 +64,6 @@ keep_logs = True
 # 
 # NUM_INJECTIONS = 644
 NUM_INJECTIONS = 1000
-
 # Specify how many injections you want to perform per IGID and BFM combination. 
 # Only the first THRESHOLD_JOBS will be selected from the generated NUM_INJECTIONS.
 #
@@ -223,6 +222,13 @@ apps = {
         3.1, # expected runtime secs
         'float '+NVBITFI_HOME + '/test-apps/gemm_cublas/a.data '+NVBITFI_HOME + '/test-apps/gemm_cublas/b.data '+NVBITFI_HOME +'/test-apps/gemm_cublas/gold.data 0' # additional parameters to the run.sh
         ],
+    'LeNet': [
+        NVBITFI_HOME + '/test-apps/LeNet', # workload directory
+        'darknet',
+        "/home/juancho/Documents/GitHub/darknet_jd_v1", # path to the binary file
+        6,
+        'classifier test /home/juancho/Documents/GitHub/darknet_jd_v1/LeNet/cfg/mnist_errmod.data /home/juancho/Documents/GitHub/darknet_jd_v1/LeNet/cfg/mnist_lenet.cfg /home/juancho/Documents/GitHub/darknet_jd_v1/LeNet/mnist_lenet.weights -t 10'
+    ],
     **REAL_WORKLOAD_DICT
 }
 
