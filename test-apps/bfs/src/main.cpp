@@ -120,7 +120,8 @@ size_t compare_output(std::vector<std::vector<int>>& output,
 					error_detail += " cost_r: " + cost_r;
 #pragma omp critical
 					{
-						std::cout << error_detail << std::endl;
+                        if (errors <= 10)
+						    std::cout << error_detail << std::endl;
 						log.log_error_detail(error_detail);
 						errors++;
 					}
