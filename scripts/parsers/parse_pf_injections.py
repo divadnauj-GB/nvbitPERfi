@@ -1,9 +1,7 @@
 #!/usr/bin/python3
-import copy
 import datetime
 import os
 import re
-from typing import Union
 
 import pandas as pd
 
@@ -15,6 +13,18 @@ DEFAULT_NVBITPERFI_PATH = f"{DATA_PATH}/logs"
 NUM_INJECTIONS = 1000
 ERROR_MODELS = ["ICOC", "IIO", "IRA"]
 BENCHMARKS = ["accl", "bfs", "cfd", "gaussian", "gemm", "hotspot", "lava", "lud", "mergesort", "mxm", "nw", "quicksort"]
+
+DUE_CAUSE_NAMES = {
+    'NoDUE': "NoDUE",
+    '::ERROR FAIL in kernel execution (an illegal memory access was encountered); ': "IllegalMemAccess",
+    '::ERROR FAIL in kernel execution (misaligned address); ': "MisalignedAddress",
+    'TIMEOUT': "Timeout",
+    '::ERROR FAIL in kernel execution (operation not supported on global/shared address space); ': "OpNotSuppAddrSpace",
+    '::ERROR FAIL in kernel execution (invalid program counter); ': "InvalidPC",
+    '(an illegal memory access was encountered); ': "IllegalMemAccess",
+    '(an illegal instruction was encountered); ': "IllegalInstruction",
+    '(misaligned address); ': "MisalignedAddress"
+}
 
 
 def execute_cmd(cmd):
@@ -32,11 +42,16 @@ def parse_lib_log_helper_file(log_path: str, error_model: str, app: str) -> dict
         with open(log_path) as log_fp:
             log_fp.readline()  # Skip the header line
             # header = re.match(r"#HEADER (.*)", log_fp.readline()).group(1)
-            data_dict = dict(app=app, hostname=hostname, error_model=error_model, has_end=1, sdc=0, it=0, ker_time=0.0)
+            data_dict = dict(app=app, hostname=hostname, error_model=error_model, has_end=1, sdc=0, it=0, ker_time=0.0,
+                             cuda_framework_error=0)
             has_end, has_err = False, False
             for line in log_fp:
-                has_end = ("#END" in line) or has_end
-                has_err = ("#ERR" in line and "CUDA Framework error" not in line) or has_err
+                if "#END" in line:
+                    has_end = True
+                if "#ERR" in line and "CUDA Framework error" not in line:
+                    has_err = True
+                if "CUDA Framework error" in line:
+                    data_dict["cuda_framework_error"] = 1
                 sdc_m = re.match(r"#SDC Ite:(\d+) KerTime:(\S+) AccTime:(\S+) KerErr:(\d+) AccErr:(\d+)", line)
 
                 if sdc_m:
@@ -50,7 +65,8 @@ def parse_lib_log_helper_file(log_path: str, error_model: str, app: str) -> dict
                 if it_m:
                     data_dict["ker_time"] = float(it_m.group(1))
             data_dict["has_end"] = int(has_end)
-
+            if data_dict["cuda_framework_error"] == 1:
+                data_dict["has_end"] = 0
         if data_dict["sdc"] == 0 and has_err is True:
             raise ValueError(f"Incorrect parsing {log_path}")
 
@@ -91,7 +107,7 @@ def get_due_cause(fi_dir: str, has_end: bool) -> str:
 
     if has_end is False:
         raise ValueError(f"The libLoghelper file does not have end and DUE cause is not found, {stderr_diff_log}")
-    return ""
+    return "NoDUE"
 
 
 def main():
@@ -110,15 +126,12 @@ def main():
                 data_i = parse_lib_log_helper_file(log_path=respective_log_helper_file, error_model=error_model,
                                                    app=app)
                 data_i["log_file"] = log_helper_file
-                try:
-                    data_i["due_cause"] = get_due_cause(fi_dir=nvbit_perfi_log_i_path, has_end=data_i["has_end"] == 1)
-                    data_list.append(data_i)
-                except ValueError:
-                    print(data_i)
-                    raise
+                data_i["due_cause"] = get_due_cause(fi_dir=nvbit_perfi_log_i_path, has_end=data_i["has_end"] == 1)
+                data_list.append(data_i)
+
     end = datetime.datetime.now()
     print("Time spent", end - start)
-    df = pd.DataFrame(data_list).fillna(0)
+    df = pd.DataFrame(data_list)
     print(df)
     df.to_csv(OUTPUT_PARSED_FILE, index=False)
 
