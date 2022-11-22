@@ -357,7 +357,7 @@ int blokDimm, int instridx, int InstOffset, int InstOpcode) {
                     if(unified_datapth==1){
                         nvbit_write_ureg(destGPRNum, injAfterVal); 
                     }else{                        
-                        nvbit_write_ureg(destGPRNum, injAfterVal); 
+                        nvbit_write_reg(destGPRNum, injAfterVal); 
                     }                                    
                     if(verbose_device)printf("DST: smID=%d, warpID=%d,target_register=%d, before=0x%x, after=0x%x, expected_after=0x%x, ReadReg =0x%x, SMthread %d\n", smid, WID, destGPRNum, injBeforeVal, nvbit_read_reg(destGPRNum), nvbit_read_reg(destGPRNum),destGPRNum,instridx);                                                                                            
                 //__threadfence();
@@ -435,7 +435,7 @@ int gridDimm, int instridx, int InstOffset, int InstOpcode) {
                     if(unified_datapth==1){
                         nvbit_write_ureg(destGPRNum, injAfterVal); 
                     }else{                        
-                        nvbit_write_ureg(destGPRNum, injAfterVal); 
+                        nvbit_write_reg(destGPRNum, injAfterVal); 
                     }                                         
                     if(verbose_device)printf("DST: smID=%d, warpID=%d,target_register=%d, before=0x%x, after=0x%x, expected_after=0x%x, ReadReg =0x%x, SMthread %d\n", smid, WID, destGPRNum, injBeforeVal, nvbit_read_reg(destGPRNum), nvbit_read_reg(destGPRNum),destGPRNum,instridx);                                                                                            
                 //__threadfence();
