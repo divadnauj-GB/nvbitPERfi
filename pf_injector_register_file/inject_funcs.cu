@@ -299,7 +299,8 @@ int destGPRNum, int replGPRNum, int regval, int numDestGPRs, int compute_cap, in
 
 
 extern "C" __device__ __noinline__ void inject_error_IAT(uint64_t piinfo, uint64_t Data_arrays, uint64_t pverbose_device, 
-int destGPRNum, int regval, int numDestGPRs, int blokDimm, int instridx, int InstOffset, int InstOpcode) { 
+int destGPRNum, int regval, int numDestGPRs, int unified_datapth,
+int blokDimm, int instridx, int InstOffset, int InstOpcode) { 
                 
             muliple_ptr_t *inj_struct=(muliple_ptr_t *) Data_arrays;
             inj_info_error_t * inj_info = (inj_info_error_t*)piinfo; 
@@ -332,7 +333,12 @@ int destGPRNum, int regval, int numDestGPRs, int blokDimm, int instridx, int Ins
                 inj_info->injInstPC=InstOffset;
                 inj_info->injRegOriginal=destGPRNum;                                                
                 if(inj_struct->Warp_thread_active[kidx]==1){  
-                    injBeforeVal=nvbit_read_reg(destGPRNum); 
+                    if(unified_datapth==1){
+                        injBeforeVal=nvbit_read_ureg(destGPRNum); 
+                    }else{
+                        injBeforeVal=nvbit_read_reg(destGPRNum); 
+                    }
+                    
                     if (DUMMY ) { 
                         injAfterVal = injBeforeVal;
                     }else{                        
@@ -347,8 +353,12 @@ int destGPRNum, int regval, int numDestGPRs, int blokDimm, int instridx, int Ins
                         }
                     }                
                     inj_info->errorInjected = true; 
-                    atomicAdd((unsigned long long*) &inj_info->injNumActivations, 1LL);                           
-                    nvbit_write_reg(destGPRNum, injAfterVal);                                        
+                    atomicAdd((unsigned long long*) &inj_info->injNumActivations, 1LL);   
+                    if(unified_datapth==1){
+                        nvbit_write_ureg(destGPRNum, injAfterVal); 
+                    }else{                        
+                        nvbit_write_ureg(destGPRNum, injAfterVal); 
+                    }                                    
                     if(verbose_device)printf("DST: smID=%d, warpID=%d,target_register=%d, before=0x%x, after=0x%x, expected_after=0x%x, ReadReg =0x%x, SMthread %d\n", smid, WID, destGPRNum, injBeforeVal, nvbit_read_reg(destGPRNum), nvbit_read_reg(destGPRNum),destGPRNum,instridx);                                                                                            
                 //__threadfence();
                 /*
@@ -363,7 +373,8 @@ int destGPRNum, int regval, int numDestGPRs, int blokDimm, int instridx, int Ins
 
 
 extern "C" __device__ __noinline__ void inject_error_IAC(uint64_t piinfo, uint64_t Data_arrays, uint64_t pverbose_device, 
-int destGPRNum, int regval, int numDestGPRs, int gridDimm, int instridx, int InstOffset, int InstOpcode) { 
+int destGPRNum, int regval, int numDestGPRs, int unified_datapth, 
+int gridDimm, int instridx, int InstOffset, int InstOpcode) { 
                 
             muliple_ptr_t *inj_struct=(muliple_ptr_t *) Data_arrays;
             inj_info_error_t * inj_info = (inj_info_error_t*)piinfo; 
@@ -397,7 +408,11 @@ int destGPRNum, int regval, int numDestGPRs, int gridDimm, int instridx, int Ins
                 inj_info->injRegOriginal=destGPRNum;                
                 //printf("%d %d %d %d %d \n",kidx,WID,threadIdx.x,injBeforeVal,injAfterVal);                   
                 if(inj_struct->Warp_thread_active[kidx]==1){    
-                    injBeforeVal = nvbit_read_reg(destGPRNum); 
+                    if(unified_datapth==1){
+                        injBeforeVal=nvbit_read_ureg(destGPRNum); 
+                    }else{
+                        injBeforeVal=nvbit_read_reg(destGPRNum); 
+                    }
                     if (DUMMY) { 
                         injAfterVal = injBeforeVal;
                     } else{                    
@@ -417,7 +432,11 @@ int destGPRNum, int regval, int numDestGPRs, int gridDimm, int instridx, int Ins
                     }
                     inj_info->errorInjected = true; 
                     atomicAdd((unsigned long long*) &inj_info->injNumActivations, 1LL);                           
-                    nvbit_write_reg(destGPRNum, injAfterVal);                                        
+                    if(unified_datapth==1){
+                        nvbit_write_ureg(destGPRNum, injAfterVal); 
+                    }else{                        
+                        nvbit_write_ureg(destGPRNum, injAfterVal); 
+                    }                                         
                     if(verbose_device)printf("DST: smID=%d, warpID=%d,target_register=%d, before=0x%x, after=0x%x, expected_after=0x%x, ReadReg =0x%x, SMthread %d\n", smid, WID, destGPRNum, injBeforeVal, nvbit_read_reg(destGPRNum), nvbit_read_reg(destGPRNum),destGPRNum,instridx);                                                                                            
                 //__threadfence();
                 /*
