@@ -1126,6 +1126,7 @@ void instrument_function_IAT(CUcontext ctx, CUfunction func) {
                         int destGPRNum = -1;
                         int replGPRNum = -1;
                         int numDestGPRs = 0;
+                        int unified_datapth=0;
                         injectInstrunc=false;
                         fout << "0x" << std::hex << i->getOffset() << ":::" << i->getSass()  << std::dec << std::endl;
                         if (i->getNumOperands() > 1) { // an actual instruction that writes to either a GPR or PR register
@@ -1182,6 +1183,9 @@ void instrument_function_IAT(CUcontext ctx, CUfunction func) {
                                         printf("string: %s; blockDimm: %d\n",GenOperand.c_str(),blockDimm); 
                                         fout << "0x" << std::hex << i->getOffset() << "; " << i->getSass() << std::dec << " instrumented intruction; " << endl;
                                         const InstrType::operand_t *dst= i->getOperand(0);
+                                        if(dst->type == InstrType::OperandType::UREG){
+                                                unified_datapth=1;
+                                        }                                        
                                         destGPRNum=dst->u.reg.num;
                                         numDestGPRs=1;
                                         instridx++;  
@@ -1197,6 +1201,7 @@ void instrument_function_IAT(CUcontext ctx, CUfunction func) {
                                         nvbit_add_call_arg_const_val32(i, (unsigned int)-1); // destination GPR register val 
                                         }
                                         nvbit_add_call_arg_const_val32(i, numDestGPRs); // number of destination GPR registers
+                                        nvbit_add_call_arg_const_val32(i, unified_datapth); // number of destination GPR registers
                                         nvbit_add_call_arg_const_val32(i, blockDimm); // compute_capability
                                         nvbit_add_call_arg_const_val32(i, instridx); // compute_capability
                                         nvbit_add_call_arg_const_val32(i, i->getOffset());
@@ -1272,6 +1277,7 @@ void instrument_function_IAC(CUcontext ctx, CUfunction func) {
                         int destGPRNum = -1;
                         int replGPRNum = -1;
                         int numDestGPRs = 0;
+                        int unified_datapth=0;
                         injectInstrunc=false;
                         fout << "0x" << std::hex << i->getOffset() << ":::" << i->getSass()  << std::dec << std::endl;
                         if (i->getNumOperands() > 1) { // an actual instruction that writes to either a GPR or PR register
@@ -1305,6 +1311,9 @@ void instrument_function_IAC(CUcontext ctx, CUfunction func) {
                                         printf("string: %s; blockDimm: %d\n",GenOperand.c_str(),gridDimm); 
                                         fout << "0x" << std::hex << i->getOffset() << "; " << i->getSass() << std::dec << " instrumented intruction; " << endl;
                                         const InstrType::operand_t *dst= i->getOperand(0);
+                                        if(dst->type == InstrType::OperandType::UREG){
+                                                unified_datapth=1;
+                                        }    
                                         destGPRNum=dst->u.reg.num;
                                         numDestGPRs=1;
                                         instridx++; 
@@ -1320,6 +1329,7 @@ void instrument_function_IAC(CUcontext ctx, CUfunction func) {
                                         nvbit_add_call_arg_const_val32(i, (unsigned int)-1); // destination GPR register val 
                                         }
                                         nvbit_add_call_arg_const_val32(i, numDestGPRs); // number of destination GPR registers
+                                        nvbit_add_call_arg_const_val32(i, unified_datapth); // number of destination GPR registers
                                         nvbit_add_call_arg_const_val32(i, gridDimm); // compute_capability
                                         nvbit_add_call_arg_const_val32(i, instridx); // compute_capability
                                         nvbit_add_call_arg_const_val32(i, i->getOffset());
