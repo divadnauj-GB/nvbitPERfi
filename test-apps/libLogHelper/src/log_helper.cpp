@@ -19,8 +19,8 @@ namespace log_helper {
 
     // Max errors that can be found for a single iteration
     // If more than max errors is found, exit the program
-    size_t max_errors_per_iter = 1048575;
-    size_t max_infos_per_iter = 1048575;
+    size_t max_errors_per_iter = 2048;
+    size_t max_infos_per_iter = 2048;
 
     // Kernel total errors
     size_t kernels_total_errors = 0;
@@ -108,7 +108,7 @@ namespace log_helper {
                 }
             }
         } else {
-            THROW_EXCEPTION("[Couldn't open " + std::string(CONFIG_FILE_PATH) + "]");
+            EXCEPTION_MESSAGE("[Couldn't open " + std::string(CONFIG_FILE_PATH) + "]");
         }
     }
 
@@ -296,14 +296,14 @@ namespace log_helper {
                 std::string abort_error = "#ABORT amount of errors equals of the last iteration";
                 file_writer_ptr->write(abort_error + "\n");
                 end_log_file();
-                THROW_EXCEPTION(abort_error);
+                EXCEPTION_MESSAGE(abort_error);
             } else {
                 // "#ABORT too many errors per iteration\n");
                 if (kernel_errors > max_errors_per_iter) {
                     std::string abort_error = "#ABORT too many errors per iteration";
                     file_writer_ptr->write(abort_error + "\n");
                     end_log_file();
-                    THROW_EXCEPTION(abort_error);
+                    EXCEPTION_MESSAGE(abort_error);
                 }
             }
             last_iter_errors = kernel_errors;
