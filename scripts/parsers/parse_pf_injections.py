@@ -2,6 +2,7 @@
 import datetime
 import os
 import re
+from typing import Tuple
 
 import pandas as pd
 
@@ -11,7 +12,7 @@ OUTPUT_PARSED_FILE = f"{DATA_PATH}/parsed_data.csv"
 DEFAULT_LOG_HELPER_PATH = f"{DATA_PATH}/log_helper_dest/radiation-benchmarks/log"
 DEFAULT_NVBITPERFI_PATH = f"{DATA_PATH}/logs"
 NUM_INJECTIONS = 1000
-ERROR_MODELS = ["ICOC", "IIO", "IRA"]
+ERROR_MODELS = ["IAC", "ICOC", "IIO", "IRA"]
 BENCHMARKS = ["accl", "bfs", "cfd", "gaussian", "gemm", "hotspot", "lava", "lud", "mergesort", "mxm", "nw", "quicksort"]
 
 DUE_CAUSE_NAMES = {
@@ -25,12 +26,6 @@ DUE_CAUSE_NAMES = {
     '(an illegal instruction was encountered); ': "IllegalInstruction",
     '(misaligned address); ': "MisalignedAddress"
 }
-
-
-def execute_cmd(cmd):
-    print("EXECUTING:", cmd)
-    if os.system(cmd) != 0:
-        raise ValueError(f"Could not execute {cmd}")
 
 
 def parse_lib_log_helper_file(log_path: str, error_model: str, app: str) -> dict:
@@ -88,26 +83,38 @@ def get_log_file_name(fi_dir):
     raise ValueError(config_stdout)
 
 
-def get_due_cause(fi_dir: str, has_end: bool) -> str:
+def get_fault_info(fi_dir: str, has_end: bool) -> Tuple[str, int]:
     nvbit_log = os.path.join(fi_dir, "nvbitfi-injection-log-temp.txt")
+    due_cause, was_fault_injected = None, None
     with open(nvbit_log) as nv_fp:
         for line in nv_fp:
             if "ERROR FAIL Detected Singal SIGKILL" in line:
-                return "TIMEOUT"
+                due_cause = "TIMEOUT"
             m = re.match(r"ERROR FAIL in kernel execution (.*)", line)
             if m:
-                return m.group(1)
+                due_cause = m.group(1)
+
+            m = re.match(r".*ErrorInjected: (\S+);.*", line)
+            if m:
+                was_fault_injected = int("True" in m.group(1))
+            if due_cause is not None and was_fault_injected is not None:
+                break
 
     stderr_diff_log = os.path.join(fi_dir, "stderr.txt")
-    with open(stderr_diff_log) as fp:
-        for line in fp:
-            m = re.match(r".*SimEndRes:(.*)", line)
-            if m:
-                return m.group(1)
+    # In case the due cause wasn't found
+    if due_cause is None:
+        with open(stderr_diff_log) as fp:
+            for line in fp:
+                m = re.match(r".*SimEndRes:(.*)", line)
+                if m:
+                    due_cause = m.group(1)
+                    break
 
-    if has_end is False:
+    if has_end is False and due_cause is None:
         raise ValueError(f"The libLoghelper file does not have end and DUE cause is not found, {stderr_diff_log}")
-    return "NoDUE"
+    if due_cause is None:
+        due_cause = "NoDUE"
+    return due_cause, was_fault_injected
 
 
 def main():
@@ -126,7 +133,9 @@ def main():
                 data_i = parse_lib_log_helper_file(log_path=respective_log_helper_file, error_model=error_model,
                                                    app=app)
                 data_i["log_file"] = log_helper_file
-                data_i["due_cause"] = get_due_cause(fi_dir=nvbit_perfi_log_i_path, has_end=data_i["has_end"] == 1)
+                data_i["due_cause"], data_i["was_fault_injected"] = get_fault_info(fi_dir=nvbit_perfi_log_i_path,
+                                                                                   has_end=data_i["has_end"] == 1)
+
                 data_list.append(data_i)
 
     end = datetime.datetime.now()
