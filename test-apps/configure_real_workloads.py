@@ -1,4 +1,5 @@
 #!/usr/bin/python3
+import argparse
 import json
 import os
 import shutil
@@ -87,12 +88,20 @@ def treat_specific_cases():
 
 
 def main():
+    parser = argparse.ArgumentParser(prog='Configure Real workloads',
+                                     description='It configures the real workloads for FI',
+                                     epilog='enter --app if you want to configure a specific app, '
+                                            'otherwise all apps will be configured')
+    parser.add_argument('--app', help="Select a specific benchmark to configure", default="all")
+    args = parser.parse_args()
+    subset_dict = REAL_WORKLOADS if args.app == "all" else {args.app: REAL_WORKLOADS[args.app]}
+
     treat_specific_cases()
     # Build libLogHelper first
     build_and_set_lib_log_helper()
     real_workloads_dict_out = dict()
     common_additional_run_parameters = f"{CUDA_PATH} {LOG_HELPER_LIB_PATH}"
-    for workload_name, workload_parameters in REAL_WORKLOADS.items():
+    for workload_name, workload_parameters in subset_dict.items():
         print(Bcolors.WARNING + "Building and setting", workload_name + Bcolors.ENDC)
         build_benchmark_with_fi_parameters(app=workload_name, parameters=workload_parameters)
         app_dir, app_bin = workload_parameters["APP_DIR"], workload_parameters["APP_BIN"]
