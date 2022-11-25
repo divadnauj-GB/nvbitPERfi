@@ -92,7 +92,8 @@ def main():
                                      description='It configures the real workloads for FI',
                                      epilog='enter --app if you want to configure a specific app, '
                                             'otherwise all apps will be configured')
-    parser.add_argument('--app', help="Select a specific benchmark to configure", default="all")
+    parser.add_argument('--app', help="Select a specific benchmark to configure, the complet list:" + ", ".join(
+        REAL_WORKLOADS.keys()), default="all")
     args = parser.parse_args()
     subset_dict = REAL_WORKLOADS if args.app == "all" else {args.app: REAL_WORKLOADS[args.app]}
 
