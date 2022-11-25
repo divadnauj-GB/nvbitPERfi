@@ -1,4 +1,5 @@
 #!/usr/bin/python3
+import argparse
 import json
 import os
 import shutil
@@ -82,15 +83,26 @@ def treat_specific_cases():
     # Uncompress cfd files
     if os.path.isfile("cfd/missile.domn.0.2M") is False:
         execute_cmd(cmd="cd cfd/ && xz -df missile.domn.0.2M.xz && cd -", err_message="Failed to uncompress cfd files")
+    # download darknet files
+    execute_cmd(cmd="cd darknet_v3/ && ./download_and_set.sh && cd -", err_message="Failed to download YOLOv3")
 
 
 def main():
+    parser = argparse.ArgumentParser(prog='Configure Real workloads',
+                                     description='It configures the real workloads for FI',
+                                     epilog='enter --app if you want to configure a specific app, '
+                                            'otherwise all apps will be configured')
+    parser.add_argument('--app', help="Select a specific benchmark to configure, the complet list:" + ", ".join(
+        REAL_WORKLOADS.keys()), default="all")
+    args = parser.parse_args()
+    subset_dict = REAL_WORKLOADS if args.app == "all" else {args.app: REAL_WORKLOADS[args.app]}
+
     treat_specific_cases()
     # Build libLogHelper first
     build_and_set_lib_log_helper()
     real_workloads_dict_out = dict()
     common_additional_run_parameters = f"{CUDA_PATH} {LOG_HELPER_LIB_PATH}"
-    for workload_name, workload_parameters in REAL_WORKLOADS.items():
+    for workload_name, workload_parameters in subset_dict.items():
         print(Bcolors.WARNING + "Building and setting", workload_name + Bcolors.ENDC)
         build_benchmark_with_fi_parameters(app=workload_name, parameters=workload_parameters)
         app_dir, app_bin = workload_parameters["APP_DIR"], workload_parameters["APP_BIN"]
@@ -99,7 +111,7 @@ def main():
             NVBITFI_HOME + f'/test-apps/{app_dir}',  # workload directory
             app_bin,  # binary name
             NVBITFI_HOME + f'/test-apps/{app_dir}',  # path to the binary file
-            100,  # expected runtime secs
+            20,  # expected runtime secs
             f"{common_additional_run_parameters} {specific_run_parameters}"  # additional parameters to the run.sh
         ]
 
@@ -111,6 +123,13 @@ def main():
 
 
 REAL_WORKLOADS = {
+    # ----------------------------------------------------------------------------------------------------------------
+    # YOLOv3
+    "darknet_v3": {
+        # "MAKE_PARAMETERS": dict(PRECISION="float", SIZE=15, STREAMS=1),
+        "MAKE_PARAMETERS": dict(),
+        "APP_DIR": "darknet_v3", "APP_BIN": "darknet_v3_float"
+    },
     # ----------------------------------------------------------------------------------------------------------------
     # LAVA
     "lava": {
