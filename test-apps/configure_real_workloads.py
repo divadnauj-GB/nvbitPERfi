@@ -101,7 +101,7 @@ def main():
             NVBITFI_HOME + f'/test-apps/{app_dir}',  # workload directory
             app_bin,  # binary name
             NVBITFI_HOME + f'/test-apps/{app_dir}',  # path to the binary file
-            5,  # expected runtime secs
+            20,  # expected runtime secs
             f"{common_additional_run_parameters} {specific_run_parameters}"  # additional parameters to the run.sh
         ]
 
@@ -115,7 +115,7 @@ def main():
 REAL_WORKLOADS = {
     # ----------------------------------------------------------------------------------------------------------------
     # YOLOv3
-    "yolov3": {
+    "darknet_v3": {
         # "MAKE_PARAMETERS": dict(PRECISION="float", SIZE=15, STREAMS=1),
         "MAKE_PARAMETERS": dict(),
         "APP_DIR": "darknet_v3", "APP_BIN": "darknet_v3_float"
