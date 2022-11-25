@@ -3,7 +3,7 @@
 CUDAPATH=$1
 LIB_LOG_HELPER=$2
 
-IMG_LIST="${BIN_DIR}"/coco2017_img_list.txt
+IMG_LIST="${BIN_DIR}"/coco2017_5_img_list.txt
 GOLD_DIR="${BIN_DIR}"/test_float_tiny_0.csv
 
 EXEC=darknet_v3_float
