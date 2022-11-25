@@ -7,7 +7,9 @@ TGSIM = {
         "IRA": 4,
         "IMS":3,
         "IMD":3,
-        "IAL":3
+        "IAL":3,
+        "ICOC": 4,
+        "IIO":4
     },
     "mxm": {
         "IAT": 3,
@@ -17,7 +19,9 @@ TGSIM = {
         "IRA": 3,
         "IMS":3,
         "IMD":3,
-        "IAL":3
+        "IAL":3,
+        "ICOC": 3,
+        "IIO":3
     },
     "gemm": {
         "IAT": 6,
@@ -28,7 +32,9 @@ TGSIM = {
         "IAL": 6,
         "IMS":3,
         "IMD":3,
-        "IAL":3
+        "IAL":3,
+        "ICOC": 6,
+        "IIO":4
     },
     "hotspot": {
         "IAT": 4,
@@ -38,7 +44,9 @@ TGSIM = {
         "IRA": 17,
         "IMS":3,
         "IMD":3,
-        "IAL":3
+        "IAL":3,
+        "ICOC": 17,
+        "IIO":17
     },
     "gaussian": {
         "IAT": 4,
@@ -48,7 +56,9 @@ TGSIM = {
         "IRA": 6,
         "IMS":3,
         "IMD":3,
-        "IAL":3
+        "IAL":3,
+        "ICOC": 6,
+        "IIO":6
     },
     "bfs": {
         "IAT": 7,
@@ -58,7 +68,9 @@ TGSIM = {
         "IRA": 61,
         "IMS":3,
         "IMD":3,
-        "IAL":3
+        "IAL":3,
+        "ICOC": 61,
+        "IIO":4
     },
     "lud": {
         "IAT": 4,
@@ -68,7 +80,9 @@ TGSIM = {
         "IRA": 13,
         "IMS":3,
         "IMD":3,
-        "IAL":3
+        "IAL":3,
+        "ICOC": 13,
+        "IIO":13
     },
     "accl": {
         "IAT": 5,
@@ -78,7 +92,9 @@ TGSIM = {
         "IRA": 7,
         "IMS":3,
         "IMD":3,
-        "IAL":3
+        "IAL":3,
+        "ICOC": 7,
+        "IIO":7
     },
     "nw": {
         "IAT": 5,
@@ -88,7 +104,9 @@ TGSIM = {
         "IRA": 8,
         "IMS":3,
         "IMD":3,
-        "IAL":3
+        "IAL":3,
+        "ICOC": 8,
+        "IIO":8
     },
     "cfd": {
         "IAT": 5,
@@ -98,7 +116,9 @@ TGSIM = {
         "IRA": 6,
         "IMS":3,
         "IMD":3,
-        "IAL":3
+        "IAL":3,
+        "ICOC": 6,
+        "IIO":6
     },
     "quicksort": {
         "IAT": 5,
@@ -108,7 +128,9 @@ TGSIM = {
         "IRA": 6,
         "IMS":3,
         "IMD":3,
-        "IAL":3
+        "IAL":3,
+        "ICOC":6,
+        "IIO":6
     },
     "mergesort": {
         "IAT": 4,
@@ -118,7 +140,9 @@ TGSIM = {
         "IRA": 5,
         "IMS":3,
         "IMD":3,
-        "IAL":3
+        "IAL":3,
+        "ICOC": 5,
+        "IIO":5
     },
     "VectorAdd": {
         "IAT": 3,
@@ -128,6 +152,8 @@ TGSIM = {
         "IRA": 3,
         "IMS":3,
         "IMD":3,
-        "IAL":3
+        "IAL":3,
+        "ICOC": 3,
+        "IIO":3
     }
 }

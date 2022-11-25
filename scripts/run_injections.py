@@ -26,7 +26,7 @@
 
 
 
-import os, sys, re, string, operator, math, datetime, subprocess, time, multiprocessing, pkgutil
+import os, sys, re, string, operator, math, datetime, subprocess, signal, time, multiprocessing, pkgutil
 import params as p
 import common_functions as cf
 
@@ -245,6 +245,9 @@ def main():
                 pr = subprocess.Popen(cmd, shell=True, executable='/bin/bash', preexec_fn=os.setsid) # run the injection job
                 StopTime = datetime.datetime.now()
                 print(f"Golden_simulation_Time: {get_seconds(StopTime-BeginTime)} secs")
+                time.sleep(0.5)
+                while(pr.poll()==None):
+                    os.killpg(os.getpgid(pr.pid), signal.SIGKILL)
                 run_multiple_pf_injections(app, os.environ['nvbitPERfi'], where_to_run)
             
     else:

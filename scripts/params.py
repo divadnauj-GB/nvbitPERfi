@@ -29,7 +29,7 @@ from real_workloads_parameters import REAL_WORKLOAD_DICT
 from TGSIM import TGSIM
 PYTHON_P = "python3"
 
-TIMEOUT_THRESHOLD = 10 # 10X usual runtime 
+TIMEOUT_THRESHOLD = 5 # 10X usual runtime 
 
 if 'NVBITFI_HOME' not in os.environ:
     print ("Error: Please set NVBITFI_HOME environment variable")

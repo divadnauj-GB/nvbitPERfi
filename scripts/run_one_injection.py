@@ -288,6 +288,13 @@ def classify_injection(app, inj_mode, error_model, retcode, dmesg_delta):
                 return p.SDC_KERNEL_ERROR
             else:
                 return p.STDERR_ONLY_DIFF
+        elif os.path.getsize(p.stderr_diff_log) != 0 and os.path.getsize(p.stdout_diff_log) != 0:
+            if "Xid" in dmesg_delta:
+                return p.DMESG_STDERR_ONLY_DIFF
+            elif "ERROR FAIL in kernel execution" in inj_log_str or ("ERROR FAIL in kernel execution" in str(open(stderr_fname).read())): 
+                return p.SDC_KERNEL_ERROR
+            else:
+                return p.OTHERS
         else:
             if p.verbose: 
                 print ("Other from here")
