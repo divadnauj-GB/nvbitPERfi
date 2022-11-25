@@ -45,7 +45,7 @@ detectors = True
 # is set to false, per-injection logs will be deleted. A detailed summary will
 # be captured in the results file. 
 keep_logs = True
-
+compress_logs = True
 #########################################################################
 # Number of injections per app, per instruction group (IGID), per bit-flip
 # model (BFM)

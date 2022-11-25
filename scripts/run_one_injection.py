@@ -376,8 +376,13 @@ def run_one_injection_job(inj_mode, app, error_model, icount):
     record_result(inj_mode, app, error_model, ret_cat, pc, inst_type, tid, injBID, get_seconds(elapsed), dmesg_delta, value_str, icount)
 
     if get_seconds(elapsed) < 0.5: time.sleep(0.5)
+    
     if not p.keep_logs:
         shutil.rmtree(new_directory, True) # remove the directory once injection job is done
+    else:
+        if p.compress_logs:
+            shutil.make_archive(new_directory, 'gztar', new_directory) # archieve the outputs
+            shutil.rmtree(new_directory, True) # remove the directory
     #print(ret_cat)
     return ret_cat
 
