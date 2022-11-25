@@ -82,6 +82,8 @@ def treat_specific_cases():
     # Uncompress cfd files
     if os.path.isfile("cfd/missile.domn.0.2M") is False:
         execute_cmd(cmd="cd cfd/ && xz -df missile.domn.0.2M.xz && cd -", err_message="Failed to uncompress cfd files")
+    # download darknet files
+    execute_cmd(cmd="cd darknet_v3/ && ./download_and_set.sh && cd -", err_message="Failed to download YOLOv3")
 
 
 def main():
@@ -111,6 +113,13 @@ def main():
 
 
 REAL_WORKLOADS = {
+    # ----------------------------------------------------------------------------------------------------------------
+    # YOLOv3
+    "yolov3": {
+        # "MAKE_PARAMETERS": dict(PRECISION="float", SIZE=15, STREAMS=1),
+        "MAKE_PARAMETERS": dict(),
+        "APP_DIR": "darknet_v3", "APP_BIN": "darknet_v3_float"
+    },
     # ----------------------------------------------------------------------------------------------------------------
     # LAVA
     "lava": {
