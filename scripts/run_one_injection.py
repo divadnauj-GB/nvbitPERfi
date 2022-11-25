@@ -308,7 +308,7 @@ def is_timeout(app, pr): # check if the process is active every 'factor' sec for
     retcode = None
     tt = p.TIMEOUT_THRESHOLD * p.app_time[app] # p.apps[app][2] = expected runtime
     if tt < 10: tt = 10
-
+    
     to_th = tt / factor
     while to_th > 0:
         retcode = pr.poll()
@@ -317,8 +317,9 @@ def is_timeout(app, pr): # check if the process is active every 'factor' sec for
         to_th -= 1
         time.sleep(factor)
 
-    if to_th == 0:
-        os.killpg(pr.pid, signal.SIGINT) # pr.kill()
+    if to_th == 0:       
+        while(pr.poll()==None):
+            os.killpg(os.getpgid(pr.pid), signal.SIGINT) # pr.kill()            
         print ("timeout")
         return [True, pr.poll()]
     else:
