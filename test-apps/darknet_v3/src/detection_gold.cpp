@@ -200,10 +200,12 @@ int DetectionGold::compare_detection(const Detection &g_det, const detection &f_
                    << " objectness_r: " << f_objectness << " sort_class_e: "
                    << g_sort_class << " sort_class_r: " << f_sort_class
                    << " img_w: " << img_w << " img_h: " << img_h;
+        if (error_count <= MAX_ERROR_COUNT) {
+            auto err_str = error_info.str();
+            Log::log_error_info(err_str);
+            std::cout << err_str << "\n";
+        }
 
-        auto err_str = error_info.str();
-        Log::log_error_info(err_str);
-        std::cout << err_str << "\n";
         error_count++;
     }
 
@@ -219,11 +221,11 @@ int DetectionGold::compare_detection(const Detection &g_det, const detection &f_
             error_info << " img: " << img << " detection: "
                        << nb << " class: " << cl << " prob_e: " << g_prob
                        << " prob_r: " << f_prob;
-
-            auto err_str = error_info.str();
-            Log::log_error_info(err_str);
-            std::cout << err_str << "\n";
-
+            if (error_count <= MAX_ERROR_COUNT) {
+                auto err_str = error_info.str();
+                Log::log_error_info(err_str);
+                std::cout << err_str << "\n";
+            }
             error_count++;
         }
     }
