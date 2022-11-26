@@ -288,6 +288,13 @@ def classify_injection(app, inj_mode, error_model, retcode, dmesg_delta):
                 return p.SDC_KERNEL_ERROR
             else:
                 return p.STDERR_ONLY_DIFF
+        elif os.path.getsize(p.stderr_diff_log) != 0 and os.path.getsize(p.stdout_diff_log) != 0:
+            if "Xid" in dmesg_delta:
+                return p.DMESG_STDERR_ONLY_DIFF
+            elif "ERROR FAIL in kernel execution" in inj_log_str or ("ERROR FAIL in kernel execution" in str(open(stderr_fname).read())): 
+                return p.SDC_KERNEL_ERROR
+            else:
+                return p.OTHERS
         else:
             if p.verbose: 
                 print ("Other from here")
@@ -317,8 +324,9 @@ def is_timeout(app, pr): # check if the process is active every 'factor' sec for
         to_th -= 1
         time.sleep(factor)
 
-    if to_th == 0:
-        os.killpg(pr.pid, signal.SIGINT) # pr.kill()
+    if to_th == 0:       
+        #while(pr.poll()==None):
+        os.killpg(os.getpgid(pr.pid), signal.SIGINT) # pr.kill()            
         print ("timeout")
         return [True, pr.poll()]
     else:
@@ -376,9 +384,18 @@ def run_one_injection_job(inj_mode, app, error_model, icount):
     record_result(inj_mode, app, error_model, ret_cat, pc, inst_type, tid, injBID, get_seconds(elapsed), dmesg_delta, value_str, icount)
 
     if get_seconds(elapsed) < 0.5: time.sleep(0.5)
+    
     if not p.keep_logs:
         shutil.rmtree(new_directory, True) # remove the directory once injection job is done
+    else:
+        if p.compress_logs:
+            shutil.make_archive(new_directory, 'gztar', new_directory) # archieve the outputs
+            shutil.rmtree(new_directory, True) # remove the directory
     #print(ret_cat)
+    #print(pr.poll())
+    while(pr.poll()==None):
+        os.killpg(os.getpgid(pr.pid), signal.SIGKILL)
+    #print(pr.poll())
     return ret_cat
 
 ###############################################################################

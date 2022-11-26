@@ -24,5 +24,6 @@
 !/common/include
 !/nw
 !/configure_real_workloads.py
+!LeNet
 
 
