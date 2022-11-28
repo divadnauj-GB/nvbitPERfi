@@ -3,7 +3,6 @@ import datetime
 import os
 import re
 import shutil
-from typing import Tuple
 
 import pandas as pd
 
@@ -88,9 +87,9 @@ def get_log_file_name(fi_dir):
     raise ValueError(config_stdout)
 
 
-def get_fault_info(fi_dir: str, has_end: bool) -> Tuple[str, int]:
+def get_fault_info(fi_dir: str, has_end: bool) -> dict:
     nvbit_log = os.path.join(fi_dir, "nvbitfi-injection-log-temp.txt")
-    due_cause, was_fault_injected = None, None
+    due_cause, was_fault_injected, outside_lim, inside_lim = [None] * 4
     with open(nvbit_log) as nv_fp:
         for line in nv_fp:
             if "ERROR FAIL Detected Singal SIGKILL" in line:
@@ -102,7 +101,12 @@ def get_fault_info(fi_dir: str, has_end: bool) -> Tuple[str, int]:
             m = re.match(r".*ErrorInjected: (\S+);.*", line)
             if m:
                 was_fault_injected = int("True" in m.group(1))
-            if due_cause is not None and was_fault_injected is not None:
+
+            if "resRegLoc: OutsideLims;" in line:
+                outside_lim = 1
+            if "resRegLoc: InsideLims;" in line:
+                inside_lim = 1
+            if all([due_cause, was_fault_injected, outside_lim, inside_lim]):
                 break
 
     stderr_diff_log = os.path.join(fi_dir, "stderr.txt")
@@ -119,7 +123,10 @@ def get_fault_info(fi_dir: str, has_end: bool) -> Tuple[str, int]:
         raise ValueError(f"The libLoghelper file does not have end and DUE cause is not found, {stderr_diff_log}")
     if due_cause is None:
         due_cause = "NoDUE"
-    return due_cause, was_fault_injected
+
+    return_dict = dict(due_cause=due_cause, was_fault_injected=was_fault_injected, outside_lims=outside_lim,
+                       inside_lim=inside_lim)
+    return return_dict
 
 
 def check_if_path_is_tar_and_extract(path: str):
@@ -143,23 +150,25 @@ def main():
     start = datetime.datetime.now()
     for error_model in ERROR_MODELS:
         for app in BENCHMARKS:
-            print("Parsing error model", error_model, "for", app)
-            for injection_count in range(1, NUM_INJECTIONS + 1):
-                nvbit_perfi_log_i_path = os.path.join(DEFAULT_NVBITPERFI_PATH, app, error_model, "logs",
-                                                      f"{app}-mode{error_model}-icount{injection_count}")
-                check_if_path_is_tar_and_extract(path=nvbit_perfi_log_i_path)
-                assert os.path.isdir(nvbit_perfi_log_i_path), f"Not a path {nvbit_perfi_log_i_path}"
-                log_helper_file = get_log_file_name(fi_dir=nvbit_perfi_log_i_path)
-                respective_log_helper_file = os.path.join(DATA_PATH, log_helper_file)
+            fault_model_path = os.path.join(DEFAULT_NVBITPERFI_PATH, app, error_model)
+            # Check if it contains the fault model
+            if os.path.isdir(fault_model_path):
+                print("Parsing error model", error_model, "for", app)
+                for injection_count in range(1, NUM_INJECTIONS + 1):
+                    nvbit_perfi_log_i_path = os.path.join(fault_model_path, "logs",
+                                                          f"{app}-mode{error_model}-icount{injection_count}")
+                    check_if_path_is_tar_and_extract(path=nvbit_perfi_log_i_path)
+                    assert os.path.isdir(nvbit_perfi_log_i_path), f"Not a path {nvbit_perfi_log_i_path}"
+                    log_helper_file = get_log_file_name(fi_dir=nvbit_perfi_log_i_path)
+                    respective_log_helper_file = os.path.join(DATA_PATH, log_helper_file)
 
-                data_i = parse_lib_log_helper_file(log_path=respective_log_helper_file, error_model=error_model,
-                                                   app=app)
-                data_i["log_file"] = log_helper_file
-                data_i["due_cause"], data_i["was_fault_injected"] = get_fault_info(fi_dir=nvbit_perfi_log_i_path,
-                                                                                   has_end=data_i["has_end"] == 1)
-
-                data_list.append(data_i)
-                rm_dir_if_tar_file_exists(path=nvbit_perfi_log_i_path)
+                    data_i = parse_lib_log_helper_file(log_path=respective_log_helper_file, error_model=error_model,
+                                                       app=app)
+                    data_i["log_file"] = log_helper_file
+                    update_info = get_fault_info(fi_dir=nvbit_perfi_log_i_path, has_end=data_i["has_end"] == 1)
+                    data_i.update(update_info)
+                    data_list.append(data_i)
+                    rm_dir_if_tar_file_exists(path=nvbit_perfi_log_i_path)
 
     end = datetime.datetime.now()
     print("Time spent", end - start)
