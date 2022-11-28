@@ -326,7 +326,7 @@ def is_timeout(app, pr): # check if the process is active every 'factor' sec for
 
     if to_th == 0:       
         #while(pr.poll()==None):
-        os.killpg(os.getpgid(pr.pid), signal.SIGINT) # pr.kill()            
+        os.killpg(pr.pid, signal.SIGINT) # pr.kill()            
         print ("timeout")
         return [True, pr.poll()]
     else:
@@ -385,16 +385,25 @@ def run_one_injection_job(inj_mode, app, error_model, icount):
 
     if get_seconds(elapsed) < 0.5: time.sleep(0.5)
     
+    while(pr.poll()==None):
+        os.killpg(os.getpgid(pr.pid), signal.SIGKILL)
+
     if not p.keep_logs:
         shutil.rmtree(new_directory, True) # remove the directory once injection job is done
     else:
         if p.compress_logs:
-            shutil.make_archive(new_directory, 'gztar', new_directory) # archieve the outputs
-            shutil.rmtree(new_directory, True) # remove the directory
+            try:
+                shutil.make_archive(new_directory, 'gztar', new_directory) # archieve the outputs
+                shutil.rmtree(new_directory, True) # remove the directory
+            except:                
+                if (timeout_flag):
+                    print(f"Error compressing folder due to Timeout termination: {sys.exc_info()[0]}")
+                else:
+                    print(f"Error compressing folder due to Other reasons: {sys.exc_info()[0]}")
     #print(ret_cat)
     #print(pr.poll())
-    while(pr.poll()==None):
-        os.killpg(os.getpgid(pr.pid), signal.SIGKILL)
+    #while(pr.poll()==None):
+    #    os.killpg(os.getpgid(pr.pid), signal.SIGKILL)
     #print(pr.poll())
     return ret_cat
 
