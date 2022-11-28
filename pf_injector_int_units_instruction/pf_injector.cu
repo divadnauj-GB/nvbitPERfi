@@ -40,25 +40,25 @@
 int verbose;
 __managed__ int verbose_device;
 int limit = INT_MAX;
-
+//int inout;
 // injection parameters input filename: This file is created the the script
 // that launched error injections
 std::string injInputFilename = "nvbitfi-injection-info.txt";
+
 pthread_mutex_t mutex;
+
 __managed__ inj_info_t inj_info; 
 //inj_info_t inj_info;
 
 void reset_inj_info() {
-		inj_info.injInstType = 0; 
 		inj_info.injSMID = 0; 
-		inj_info.injLaneID = 0;
-
-		inj_info.injThreadID = 0;
-  	    inj_info.injReg = 0;
-  		inj_info.injStuckat = 0;
-		//inj_info.injCtaID = 0;
-		
+		inj_info.injSubSMID = 0;	
+		inj_info.injLaneID = 0;	
+		inj_info.injInstType = 0; 
 		inj_info.injMask = 0;
+		inj_info.injReg = 0;
+		inj_info.injStuckat = 0;
+				
 		inj_info.injNumActivations = 0;
 		inj_info.errorInjected = false;
 }
@@ -80,27 +80,25 @@ void parse_params(std::string filename) {
 
 				std::ifstream ifs (filename.c_str(), std::ifstream::in);
 				if (ifs.is_open()) {
-						
-						ifs >> inj_info.injThreadID;
-						ifs >> inj_info.injReg;						
-						ifs >> inj_info.injMask;
-						
-
 						ifs >> inj_info.injSMID; 
 						assert(inj_info.injSMID < 1000); // we don't have a 1000 SM system yet. 
+						ifs >> inj_info.injSubSMID;	
+						assert(inj_info.injSubSMID < 4); // Warp-size is 4 in Maxwell Architecture	
+																	 
+						ifs >> inj_info.injLaneID; 
+						assert(inj_info.injLaneID < 32); // Warp-size is 32 or less today. 
 						
+						ifs >> inj_info.injInstType; // instruction type
+						assert(inj_info.injInstType <= NUM_ISA_INSTRUCTIONS); // ensure that the value is in the expected range
+						
+								
+						ifs >> inj_info.injMask;
+						ifs >> inj_info.injReg;	
 						ifs >> inj_info.injStuckat;
-			
-						//NOT USED 
-						//ifs >> inj_info.injLaneID; 
-						//assert(inj_info.injLaneID < 32); // Warp-size is 32 or less today. 
-						
-						
 						//printf("inspecting %d %d %d %d %d %d",inj_info.ingThreadID,inj_info.ingCtaID,inj_info.ingReg,inj_info.injMask,inj_info.injSMID,inj_info.injStuckat);
 						
 
-						//ifs >> inj_info.injInstType; // instruction type
-						//assert(inj_info.injInstType <= NUM_ISA_INSTRUCTIONS); // ensure that the value is in the expected range
+						
 
 				} else {
 						printf(" File %s does not exist!", filename.c_str());
@@ -170,7 +168,7 @@ void nvbit_at_init() {
 		if (getenv("INSTRUMENTATION_LIMIT")) {
 				limit = atoi(getenv("INSTRUMENTATION_LIMIT"));
 		} 
-
+		//inout = atoi(getenv("INPUT_OUTPUT"));
 		//GET_VAR_INT(verbose, "TOOL_VERBOSE", 0, "Enable verbosity inside the tool (1, 2, 3,..)");
 
 		initInstTypeNameMap();
@@ -179,9 +177,6 @@ void nvbit_at_init() {
 
 		open_output_file(injOutputFilename);
 		if (verbose) printf("nvbit_at_init:end\n");
-		//open_profile_file(injectionOut); 
-		//injectionOut = "injection-results.txt";
-   		//fout3 = fopen("injection-results.txt","a");
 }
 
 /* Set used to avoid re-instrumenting the same functions multiple times */
@@ -208,89 +203,138 @@ void instrument_function_if_needed(CUcontext ctx, CUfunction func) {
 		int compute_cap = archmajor*10 + archminor;
 		/* iterate on function */
 		for (auto f : related_functions) {
-				/* "recording" function was instrumented, if set insertion failed
-				 * we have already encountered this function */
-				if (!already_instrumented.insert(f).second) {
-						continue;
+			/* "recording" function was instrumented, if set insertion failed
+				* we have already encountered this function */
+			if (!already_instrumented.insert(f).second) {
+					continue;
+			}
+
+			std::string kname = removeSpaces(nvbit_get_func_name(ctx,f));
+			/* Get the vector of instruction composing the loaded CUFunction "func" */
+			const std::vector<Instr *> &instrs = nvbit_get_instrs(ctx, f);
+
+			int maxregs = get_maxregs(f);
+			assert(fout.good());
+			int k=0;
+			//fout << "Inspecting: " << kname << ";num_static_instrs: " << instrs.size() << ";maxregs: " << maxregs << "(" << maxregs << ")" << std::endl;
+			for(auto i: instrs)  {
+				std::string opcode = i->getOpcode(); 
+				//std::string instTypeStr=i->getOpcodeShort();
+				std::string instTypeStr = extractInstType(opcode);
+				bool found = false;
+				for(int h= 0; h< NUM_ISA_INSTRUCTIONS;h++){
+					std::string instName = instTypeNames[h];
+					const char * iname = instName.c_str();
+					if (iname==instTypeStr)
+						found = true; 
 				}
+				int instType = instTypeNameMap[instTypeStr]; 
+				if (verbose) printf("extracted instType: %s, ", instTypeStr.c_str());
+				if (verbose) printf("index of instType: %d\n", instTypeNameMap[instTypeStr]);
+				
+				
+				if (instType == inj_info.injInstType && found == true) {
+					if (verbose) { printf("instruction selected for instrumentation: "); i->print(); }
+					fout << instType<< std::endl;
+					int regi = 0;
+					int reg[12]={-1,-1,-1,-1,-1,-1,-1,-1,-1,-1};
+					
+					//int reg[5]={1,1,1,1,1};
+					//fout << i->getNumOperands() <<std::endl;
+					fout << i->getSass()<<" " <<i->getOpcode()<<std::endl;
+					for(int index = 0; index < i->getNumOperands(); index ++){				
+					const InstrType::operand_t *op = i->getOperand(index);
+					fout << i->getOperand(index) <<std::endl;
+						if(op->type == InstrType::OperandType::REG){
+							//if (1)  printf("R%d ",op->u.reg.num);
+							fout <<"R"<<op->u.reg.num<<";"<< std::endl;
+							reg[regi]=op->u.reg.num;
+							regi ++;
+						}	
+					}
+						fout << reg[0]<< " "<<reg[1]<<" "<<reg[2]<<std::endl;
+						// Tokenize the instruction 
+						std::vector<std::string> tokens;
+						std::string buf; // a buffer string
+						std::stringstream ss(i->getSass()); // Insert the string into a stream
+																
+							
+					while (ss >> buf)
+						tokens.push_back(buf);
 
-				std::string kname = removeSpaces(nvbit_get_func_name(ctx,f));
-				/* Get the vector of instruction composing the loaded CUFunction "func" */
-				const std::vector<Instr *> &instrs = nvbit_get_instrs(ctx, f);
-
-				int maxregs = get_maxregs(f);
-				assert(fout.good());
-				//assert(fout3.good());
-				int k=0;
-				//fout << "Inspecting: " << kname << ";num_static_instrs: " << instrs.size() << ";maxregs: " << maxregs << "(" << maxregs << ")" << std::endl;
-				for(auto i: instrs)  {
-						std::string opcode = i->getOpcode(); 
-						std::string instTypeStr = extractInstType(opcode); 
-						int instType = instTypeNameMap[instTypeStr]; 
-						if (verbose) printf("extracted instType: %s, ", instTypeStr.c_str());
-						if (verbose) printf("index of instType: %d\n", instTypeNameMap[instTypeStr]);
-						//if ((uint32_t)instType == inj_info.injInstType || inj_info.injInstType == NUM_ISA_INSTRUCTIONS) {
+					int destGPRNum = -1;
+					int numDestGPRs = 0;
 						
-						//if ((uint32_t)instType == inj_info.injInstType) {
-								if (verbose) { printf("instruction selected for instrumentation: "); i->print(); }
+					if (tokens.size() > 1) { // an actual instruction that writes to either a GPR or PR register
+							if (verbose) printf("num tokens = %ld \n", tokens.size());
+							int start = 1; // first token is opcode string
+							if (tokens[0].find('@') != std::string::npos) { // predicated instruction, ignore first token
+									start = 2; // first token is predicate and 2nd token is opcode
+							}
+							
+							// Parse the first operand - this is the first destination
+							int regnum1 = -1;
+							int regtype = extractRegNo(tokens[start], regnum1);
+							if (regtype == 0) { // GPR reg
+									destGPRNum = regnum1;
+									numDestGPRs = (getOpGroupNum(instType) == G_FP64) ? 2 : 1;
 
-								// Tokenize the instruction 
-								std::vector<std::string> tokens;
-								std::string buf; // a buffer string
-								std::stringstream ss(i->getSass()); // Insert the string into a stream
-								while (ss >> buf)
-										tokens.push_back(buf);
-
-								int destGPRNum = -1;
-								int numDestGPRs = 0;
-
-								if (tokens.size() > 1) { // an actual instruction that writes to either a GPR or PR register
-										if (verbose) printf("num tokens = %ld \n", tokens.size());
-										int start = 1; // first token is opcode string
-										if (tokens[0].find('@') != std::string::npos) { // predicated instruction, ignore first token
-												start = 2; // first token is predicate and 2nd token is opcode
-										}
-
-										// Parse the first operand - this is the first destination
-										int regnum1 = -1;
-										int regtype = extractRegNo(tokens[start], regnum1);
-										if (regtype == 0) { // GPR reg
-												destGPRNum = regnum1;
-												numDestGPRs = (getOpGroupNum(instType) == G_FP64) ? 2 : 1;
-
-												int szStr = extractSize(opcode); 
-												if (szStr == 128) {
-														numDestGPRs = 4; 
-												} else if (szStr == 64) {
-														numDestGPRs = 2; 
-												}
-												
-												if ((uint32_t)destGPRNum == inj_info.injReg){
-													k++;
-													fout <<"Kernel name: "<<kname<<"; kernel Index: "<< kernel_id <<"; Num_Injections: " << k <<";"<< std::endl;
-													
-													
-													
-													//printf("instType%d\n",instType);
-													nvbit_insert_call(i, "inject_error", IPOINT_AFTER);
-													nvbit_add_call_arg_const_val64(i, (uint64_t)&inj_info);
-													nvbit_add_call_arg_const_val64(i, (uint64_t)&verbose_device);
-
-													nvbit_add_call_arg_const_val32(i, destGPRNum); // destination GPR register number
-													if (destGPRNum != -1) {
-														nvbit_add_call_arg_reg_val(i, destGPRNum); // destination GPR register val
-												} else {
-														nvbit_add_call_arg_const_val32(i, (unsigned int)-1); // destination GPR register val 
-												}
-												nvbit_add_call_arg_const_val32(i, numDestGPRs); // number of destination GPR registers
-
-												nvbit_add_call_arg_const_val32(i, compute_cap); // compute_capability
-												
-										}
+									int szStr = extractSize(opcode); 
+									if (szStr == 128) {
+											numDestGPRs = 4; 
+									} else if (szStr == 64) {
+											numDestGPRs = 2; 
+									}
+							
+							if(inj_info.injReg != 0){
 										
+										if((inj_info.injReg == 1 && reg[1] != -1) || (inj_info.injReg == 2 && reg[2] != -1) || (inj_info.injReg == 3 && reg[3] != -1)){
+										k++;
+										fout <<"Kernel name: "<<kname<<"; kernel Index: "<< kernel_id <<"; Num_Injections: " << k <<";"<< std::endl;
+										nvbit_insert_call(i, "inject_error_input", IPOINT_BEFORE);
+										nvbit_add_call_arg_const_val64(i, (uint64_t)&inj_info);
+										nvbit_add_call_arg_const_val64(i, (uint64_t)&verbose_device);
+
+										if(inj_info.injReg == 1 && reg[1] != -1)
+											nvbit_add_call_arg_const_val32(i, reg[1]);
+										else if (inj_info.injReg == 2 && reg[2] != -1)
+											nvbit_add_call_arg_const_val32(i, reg[2]);
+										else if (inj_info.injReg == 3 && reg[3] != -1)
+											nvbit_add_call_arg_const_val32(i, reg[3]);
+										nvbit_add_call_arg_const_val32(i, destGPRNum); // destination GPR register number
+										if (destGPRNum != -1) {
+											nvbit_add_call_arg_reg_val(i, destGPRNum); // destination GPR register val
+										} else {
+											nvbit_add_call_arg_const_val32(i, (unsigned int)-1); // destination GPR register val 
+										}
+										nvbit_add_call_arg_const_val32(i, numDestGPRs); // number of destination GPR registers
+
+										nvbit_add_call_arg_const_val32(i, compute_cap); // max regs used by the inst info										
 								}
-						}
+							}
+							else if(inj_info.injReg == 0){
+							
+								k++;
+								fout <<"Kernel name: "<<kname<<"; kernel Index: "<< kernel_id <<"; Num_Injections: " << k <<";"<< std::endl;
+								nvbit_insert_call(i, "inject_error_output", IPOINT_AFTER);
+								nvbit_add_call_arg_const_val64(i, (uint64_t)&inj_info);
+								nvbit_add_call_arg_const_val64(i, (uint64_t)&verbose_device);
+
+								nvbit_add_call_arg_const_val32(i, destGPRNum); // destination GPR register number
+								if (destGPRNum != -1) {
+									nvbit_add_call_arg_reg_val(i, destGPRNum); // destination GPR register val
+								} else {
+									nvbit_add_call_arg_const_val32(i, (unsigned int)-1); // destination GPR register val 
+								}
+								nvbit_add_call_arg_const_val32(i, numDestGPRs); // number of destination GPR registers
+								nvbit_add_call_arg_const_val32(i, compute_cap); // max regs used by the inst info
+							}
+
+						}			
+
+					}
 				}
+			}
 		}
 }
 
@@ -320,7 +364,7 @@ void nvbit_at_cuda_event(CUcontext ctx, int is_exit, nvbit_api_cuda_t cbid,
 							 //cudaDeviceSynchronize();
 
 							nvbit_enable_instrumented(ctx, p->f, true); // run the instrumented version
-							//cudaDeviceSynchronize();
+							cudaDeviceSynchronize();
 						} else {
 							nvbit_enable_instrumented(ctx, p->f, false); // do not use the instrumented version
 						}
@@ -333,18 +377,16 @@ void nvbit_at_cuda_event(CUcontext ctx, int is_exit, nvbit_api_cuda_t cbid,
 								cudaError_t le = cudaGetLastError();
 
 								std::string kname = removeSpaces(nvbit_get_func_name(ctx,p->f));
-								//int num_ctas = 0;
-								//int num_threads = 0;//added
+								int num_ctas = 0;
+								int num_threads = 0;//added
 								if ( cbid == API_CUDA_cuLaunchKernel_ptsz ||
 												cbid == API_CUDA_cuLaunchKernel) {
-										//cuLaunchKernel_params * p2 = (cuLaunchKernel_params*) params;
-										//num_ctas = p2->gridDimX * p2->gridDimY * p2->gridDimZ;
+										cuLaunchKernel_params * p2 = (cuLaunchKernel_params*) params;
+										num_ctas = p2->gridDimX * p2->gridDimY * p2->gridDimZ;
 										//num_threads = num_ctas * p2->blockDimX * p2->blockDimY * p2->blockDimZ; //added 
 										//printf ("threads %d\n",num_threads);//added
 								}
 								assert(fout.good());
-
-							
 								
 
 								if ( cudaSuccess != le ) {
@@ -352,11 +394,13 @@ void nvbit_at_cuda_event(CUcontext ctx, int is_exit, nvbit_api_cuda_t cbid,
 										fout << "ERROR FAIL in kernel execution (" << cudaGetErrorString(le) << "); " <<std::endl;
 										exit(1); // let's exit early 
 								}
-								fout << "inspecting: "<< kname <<"; thread : "<<  inj_info.injThreadID <<"; Register : "<< inj_info.injReg<<";  Mask : "<<inj_info.injMask<<"; SMID : "<<inj_info.injSMID<< "; Stuck at : "<<inj_info.injStuckat  << "; index: " << kernel_id << ";" <<std::endl;
+								
+								fout << "inspecting: "<< kname<<"; SMID : "<<inj_info.injSMID<<"; SubSMID : "<<inj_info.injSubSMID<< "; LaneID : "<<inj_info.injLaneID<<"; InstType : "<<inj_info.injInstType<<";  Mask : "<<inj_info.injMask<<";  Register : "<<inj_info.injReg<<";  StuckAt : "<<inj_info.injStuckat<<";"<<std::endl;
+								
 								if (verbose) printf("\n index: %d; kernel_name: %s; \n", kernel_id, kname.c_str());
 								kernel_id++; // always increment kernel_id on kernel exit
 
-								//cudaDeviceSynchronize();
+								cudaDeviceSynchronize();
 								pthread_mutex_unlock(&mutex);
 						}
 				}

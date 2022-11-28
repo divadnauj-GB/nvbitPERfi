@@ -81,8 +81,10 @@ THRESHOLD_JOBS = 1
 #######################################################################
 INJECTOR_LIB = os.environ['NVBITFI_HOME'] + "/injector/injector.so"
 PROFILER_LIB = os.environ['NVBITFI_HOME'] + "/profiler/profiler.so"
-INJECTOR_PF_RF = os.environ['NVBITFI_HOME'] + "/pf_injector_register_file/pf_injector.so"
+INJECTOR_PF_RF = os.environ['NVBITFI_HOME'] + "/pf_err_injector/pf_injector.so"
 INJECTOR_PF_ICOC = os.environ['NVBITFI_HOME'] + "/pf_injector_icoc/pf_injector.so"
+INJECTOR_PF_REGF = os.environ['NVBITFI_HOME'] + "/pf_injector_register_file/pf_injector.so"
+INJECTOR_PF_INTFU= os.environ['NVBITFI_HOME'] + "/pf_injector_int_units_instruction/pf_injector.so"
 
 
 #######################################################################

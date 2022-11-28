@@ -22,17 +22,17 @@
 
 typedef struct {
   uint32_t injSMID; // 0 - max SMs
-  uint32_t injLaneID; // 0 - 32
-  uint32_t injThreadID;
-  uint32_t injReg;
-  uint32_t injStuckat;
-  //uint32_t injCtaID;	
-  uint32_t injMask; // injection mask
+  int injSubSMID;// 4 Sub SMID retrieved from warpID (0:31)->(0:3)
+  uint32_t injLaneID; // core ID 0 - 32
   uint32_t injInstType; // instruction type 
-
+  uint32_t injMask; // injection mask
+  uint32_t injReg; // injection mask		
+  uint32_t injStuckat; //stuckat model used
   // updated during/after error injection 
   uint64_t injNumActivations;
   bool errorInjected;
 } inj_info_t; 
+
+
 
 #endif
