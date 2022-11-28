@@ -2,6 +2,7 @@
 import datetime
 import os
 import re
+import shutil
 from typing import Tuple
 
 import pandas as pd
@@ -12,8 +13,11 @@ OUTPUT_PARSED_FILE = f"{DATA_PATH}/parsed_data.csv"
 DEFAULT_LOG_HELPER_PATH = f"{DATA_PATH}/log_helper_dest/radiation-benchmarks/log"
 DEFAULT_NVBITPERFI_PATH = f"{DATA_PATH}/logs"
 NUM_INJECTIONS = 1000
-ERROR_MODELS = ["IAC", "ICOC", "IIO", "IRA"]
-BENCHMARKS = ["accl", "bfs", "cfd", "gaussian", "gemm", "hotspot", "lava", "lud", "mergesort", "mxm", "nw", "quicksort"]
+ERROR_MODELS = ["IAC", "IAL", "IAT", "IAW", "ICOC", "IIO", "IMD", "IMS", "IRA", "WV"]
+BENCHMARKS = [
+    "accl", "bfs", "cfd", "gaussian", "gemm", "hotspot", "lava",
+    "lud", "mergesort", "mxm", "nw", "quicksort", "darknet_v3"
+]
 
 DUE_CAUSE_NAMES = {
     'NoDUE': "NoDUE",
@@ -50,7 +54,8 @@ def parse_lib_log_helper_file(log_path: str, error_model: str, app: str) -> dict
                 sdc_m = re.match(r"#SDC Ite:(\d+) KerTime:(\S+) AccTime:(\S+) KerErr:(\d+) AccErr:(\d+)", line)
 
                 if sdc_m:
-                    assert data_dict["sdc"] == 0, f"More than one SDC per log {log_path}"
+                    if app != "darknet_v3":
+                        assert data_dict["sdc"] == 0, f"More than one SDC per log {log_path}"
                     it, ker_time, acc_time, ker_err, acc_err = sdc_m.groups()
                     data_dict["sdc"] = 1
                     data_dict["ker_time"] = float(ker_time)
@@ -117,6 +122,22 @@ def get_fault_info(fi_dir: str, has_end: bool) -> Tuple[str, int]:
     return due_cause, was_fault_injected
 
 
+def check_if_path_is_tar_and_extract(path: str):
+    tar_path = f"{path}.tar.gz"
+    # then we need to create the path and extract the file
+    if os.path.isfile(tar_path):
+        if os.path.isdir(path) is False:
+            os.mkdir(path)
+        assert os.system(f"tar xzf {tar_path} -C {path}") == 0, f"Error on uncompressing {tar_path}"
+
+
+def rm_dir_if_tar_file_exists(path: str):
+    tar_path = f"{path}.tar.gz"
+    # check if it exists
+    if os.path.isfile(tar_path) and os.path.isdir(path) is True:
+        shutil.rmtree(path)
+
+
 def main():
     data_list = list()
     start = datetime.datetime.now()
@@ -126,6 +147,7 @@ def main():
             for injection_count in range(1, NUM_INJECTIONS + 1):
                 nvbit_perfi_log_i_path = os.path.join(DEFAULT_NVBITPERFI_PATH, app, error_model, "logs",
                                                       f"{app}-mode{error_model}-icount{injection_count}")
+                check_if_path_is_tar_and_extract(path=nvbit_perfi_log_i_path)
                 assert os.path.isdir(nvbit_perfi_log_i_path), f"Not a path {nvbit_perfi_log_i_path}"
                 log_helper_file = get_log_file_name(fi_dir=nvbit_perfi_log_i_path)
                 respective_log_helper_file = os.path.join(DATA_PATH, log_helper_file)
@@ -137,6 +159,7 @@ def main():
                                                                                    has_end=data_i["has_end"] == 1)
 
                 data_list.append(data_i)
+                rm_dir_if_tar_file_exists(path=nvbit_perfi_log_i_path)
 
     end = datetime.datetime.now()
     print("Time spent", end - start)
