@@ -50,7 +50,7 @@
 #endif
 
 #define THRESHOLD_ERROR_INTEGER 1
-#define MAX_ERROR_COUNT 500 * 2
+#define MAX_ERROR_COUNT (500 * 2)
 
 /**
  * AUXILIARY CLASSES
