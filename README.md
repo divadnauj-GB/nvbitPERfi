@@ -2,7 +2,8 @@
 If you want to run a single application you can generate the golden files by hand and run the following command. the `VectorAdd` parameter is the application folder where the executable binary is located.
 
 ```bash
-./runPERfi.sh VectorAdd > log.log
+export FAULT_MODE=IOC
+./runPERfi.sh VectorAdd $FAULT_MODE> log.log
 ```
 
 If you want to run the apps that were used in the paper run the script to generate all the necessary files first.
@@ -10,9 +11,10 @@ If you want to run the apps that were used in the paper run the script to genera
 ```bash
 cd test-apps
 python3 configure_real_workloads.py
+export FAULT_MODE=IOC
 # for each benchmark in test-apps
 for bench in accl bfs cfd darknet_v3 gaussian gemm hotspot lava LeNet lud mergesort nw quicksort VectorAdd; do
-   ./runPERfi.sh $bench > log_$bench.log
+   ./runPERfi.sh $bench $FAULT_MODE> log_$bench.log
 done
 ```
 
