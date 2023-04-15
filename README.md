@@ -1,10 +1,21 @@
-# TOWARDS DSN :). How to use this environmet?
-run the following command. the `VectorAdd` parameter is the application folder where the executable binary is located
+# How to use this environmet?
+If you want to run a single application you can generate the golden files by hand and run the following command. the `VectorAdd` parameter is the application folder where the executable binary is located.
 
-```console
+```bash
 ./runPERfi.sh VectorAdd > log.log
-
 ```
+
+If you want to run the apps that were used in the paper run the script to generate all the necessary files first.
+
+```bash
+cd test-apps
+python3 configure_real_workloads.py
+# for each benchmark in test-apps
+for bench in accl bfs cfd darknet_v3 gaussian gemm hotspot lava LeNet lud mergesort nw quicksort VectorAdd; do
+   ./runPERfi.sh $bench > log_$bench.log
+done
+```
+
 you will get a file called `log.log` with something like the below dump results. if not, probably the target register is not in the SASS file, so change the second colum of the fault list file `modeIRA1000.txt` located in `test-apps/logs/VectorAdd/injection-list` 
 
 If everything was working as it suposed to be, here the results. 
