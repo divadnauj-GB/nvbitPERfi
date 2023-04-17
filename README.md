@@ -3,8 +3,18 @@
 
 # Prerequisites
  * [NVBit v1.5.5](https://github.com/NVlabs/NVBit/releases/tag/1.5.5)
- * [System requirements](https://github.com/NVlabs/NVbit#requirements)
-
+ * System requirements
+   * SM compute capability: >= 3.5 && <= 8.6
+   * Host CPU: x86_64
+   * OS: Linux
+   * GCC version: >= 5.3.0
+   * CUDA version: >= 8.0 && <= 11.x
+   * CUDA driver version: <= 510.85
+   * nvcc version for tool compilation >= 10.2
+   * CMake >= 3.16
+   * python >= 3.7   
+   * pandas==1.3.4
+ 
 # Getting started on a Linux x86\_64 PC
 ```bash
 # NVBit-v1.5.5
