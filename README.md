@@ -24,7 +24,7 @@ cd nvbit_release/tools/
 
 # NVbitPERfi 
 git clone https://github.com/divadnauj-GB/nvbitPERfi.git
-cd nvbitperfi
+cd nvbitPERfi
 find . -name "*.sh" | xargs chmod +x
 
 # Prepare the benchmarks  
@@ -33,20 +33,25 @@ python3 configure_real_workloads.py
 ```
 # How to use this environmet?
 
-If you want to execute the IOC error model for all apps that were used in the paper; run the following script. Previously during the tool setup the [configure_real_workloads.py](https://github.com/divadnauj-GB/nvbitPERfi/blob/main/test-apps/configure_real_workloads.py) script already configured all the application benchmarchs.
+If you want to execute the IOC error model for all apps that were used in the paper; run the following script. Previously during the tool setup the [configure_real_workloads.py](https://github.com/divadnauj-GB/nvbitPERfi/blob/main/test-apps/configure_real_workloads.py) script already configured all the application benchmarchs. 
 
 ```bash
-export FAULT_MODE=IOC
+export FAULT_MODE=ICOC
 # for each benchmark in test-apps
 for bench in accl bfs cfd darknet_v3 gaussian gemm hotspot lava LeNet lud mergesort nw quicksort VectorAdd; do
    ./runPERfi.sh $bench $FAULT_MODE> log_$bench.log
 done
 ```
 
+If you want to use any other error model just change the **FAULT_MODE** variable whith one of the following descriptors:
+```console
+[IAT, IAW, IAC, WV, IRA, IMS, IMD, IAL, ICOC, IIO]
+```
+
 Assuming that the tool and its dependencies have been appropriately installed and configured, to run the NVBitPERfi for a single benchmark such as GEMM with IOC fault model, execute the following command:
 
 ```bash
-export FAULT_MODE=IOC
+export FAULT_MODE=ICOC
 ./runPERfi.sh gemm $FAULT_MODE> gemm.log
 ```
 After completing the fault injection procedure, the results can be extracted by running the parsers to generate a CSV file containing the parsed fault injection details. It is important to note that each parser has configuration variables in its first lines that must be set prior to execution. The following command can be used to parse the data:
