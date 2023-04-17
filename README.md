@@ -32,8 +32,8 @@ cd test-apps/
 python3 configure_real_workloads.py
 ```
 # How to use this framework?
-
-If you want to execute the IOC error model for all apps that were used in the paper; run the following script. Previously during the tool setup the [configure_real_workloads.py](https://github.com/divadnauj-GB/nvbitPERfi/blob/main/test-apps/configure_real_workloads.py) script already configured all the application benchmarchs. 
+The previous setup configure and run all the application benchmarchs and generate the golden outputs.
+If you want to execute the IOC error model for all apps that were used in the paper; run the following script. 
 
 ```bash
 export FAULT_MODE=ICOC
@@ -48,7 +48,7 @@ If you want to use any other error model just change the **FAULT_MODE** variable
 [IAT, IAW, IAC, WV, IRA, IMS, IMD, IAL, ICOC, IIO]
 ```
 
-Assuming that the tool and its dependencies have been appropriately installed and configured, to run the NVBitPERfi for a single benchmark such as GEMM with IOC fault model, execute the following command:
+Assuming that the tool and its dependencies have been appropriately installed and configured, you can also run the NVBitPERfi for a single benchmark such as GEMM with IOC fault model, execute the following command:
 
 ```bash
 export FAULT_MODE=ICOC
