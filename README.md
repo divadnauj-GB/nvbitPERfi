@@ -31,7 +31,7 @@ find . -name "*.sh" | xargs chmod +x
 cd test-apps/
 python3 configure_real_workloads.py
 ```
-# How to use this environmet?
+# How to use this framework?
 
 If you want to execute the IOC error model for all apps that were used in the paper; run the following script. Previously during the tool setup the [configure_real_workloads.py](https://github.com/divadnauj-GB/nvbitPERfi/blob/main/test-apps/configure_real_workloads.py) script already configured all the application benchmarchs. 
 
