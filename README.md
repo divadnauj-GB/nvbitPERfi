@@ -1,6 +1,8 @@
 
 # Understanding the Effects of Permanent Faults in GPU's Parallelism Management and Control Units
 
+[![DOI](https://zenodo.org/badge/560037637.svg)](https://zenodo.org/badge/latestdoi/560037637)
+
 ```bibtex
 @article{guerrero2023sc3,
   title={Understanding the Effects of Permanent Faults in GPU's Parallelism Management and Control Units},
