@@ -1,6 +1,16 @@
 
 # Understanding the Effects of Permanent Faults in GPU's Parallelism Management and Control Units
 
+```bibtex
+@article{guerrero2023sc3,
+  title={Understanding the Effects of Permanent Faults in GPU's Parallelism Management and Control Units},
+  author={Guerrero-Balaguera, Juan-David and Rodriguez Condia, Josie E. and F. dos Santos, Fernando and Sonza Reorda, Matteo and Rech, Paolo},
+  journal={arXiv preprint arXiv:2306.10856},
+  year={2023}
+}
+```
+
+
 # Prerequisites
  * [NVBit v1.5.5](https://github.com/NVlabs/NVBit/releases/tag/1.5.5)
  * System requirements
