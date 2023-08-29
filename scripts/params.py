@@ -27,6 +27,8 @@
 import os, sys
 from real_workloads_parameters import REAL_WORKLOAD_DICT
 from TGSIM import TGSIM
+from args import args
+
 PYTHON_P = "python3"
 
 TIMEOUT_THRESHOLD = 5 # 10X usual runtime 
@@ -63,7 +65,7 @@ compress_logs = True
 # per instruction group (IGID) and bit-flip model (BFM).
 # 
 # NUM_INJECTIONS = 644
-NUM_INJECTIONS = 1000
+NUM_INJECTIONS = args.number_injections
 # Specify how many injections you want to perform per IGID and BFM combination. 
 # Only the first THRESHOLD_JOBS will be selected from the generated NUM_INJECTIONS.
 #
@@ -81,6 +83,7 @@ THRESHOLD_JOBS = 1
 #######################################################################
 INJECTOR_LIB = os.environ['NVBITFI_HOME'] + "/injector/injector.so"
 PROFILER_LIB = os.environ['NVBITFI_HOME'] + "/profiler/profiler.so"
+PROFILER_KPROOF = os.environ['NVBITFI_HOME'] + "/profiler_CNN/profiler.so"
 INJECTOR_PF_RF = os.environ['NVBITFI_HOME'] + "/pf_err_injector/pf_injector.so"
 INJECTOR_PF_ICOC = os.environ['NVBITFI_HOME'] + "/pf_injector_icoc/pf_injector.so"
 INJECTOR_PF_REGF = os.environ['NVBITFI_HOME'] + "/pf_injector_register_file/pf_injector.so"
@@ -230,6 +233,13 @@ apps = {
         "/home/juancho/Documents/GitHub/darknet_jd_v1", # path to the binary file
         6,
         'classifier test /home/juancho/Documents/GitHub/darknet_jd_v1/LeNet/cfg/mnist_errmod.data /home/juancho/Documents/GitHub/darknet_jd_v1/LeNet/cfg/mnist_lenet.cfg /home/juancho/Documents/GitHub/darknet_jd_v1/LeNet/mnist_lenet.weights -t 10'
+    ],
+    'Conv2D' : [
+        NVBITFI_HOME + '/test-apps/Conv2D',
+        'LeNet.py',
+        NVBITFI_HOME + '/test-apps/Conv2D',
+        60,
+        "-ln 1 -bs 1"
     ],
     **REAL_WORKLOAD_DICT
 }

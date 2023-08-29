@@ -168,6 +168,12 @@ def create_p_file(p_filename, inj_mode, error_mode):
                 outf.write(fields+"\n")
         else:
             print("Ops... it seems the error descriptor has missing arguments  :(")
+    elif inj_mode=='REGs':
+        if len(error_mode)==5:
+            for fields in error_mode:
+                outf.write(fields+"\n")
+        else:
+            print("Ops... it seems the error descriptor has missing arguments  :(")
     else:
         print(f"Ops.. the {inj_mode} error model does not exist, perhaps it is a new model you can implement in the future ;)")	
 
@@ -193,7 +199,7 @@ def get_inj_info(inj_mode):
     [value_str, pc, inst_type, tid, injBID] = ["", "", "", -1, -1]
     if os.path.isfile(p.inj_run_log): 
         logf = open(p.inj_run_log, "r")
-        if inj_mode in ['ICOC', 'IRA', 'IR', 'IAT', 'IAW', 'IAC', 'WV', 'IIO', 'IMS', 'IMD', 'IAL']:
+        if inj_mode in ['ICOC', 'IRA', 'IR', 'IAT', 'IAW', 'IAC', 'WV', 'IIO', 'IMS', 'IMD', 'IAL', 'REGs']:
             for line in logf:
                 if "Report_Summary:" in line:
                     value_str=line.replace("Report_Summary: ;","").strip()
@@ -252,7 +258,7 @@ def classify_injection(app, inj_mode, error_model, retcode, dmesg_delta):
     if "Error: misaligned address" in str(open(stderr_fname).read()): # if error is found in the log standard err 
         return p.STDOUT_ERROR_MESSAGE
 
-    os.system(p.script_dir[app] + "/sdc_check.sh") # perform SDC check
+    os.system(p.script_dir[app] + "/sdc_check.sh " + p.app_args[app]) # perform SDC check
 
     if os.path.isfile(p.output_diff_log) and os.path.isfile(p.stdout_diff_log) and os.path.isfile(p.stderr_diff_log):
         if os.path.getsize(p.output_diff_log) == 0 and os.path.getsize(p.stdout_diff_log) == 0 and os.path.getsize(p.stderr_diff_log) == 0: # no diff is observed
@@ -397,9 +403,9 @@ def run_one_injection_job(inj_mode, app, error_model, icount):
                 shutil.rmtree(new_directory, True) # remove the directory
             except:                
                 if (timeout_flag):
-                    print(f"Error compressing folder due to Timeout termination: {sys.exc_info()[0]}")
+                    print(f"ERROR- compressing folder due to Timeout termination: {sys.exc_info()[0]}")
                 else:
-                    print(f"Error compressing folder due to Other reasons: {sys.exc_info()[0]}")
+                    print(f"ERROR- compressing folder due to Other reasons: {sys.exc_info()[0]}")
     #print(ret_cat)
     #print(pr.poll())
     #while(pr.poll()==None):

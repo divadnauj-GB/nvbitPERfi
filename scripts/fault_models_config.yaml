@@ -1,0 +1,43 @@
+number_injections: 10
+
+hw_targets:
+  smid: 0
+  schid: 0
+
+config_fm:  
+  IRA:
+    mode: None
+  ICOC:
+    mode: None
+  IIO:
+    mode: None
+  IAT:
+    mode: None
+  IAW: 
+    mode: None
+  IAC: 
+    mode: None
+  WV:
+    mode: None
+  IMS: 
+    mode: None
+  IMD: 
+    mode: None
+  IAL:
+    mode: None
+  REGs:
+    # mode: "st", "rnd", "stat"
+    mode: "st"
+    # thread identifier if mode st: if -1 any thread
+    thrid: 0
+    kname: "gemm"
+  FUs:
+    # mode: "int32", "fp32", "sfu", "tensor"
+    format: "fp32"
+    instrid: "FFMA"
+    coreid: 0
+
+
+
+    
+      

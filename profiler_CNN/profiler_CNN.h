@@ -47,6 +47,8 @@ typedef struct {
 
 typedef struct {
     uint32_t *ThrdID;
+    uint32_t *WARPID;
+    uint32_t *LANEID;
     uint32_t *SMID;
     uint32_t *ctaID_x;
     uint32_t *ctaID_y;

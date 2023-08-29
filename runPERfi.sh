@@ -77,16 +77,17 @@ export RODINIA=""
 #export nvbitPERfi=IAT
 export nvbitPERfi=$FAULT_MODE
 export SMID=0
-export SCHID=0
+export SCHID=1
 
 ###############################################################################
 # Step 0 (3): Build the nvbitfi injector and profiler tools
 ###############################################################################
 printf "\nStep 0 (3): Build the nvbitfi injector and profiler tools\n"
-for buildi in pf_injector_icoc  pf_injector_register_file profiler; do
+for buildi in pf_injector_icoc  pf_err_injector pf_injector_register_file profiler profiler_CNN; do
   echo "Building $buildi"
   cd $buildi;
-  make clean all;
+  #make clean
+  make all;
   cd -
 done
 #cd pf_injector_register_file
@@ -97,15 +98,18 @@ done
 #make
 #cd $CWD
 
+#cd test-apps
+#python3 configure_real_workloads.py
+#cd -
 ###############################################################################
 # Step 0 (4): Run the app without instrumentation. Collect golden stdout and
 # stderr files. User must generate this before starting the injection campaign.
 ###############################################################################
 printf "\nStep 0 (4): Run and collect output without instrumentation\n"
-cd ${APP_DIR}
-make 2> stderr.txt
+#cd ${APP_DIR}
+#make 2> stderr.txt
 #${APP_DIR}/vectorAdd> golden_stdout.txt 2> golden_stderr.txt
-cd $CWD
+#cd $CWD
 
 ###############################################################################
 # Step 1: Profile and generate injection list

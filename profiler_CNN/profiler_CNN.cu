@@ -68,6 +68,8 @@ std::string get_profiled_details(std::string kname) {
 
 void Managed_variables_init(void){
     CUDA_SAFECALL(cudaMallocManaged(&(vector_todo.ThrdID),(MemSize)*sizeof(uint32_t)));
+    CUDA_SAFECALL(cudaMallocManaged(&(vector_todo.WARPID),(MemSize)*sizeof(uint32_t)));
+    CUDA_SAFECALL(cudaMallocManaged(&(vector_todo.LANEID),(MemSize)*sizeof(uint32_t)));
     CUDA_SAFECALL(cudaMallocManaged(&(vector_todo.SMID),(MemSize)*sizeof(uint32_t)));
     CUDA_SAFECALL(cudaMallocManaged(&(vector_todo.ctaID_x),(MemSize)*sizeof(uint32_t)));
     CUDA_SAFECALL(cudaMallocManaged(&(vector_todo.ctaID_y),(MemSize)*sizeof(uint32_t)));
@@ -181,9 +183,11 @@ void nvbit_at_cuda_event(CUcontext ctx, int is_exit, nvbit_api_cuda_t cbid, cons
              * 4. Select if we want to run the instrumented or original
              * version of the kernel */
             if(alloc_memory==false){
-                Managed_variables_init();
+                //Managed_variables_init();
                 alloc_memory=true;
             }
+            Managed_variables_init();
+
             
 
             pthread_mutex_lock(&mutex);
@@ -204,7 +208,7 @@ void nvbit_at_cuda_event(CUcontext ctx, int is_exit, nvbit_api_cuda_t cbid, cons
             enable_instrumentation = (line_buffer.compare("") ==
                                       0); // if the kernel is already profiled, we will approximate the new profile to be same as the first one
             nvbit_enable_instrumented(ctx, p->f,
-                                      enable_instrumentation); // should we run the un-instrumented code? true means skip instrumentation
+                                      true); // should we run the un-instrumented code? true means skip instrumentation
         } else {
             cudaDeviceSynchronize();
             if (cudaGetLastError() != cudaSuccess) {
@@ -217,15 +221,20 @@ void nvbit_at_cuda_event(CUcontext ctx, int is_exit, nvbit_api_cuda_t cbid, cons
                 cuLaunchKernel_params *p2 = (cuLaunchKernel_params *) params;
                 num_ctas = p2->gridDimX * p2->gridDimY * p2->gridDimZ;
                 num_threads  = p2->gridDimX * p2->gridDimY * p2->gridDimZ * p2->blockDimX * p2->blockDimY * p2->blockDimZ;
-
-                SASS_filename="Kernel_"+std::to_string(kernel_id)+"_Thrd_"+std::to_string(num_threads)+"_Blks_"+std::to_string(num_ctas)+".txt";
+                
+                std::string kname = removeSpaces(nvbit_get_func_name(ctx, p->f)).c_str();
+                SASS_filename="Kernel_"+std::to_string(kernel_id)+"_Thrds_"+std::to_string(num_threads)+"_CTAs_"+std::to_string(num_ctas)+".csv";
                 foutSASS.open(SASS_filename.c_str(), std::ifstream::out);
+                foutSASS << "SMID; WarpID; LameID; ThreadID; CTAIDx; CTAIDy; CTAIDz; kname" << std::endl;
                 for(int i=0;i<num_threads;++i){
-                    foutSASS << vector_todo.ThrdID[i] << "; ";
                     foutSASS << vector_todo.SMID[i] << "; ";
+                    foutSASS << vector_todo.WARPID[i] << "; ";
+                    foutSASS << vector_todo.LANEID[i] << "; ";
+                    foutSASS << vector_todo.ThrdID[i] << "; ";
                     foutSASS << vector_todo.ctaID_x[i] << "; ";
                     foutSASS << vector_todo.ctaID_y[i] << "; ";
-                    foutSASS << vector_todo.ctaID_z[i] << "; " << std::endl;
+                    foutSASS << vector_todo.ctaID_z[i] << "; ";
+                    foutSASS << kname << std::endl;
                 }
 
                 foutSASS.close();
@@ -252,6 +261,16 @@ void nvbit_at_cuda_event(CUcontext ctx, int is_exit, nvbit_api_cuda_t cbid, cons
             }
             fout << "\n";
             fout.flush();
+
+            CUDA_SAFECALL(cudaFree(vector_todo.SMID));
+            CUDA_SAFECALL(cudaFree(vector_todo.WARPID));
+            CUDA_SAFECALL(cudaFree(vector_todo.LANEID));
+            CUDA_SAFECALL(cudaFree(vector_todo.ThrdID));
+            CUDA_SAFECALL(cudaFree(vector_todo.ctaID_x));
+            CUDA_SAFECALL(cudaFree(vector_todo.ctaID_y));
+            CUDA_SAFECALL(cudaFree(vector_todo.ctaID_z));
+
+
             pthread_mutex_unlock(&mutex);
         }
     }

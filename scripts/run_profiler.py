@@ -38,11 +38,19 @@ def main():
     for app in p.apps: 
         if(app==os.environ['BENCHMARK']):
             print (app)
-            os.system("mkdir -p " + p.app_log_dir[app])
-            cf.set_env(app, True) # is profiler run
-            cmd = "cd " + p.script_dir[app] + ";./" + p.run_script + " " + p.app_args[app]+ "; mv " + p.inj_run_log + " " + p.app_log_dir[app] + "/" +p.nvbit_profile_log  + ";cd -;"
-            print ("-" + cmd + "-")
-            os.system(cmd)
+            if not os.path.isfile(f"{p.app_log_dir[app]}/{p.nvbit_profile_log}"):
+                os.system("mkdir -p " + p.app_log_dir[app])
+                os.system("mkdir -p " + p.app_log_dir[app] + "/workload-profile-results")
+                
+                cf.set_env(app, True, "WLOAD") # is profiler run
+                cmd = "cd " + p.script_dir[app] + ";./" + p.run_script + " " + p.app_args[app]+ "; mv " + p.inj_run_log + " " + p.app_log_dir[app] + "/" +"nvbifi-igprogile-workload.txt"  + "; mv *.csv "+p.app_log_dir[app] + "/workload-profile-results"+";cd -;"
+                print ("-" + cmd + "-")
+                os.system(cmd)
 
+                
+                cf.set_env(app, True) # is profiler run
+                cmd = "cd " + p.script_dir[app] + ";./" + p.run_script + " " + p.app_args[app]+ "; mv " + p.inj_run_log + " " + p.app_log_dir[app] + "/" +p.nvbit_profile_log  + ";cd -;"
+                print ("-" + cmd + "-")
+                os.system(cmd)
 if __name__ == "__main__":
     main()

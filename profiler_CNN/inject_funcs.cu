@@ -59,15 +59,27 @@ extern "C" __device__ __noinline__ void trace_blocks(uint64_t todo) {
     auto i=getGlobalIdx_3D_3D();
     auto ctaID=get_ctaid();
     auto SMID=get_smid();
-
+    auto WID = get_warpid();
+    auto LID = get_laneid();
     muliple_ptr_t *inj_struct=(muliple_ptr_t *) todo;
 
     inj_struct->ThrdID[i]=i;
+    inj_struct->WARPID[i]=WID;
+    inj_struct->LANEID[i]=LID;
     inj_struct->SMID[i]=SMID;
     inj_struct->ctaID_x[i]=ctaID.x;
     inj_struct->ctaID_y[i]=ctaID.y;
     inj_struct->ctaID_z[i]=ctaID.z;
 
-    __threadfence_system();
+    // inj_struct->ThrdID[i]=i;
+    // inj_struct->WARPID[i]=WID;
+    // inj_struct->LANEID[i]=LID;
+    // inj_struct->SMID[i]=SMID;
+    // inj_struct->ctaID_x[i]=threadIdx.x;
+    // inj_struct->ctaID_y[i]=threadIdx.y;
+    // inj_struct->ctaID_z[i]=threadIdx.z;	
+
+
+    //__threadfence_system();
 
 }

@@ -35,4 +35,57 @@ typedef struct {
   bool errorInjected;
 } inj_info_t; 
 
+
+typedef struct {
+  uint32_t injSMID; // 0 - max SMs
+  uint32_t injThreadMask; //0-32
+  uint32_t injMask;
+  uint32_t injRegID; // injection mask;
+  uint32_t injStuck_at;
+  uint32_t injInstType; // instruction type 
+  uint32_t injRegOriginal;
+  uint32_t injRegReplacement;
+  uint64_t injNumActivations;
+  uint64_t injNumActivAcc;
+  uint32_t injInstrIdx;
+  uint32_t injInstPC;
+  uint32_t injInstOpcode;  
+  uint32_t injIALtype;
+  uint32_t blockDimX;
+  uint32_t blockDimY;
+  uint32_t blockDimZ;
+  uint32_t gridDimX;
+  uint32_t gridDimY;
+  uint32_t gridDimZ;
+  uint32_t maxregcount;
+  int32_t maxPredReg;
+  int32_t KernelPredReg;
+  uint32_t TotKerInstr;
+  uint32_t TotAppInstr;
+  uint32_t num_threads;
+  uint32_t MaxWarpsPerSM;
+  uint32_t MaxThreadsPerSM;
+  uint32_t MaxThreadsPerWarp;  
+  char DeviceName[256];
+  char KName[256];
+  uint32_t kernel_id;
+  bool errorInjected;
+} inj_info_error_t; 
+
+
+
+typedef struct {
+    uint32_t *ThrdID;
+    uint32_t *WARPID;
+    uint32_t *LANEID;
+    uint32_t *SMID;
+    uint32_t *ctaID_x;
+    uint32_t *ctaID_y;
+    uint32_t *ctaID_z;
+
+    uint32_t *flag;
+    uint32_t counter;
+} muliple_ptr_t;
+
+
 #endif

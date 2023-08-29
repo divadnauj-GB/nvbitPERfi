@@ -219,6 +219,7 @@ void nvbit_at_cuda_event(CUcontext ctx, int is_exit, nvbit_api_cuda_t cbid, cons
             }
             int num_ctas = 0;
             int num_threads=0;
+            int ThreadsPerCTA=0;
             int blockDimX=0;
             int blockDimY=0;
             int blockDimZ=0;
@@ -241,6 +242,7 @@ void nvbit_at_cuda_event(CUcontext ctx, int is_exit, nvbit_api_cuda_t cbid, cons
                 cuLaunchKernel_params *p2 = (cuLaunchKernel_params *) params;
                 num_ctas = p2->gridDimX * p2->gridDimY * p2->gridDimZ;
                 num_threads  = p2->gridDimX * p2->gridDimY * p2->gridDimZ * p2->blockDimX * p2->blockDimY * p2->blockDimZ;
+                ThreadsPerCTA = p2->blockDimX * p2->blockDimY * p2->blockDimZ;
                 //auto *device =(cuDeviceGet_params *) params;
                 
                 CUdevice device;
@@ -274,6 +276,7 @@ void nvbit_at_cuda_event(CUcontext ctx, int is_exit, nvbit_api_cuda_t cbid, cons
                  << "; maxWarpsPerSM: " << max_warps_per_sm
                  << "; ctas: " << num_ctas
                  << "; num_threads: " << num_threads
+                 << "; threadsPerCTA: " << ThreadsPerCTA
                  << "; max_regcount: " << max_regcount
                  << "; max_reg_operands: " << max_reg_operands
                  << "; maxPredReg: " << pred_reg
