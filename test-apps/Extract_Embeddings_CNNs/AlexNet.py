@@ -64,12 +64,12 @@ def main(args):
     # device = 'cpu'
     # Loading the dataset and preprocessing
     train_dataset = torchvision.datasets.ImageFolder(
-        root="/home/juancho/dataset/ilsvrc2012/train",
+        root="~/dataset/ilsvrc2012/train",
         transform=transform
     )
 
     test_dataset = train_dataset = torchvision.datasets.ImageFolder(
-        root="/home/juancho/dataset/ilsvrc2012/val",
+        root="~/dataset/ilsvrc2012/val",
         transform=transform
     )
 

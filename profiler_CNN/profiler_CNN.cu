@@ -42,6 +42,7 @@ std::string line_buffer;
 bool enable_instrumentation = false;
 bool alloc_memory= false;
 int num_threads=0;
+int num_ctas = 0;
 
 std::string SASS_filename;
 std::ofstream foutSASS;
@@ -67,13 +68,13 @@ std::string get_profiled_details(std::string kname) {
 }
 
 void Managed_variables_init(void){
-    CUDA_SAFECALL(cudaMallocManaged(&(vector_todo.ThrdID),(MemSize)*sizeof(uint32_t)));
-    CUDA_SAFECALL(cudaMallocManaged(&(vector_todo.WARPID),(MemSize)*sizeof(uint32_t)));
-    CUDA_SAFECALL(cudaMallocManaged(&(vector_todo.LANEID),(MemSize)*sizeof(uint32_t)));
-    CUDA_SAFECALL(cudaMallocManaged(&(vector_todo.SMID),(MemSize)*sizeof(uint32_t)));
-    CUDA_SAFECALL(cudaMallocManaged(&(vector_todo.ctaID_x),(MemSize)*sizeof(uint32_t)));
-    CUDA_SAFECALL(cudaMallocManaged(&(vector_todo.ctaID_y),(MemSize)*sizeof(uint32_t)));
-    CUDA_SAFECALL(cudaMallocManaged(&(vector_todo.ctaID_z),(MemSize)*sizeof(uint32_t)));
+    CUDA_SAFECALL(cudaMallocManaged(&(vector_todo.ThrdID),(num_threads)*sizeof(uint32_t)));
+    CUDA_SAFECALL(cudaMallocManaged(&(vector_todo.WARPID),(num_threads)*sizeof(uint32_t)));
+    CUDA_SAFECALL(cudaMallocManaged(&(vector_todo.LANEID),(num_threads)*sizeof(uint32_t)));
+    CUDA_SAFECALL(cudaMallocManaged(&(vector_todo.SMID),(num_threads)*sizeof(uint32_t)));
+    CUDA_SAFECALL(cudaMallocManaged(&(vector_todo.ctaID_x),(num_threads)*sizeof(uint32_t)));
+    CUDA_SAFECALL(cudaMallocManaged(&(vector_todo.ctaID_y),(num_threads)*sizeof(uint32_t)));
+    CUDA_SAFECALL(cudaMallocManaged(&(vector_todo.ctaID_z),(num_threads)*sizeof(uint32_t)));
 }
 /* nvbit_at_init() is executed as soon as the nvbit tool is loaded. We typically
  * do initializations in this call. In this case for instance we get some
@@ -175,6 +176,9 @@ void nvbit_at_cuda_event(CUcontext ctx, int is_exit, nvbit_api_cuda_t cbid, cons
         cuLaunch_params *p = (cuLaunch_params *) params;
 
         if (!is_exit) {
+            cuLaunchKernel_params *p2 = (cuLaunchKernel_params *) params;
+            num_ctas = p2->gridDimX * p2->gridDimY * p2->gridDimZ;
+            num_threads  = p2->gridDimX * p2->gridDimY * p2->gridDimZ * p2->blockDimX * p2->blockDimY * p2->blockDimZ;
             /* if we are entering in a kernel launch:
              * 1. Lock the mutex to prevent multiple kernels to run concurrently
              * (overriding the counter) in case the user application does that
@@ -215,7 +219,7 @@ void nvbit_at_cuda_event(CUcontext ctx, int is_exit, nvbit_api_cuda_t cbid, cons
                 printf("NVBit-igprofile; ERROR FAIL in kernel execution!!\n");
                 exit(1);
             }
-            int num_ctas = 0;
+            
             if (cbid == API_CUDA_cuLaunchKernel_ptsz ||
                 cbid == API_CUDA_cuLaunchKernel) {
                 cuLaunchKernel_params *p2 = (cuLaunchKernel_params *) params;
