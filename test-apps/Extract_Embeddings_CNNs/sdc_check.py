@@ -49,7 +49,7 @@ def main(args):
 
     dataset_file = os.path.join(
         current_path,
-        f"embeddings.h5",
+        f"Golden_Output_layer.h5",
     )
 
     with h5py.File(dataset_file, "r") as hf:

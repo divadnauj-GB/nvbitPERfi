@@ -138,6 +138,15 @@ class extract_embeddings_nvbit:
                 hf.create_dataset(
                     "layer_input", data=embeddings_input, compression="gzip"
                 )
+            
+            layer_inputs_path_file = os.path.join(
+                current_path, f"Golden_Output_layer.h5"
+            )
+
+            with h5py.File(layer_inputs_path_file, "w") as hf:
+                hf.create_dataset(
+                    "layer_output", data=embeddings_output, compression="gzip"
+                )
 
             self._save_target_layer(self.layer_model, filename="target_layer.pth.tar")
 

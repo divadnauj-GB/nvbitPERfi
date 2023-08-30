@@ -96,7 +96,7 @@ def main(args):
         print(model)
 
         Embeddings = nvbitDNN.extract_embeddings_nvbit(
-            model=model, lyr_type=[nn.Linear], lyr_num=args.layer_number, batch_size=batch_size
+            model=model, lyr_type=[nn.Conv2d], lyr_num=args.layer_number, batch_size=batch_size
         )
 
         t = time.time()
