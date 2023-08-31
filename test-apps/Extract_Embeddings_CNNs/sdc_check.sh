@@ -40,9 +40,11 @@
 APP_ARGS=$*
 #source ~/miniconda3/etc/profile.d/conda.sh
 #conda activate Pytorch_nvbitPERfi
-
-diff ${APP_DIR}/Golden_Output_layer.h5 ${APP_DIR}/Output_layer.h5 > diff.log 
-
+if [ -f ${APP_DIR}/Output_layer.h5 ]; then
+    diff ${APP_DIR}/Golden_Output_layer.h5 ${APP_DIR}/Output_layer.h5 > diff.log 
+else
+    touch diff.log
+fi
 
 cp ${APP_DIR}/golden_stderr.txt golden_stderr.txt
 cp ${APP_DIR}/golden_stdout.txt golden_stdout.txt
@@ -59,5 +61,7 @@ diff stderr.txt golden_stderr.txt > stderr_diff.log
 
 if [ -s diff.log ]; then
     python ${APP_DIR}/sdc_check.py ${APP_ARGS} > special_check.txt 
+else
+    touch special_check.txt
 fi
 
