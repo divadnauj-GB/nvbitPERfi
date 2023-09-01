@@ -133,7 +133,9 @@ void instrument_function_if_needed(CUcontext ctx, CUfunction func) {
             // printf("instruction: %s\n", i.sass.c_str());
             std::string opcode = i->getOpcode();
             std::string instType = i->getOpcodeShort();
-
+            if (verbose==2) {
+                printf("instr: %s\n",instType.c_str());
+            }
             int cnt = 0;
             int predicate=0;
             for (int idx = 0; idx < i->getNumOperands(); idx++) {

@@ -29,12 +29,13 @@ extern "C" __device__ __noinline__ void count_instrs(uint64_t pcounters, int ind
     int leader = __ffs(active) - 1;
 
     uint64_t *counters = (uint64_t *) pcounters;
-    if (threadIdx.x % 32 == leader) { // Am I the leader thread
+    if (get_laneid() == leader) { // Am I the leader thread
         int numActive = __popc(active);
+        // int numActive = 1;
         atomicAdd((unsigned long long *) &counters[index], numActive);
         atomicAdd((unsigned long long *) &counters[NUM_ISA_INSTRUCTIONS + grp_index], numActive);
         atomicAdd((unsigned long long *) &counters[num_counters - 2], numActive * (grp_index != G_NODEST));
         atomicAdd((unsigned long long *) &counters[num_counters - 1],
-                  numActive * (1 - ((grp_index == G_NODEST) || (grp_index == G_PR))));
+                    numActive * (1 - ((grp_index == G_NODEST) || (grp_index == G_PR))));
     }
 }

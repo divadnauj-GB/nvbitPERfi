@@ -29,6 +29,45 @@
 import sys, re, string, os, operator, math, datetime, random
 import params as p
 
+# Here you can add all the instructions you need according the GPU architecture
+
+FP32_INSTR=["FADD", "FADD32I", "FCHK", "FCMP", "FFMA", "FFMA32I", "FMNMX", "FMUL", "FMUL32I", "FSEL", "FSET", "FSETP", "FSWZ", "FSWZADD"]
+FP16_INSTR=["HADD2", "HADD2_32I", "HFMA2", "HFMA2_32I", "HMNMX2", "HMUL2", "HMUL2_32I", "HSET2", "HSETP2"]
+SFU_INSTR=["MUFU", "RRO"]
+MMA_INSTR=["HMMA", "IMMA", "BMMA", "DMMA"]
+DP_INSTR=["DADD", "DFMA", "DMNMX", "DMUL", "DSET", "DSETP"]
+INT_INSTR=["BFE", "BFI", "BMSK", "BREV", "FLO",  "IABS", "IADD", "IADD3", "IADD32I", "ICMP", "IDP", "IDP4A", "IMAD", "IMAD32I", "IMADSP", "IMNMX", "IMUL", "IMUL32I", "IPA", "ISAD","ISCADD", "ISCADD32I", "ISET", "ISETP", "LEA", "LOP", "LOP3", "LOP32I", "POPC", "SHF", "SHL", "SHR", "XMAD"]
+VID_INSTR=["VABSDIFF", "VABSDIFF4", "VADD", "VMAD", "VMNMX",  "VSET",  "VSETP", "VSHL",  "VSHR"]
+CONV_INSTR=["F2F", "F2I", "I2F", "I2I", "I2IP", "I2FP", "F2IP", "FRND"]
+MOV_INSTR=["MOV", "MOV32I", "MOVM", "PRMT", "SEL", "SGXT", "SHFL"]
+PRED_INSTR=["PLOP3", "CSET", "CSETP", "PSET", "PSETP", "P2R", "R2P"]
+LDST_INSTR=["LD", "LDC", "LDG", "LDGDEPBAR", "LDGSTS", "LDL", "LDS", "LDSM","LDSLK", "ST", "STG", "STL", "STS", "STSCUL", "MATCH", "QSPC", "ATOM", "ATOMS", "ATOMG", "RED", "CCTL", "CCTLL", "ERRBAR", "MEMBAR", "CCTLT"]
+UN_INSTR=["R2UR", "REDUX", "S2UR", "UBMSK", "UBREV", "UCLEA", "UF2FP", "UFLO", "UIADD3", "UIADD3_64", "UIMAD", "UISETP", "ULDC", "ULEA", "ULOP", "ULOP3", "ULOP32I", "UMOV", "UP2UR", "UPLOP3", "UPOPC", "UPRMT", "UPSETP", "UR2UP", "USEL", "USGXT", "USHF", "USHL", "USHR", "VOTEU"]
+TEX_INSTR=["TEX", "TLD", "TLD4", "TMML", "TXA", "TXD", "TXQ", "TEXS", "TLD4S", "TLDS", "STP"]
+SUF_INSTR=["SUATOM", "SUCLAMP", "SUBFM", "SUEAU", "SULD", "SULDGA", "SUQUERY", "SURED", "SUST", "SUSTGA"]
+CNTRL_INSTR=["BMOV", "BPT", "BRA", "BREAK", "BRK", "BRX", "BRXU", "BSSY", "BSYNC", "CALL", "CAL", "CONT", "EXIT", "IDE", "JCAL", "JMP", "JMX", "JMXU", "KIL", "KILL", "LONGJMP", "NANOSLEEP", "PBK", "PCNT", "PEXIT", "PLONGJMP", "PRET", "RAM", "RET", "RPCMOV", "RTT", "SAM", "SSY", "SYNC", "WARPSYNC", "YIELD"]
+MISC_INSTR=["B2R", "BAR", "CS2R", "CSMTEST", "DEPBAR", "GETLMEMBASE", "LEPC", "NOP", "PMTRIG", "R2B", "S2R", "SETCTAID", "SETLMEMBASE", "VOTE", "VOTE_VTG", "GETCRSPTR", "SETCRSPTR"]
+
+
+
+
+GPU_INSTR_SET={"FP32_INSTR":FP32_INSTR,
+               "FP16_INSTR":FP16_INSTR,
+               "SFU_INSTR":SFU_INSTR,
+               "MMA_INSTR":MMA_INSTR,
+               "DP_INSTR":DP_INSTR,
+               "INT_INSTR":INT_INSTR,
+               "VID_INSTR":VID_INSTR,
+               "CONV_INSTR":CONV_INSTR,
+               "MOV_INSTR":MOV_INSTR,
+               "PRED_INSTR":PRED_INSTR,
+               "LDST_INSTR":LDST_INSTR,
+               "UN_INSTR":UN_INSTR,
+               "TEX_INSTR":TEX_INSTR,
+               "SUF_INSTR":SUF_INSTR,
+               "CNTRL_INSTR":CNTRL_INSTR,
+               "MISC_INSTR":MISC_INSTR}
+
 # parse the file with inst count info per thread and create a tid->inst_count map
 def read_inst_counts(d, app):
     countList = []
@@ -107,6 +146,8 @@ def set_env(app, is_profiler, inj_mode='IRA'):
         os.environ['PRELOAD_FLAG'] = "LD_PRELOAD=" + p.INJECTOR_PF_ICOC
     elif inj_mode in ['REGs']:        
         os.environ['PRELOAD_FLAG'] = "LD_PRELOAD=" + p.INJECTOR_PF_REGF
+    elif inj_mode in ['FUs']:        
+        os.environ['PRELOAD_FLAG'] = "LD_PRELOAD=" + p.INJECTOR_PF_INTFU
 
 
     if p.verbose:
@@ -117,3 +158,4 @@ def set_env(app, is_profiler, inj_mode='IRA'):
         print("RODINIA=%s" % (os.environ['RODINIA']))
     if p.verbose:
         print("APP_DIR=%s" % (os.environ['APP_DIR']))
+

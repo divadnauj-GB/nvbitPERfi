@@ -97,6 +97,8 @@ RF_MODE = "rf"
 INST_VALUE_MODE = "inst_value"
 INST_ADDRESS_MODE = "inst_address"
 
+ERR_MODELS = ['ICOC', 'IRA', 'IR', 'IAT', 'IAW', 'IAC', 'WV', 'IIO', 'IMS', 'IMD', 'IAL', 'REGs', "FUs"]
+
 #######################################################################
 # Categories of instruction types (IGIDs): This should match the values set in
 # arch.h in the nvbitfi/common/
@@ -239,7 +241,7 @@ apps = {
         'LeNet.py',
         NVBITFI_HOME + '/test-apps/Conv2D',
         60,
-        "-ln 1 -bs 1"
+        "-ln 0 -bs 1"
     ],
     **REAL_WORKLOAD_DICT
 }

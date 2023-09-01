@@ -37,6 +37,8 @@
 #include "globals.h"
 #include "pf_injector.h"
 
+using namespace std;
+
 int verbose;
 __managed__ int verbose_device;
 int limit = INT_MAX;
@@ -47,20 +49,66 @@ std::string injInputFilename = "nvbitfi-injection-info.txt";
 
 pthread_mutex_t mutex;
 
-__managed__ inj_info_t inj_info; 
+__managed__ inj_info_error_t inj_error_info;
+__managed__ muliple_ptr_t inj_thread_info;
 //inj_info_t inj_info;
 
+
+bool read_file=false;
+
+std::string inj_mode;
+std::string kname;
+std::string SimEndRes;
+std::string substr = "gemm";
+
+std::string SASS_filename;
+std::ofstream foutSASS;
+
+int num_threads=0;
+bool at_least_one_injected = false;
+
+
 void reset_inj_info() {
-		inj_info.injSMID = 0; 
-		inj_info.injSubSMID = 0;	
-		inj_info.injLaneID = 0;	
-		inj_info.injInstType = 0; 
-		inj_info.injMask = 0;
-		inj_info.injReg = 0;
-		inj_info.injStuckat = 0;
-				
-		inj_info.injNumActivations = 0;
-		inj_info.errorInjected = false;
+		// inj_info.injSMID = 0; 
+		// inj_info.injSubSMID = 0;	
+		// inj_info.injLaneID = 0;	
+		// inj_info.injInstType = 0; 
+		// inj_info.injMask = 0;
+		// inj_info.injReg = 0;
+		// inj_info.injStuckat = 0;
+		// 		
+		// inj_info.injNumActivations = 0;
+		// inj_info.errorInjected = false;
+		
+		inj_error_info.injSMID=0; // 0 - max SMs
+		inj_error_info.injSubSMID=0;
+		inj_error_info.injLaneID=0;
+		inj_error_info.injThreadMask=0; //0-32
+		inj_error_info.injMask=0;
+		inj_error_info.injRegID=0; // injection mask;
+		inj_error_info.injStuck_at=0;
+		inj_error_info.injInstType=0; // instruction type 
+		inj_error_info.injRegOriginal=0;
+		inj_error_info.injRegReplacement=0;
+		inj_error_info.injNumActivations=0;
+		inj_error_info.injNumActivAcc=0;
+		inj_error_info.injInstrIdx=0;
+		inj_error_info.injInstPC=0;
+		inj_error_info.injInstOpcode=0;  
+		inj_error_info.blockDimX=0;
+		inj_error_info.blockDimY=0;
+		inj_error_info.blockDimZ=0;
+		inj_error_info.gridDimX=0;
+		inj_error_info.gridDimY=0;
+		inj_error_info.gridDimZ=0;
+		inj_error_info.maxregcount=0;
+		inj_error_info.maxPredReg=-1;
+		inj_error_info.KernelPredReg=0;
+		inj_error_info.TotKerInstr=0;
+		inj_error_info.TotAppInstr=0;
+		inj_error_info.num_threads=0;
+		inj_error_info.errorInjected=false;
+		inj_error_info.kernel_id=0;
 }
 
 // for debugging 
@@ -79,22 +127,22 @@ void parse_params(std::string filename) {
 				reset_inj_info(); 
 
 				std::ifstream ifs (filename.c_str(), std::ifstream::in);
+				std::string instruction_name;
 				if (ifs.is_open()) {
-						ifs >> inj_info.injSMID; 
-						assert(inj_info.injSMID < 1000); // we don't have a 1000 SM system yet. 
-						ifs >> inj_info.injSubSMID;	
-						assert(inj_info.injSubSMID < 4); // Warp-size is 4 in Maxwell Architecture	
+						ifs >> inj_error_info.injSMID; 
+						assert(inj_error_info.injSMID < 1000); // we don't have a 1000 SM system yet. 
+						ifs >> inj_error_info.injSubSMID;	
+						assert(inj_error_info.injSubSMID < 4); // Warp-size is 4 in Maxwell Architecture	
 																	 
-						ifs >> inj_info.injLaneID; 
-						assert(inj_info.injLaneID < 32); // Warp-size is 32 or less today. 
-						
-						ifs >> inj_info.injInstType; // instruction type
-						assert(inj_info.injInstType <= NUM_ISA_INSTRUCTIONS); // ensure that the value is in the expected range
-						
-								
-						ifs >> inj_info.injMask;
-						ifs >> inj_info.injReg;	
-						ifs >> inj_info.injStuckat;
+						ifs >> inj_error_info.injLaneID; 
+						assert(inj_error_info.injLaneID < 32); // Warp-size is 32 or less today. 
+						ifs >> instruction_name;
+						inj_error_info.injInstOpcode = instTypeNameMap[instruction_name]; // instruction type
+						assert(inj_error_info.injInstType <= NUM_ISA_INSTRUCTIONS); // ensure that the value is in the expected range
+														
+						ifs >> inj_error_info.injMask;
+						ifs >> inj_error_info.injRegID;	
+						ifs >> inj_error_info.injStuck_at;
 						//printf("inspecting %d %d %d %d %d %d",inj_info.ingThreadID,inj_info.ingCtaID,inj_info.ingReg,inj_info.injMask,inj_info.injSMID,inj_info.injStuckat);
 						
 
@@ -118,9 +166,9 @@ void update_verbose() {
 		static bool update_flag = false; // update it only once - performance enhancement
 		if (!update_flag) {
 			update_flag = true;
-			cudaDeviceSynchronize();
+			//cudaDeviceSynchronize();
 			verbose_device = verbose;
-			cudaDeviceSynchronize();
+			//cudaDeviceSynchronize();
 		}
 }
 
@@ -132,13 +180,113 @@ int get_maxregs(CUfunction func) {
 		return maxregs;
 }
 
-void INThandler(int sig) {
-		signal(sig, SIG_IGN); // disable Ctrl-C
 
-		fout << ":::NVBit-inject-error; ERROR FAIL Detected Singal SIGKILL;";
-		fout << " injNumActivations: " << inj_info.injNumActivations << ":::";
-		fout.flush();
-		exit(-1);
+void report_thread_injections(void){
+	// SASS_filename="Finjection_details_threads.csv";
+	// foutSASS.open(SASS_filename.c_str(), std::ifstream::out | std::ifstream::app);
+	// foutSASS << "SMID; WarpID; LameID; ThreadID; CTAIDx; CTAIDy; CTAIDz; kindex; kname" << std::endl;
+	for(int i=0;i<inj_error_info.num_threads;++i){
+		if(inj_thread_info.flag[i]!=0){
+			foutSASS << inj_thread_info.SMID[i] << "; ";
+			foutSASS << inj_thread_info.WARPID[i] << "; ";
+			foutSASS << inj_thread_info.LANEID[i] << "; ";
+			foutSASS << inj_thread_info.ThrdID[i] << "; ";
+			foutSASS << inj_thread_info.ctaID_x[i] << "; ";
+			foutSASS << inj_thread_info.ctaID_y[i] << "; ";
+			foutSASS << inj_thread_info.ctaID_z[i] << "; ";
+			foutSASS << inj_error_info.kernel_id << "; ";
+			foutSASS << inj_error_info.KName << std::endl;
+		}
+	}	
+}
+
+
+void report_kernel_results(void){
+fout <<"Kernel name: "<<kname<<"; kernel Index: "<< kernel_id
+        << "; DeviceName: " << inj_error_info.DeviceName
+        << "; MaxThreadsPerSM: " << inj_error_info.MaxThreadsPerSM
+        << "; MaxWarpsPerSm: " << inj_error_info.MaxWarpsPerSM
+        << "; MaxThreadsPerWarp: " << inj_error_info.MaxThreadsPerWarp
+        << "; gridDimX: " << inj_error_info.gridDimX
+        << "; gridDimY: " << inj_error_info.gridDimY
+        << "; gridDimZ: " << inj_error_info.gridDimZ
+        << "; blockDimX: " << inj_error_info.blockDimX
+        << "; blockDimY: " << inj_error_info.blockDimY
+        << "; blockDimZ: " << inj_error_info.blockDimZ
+        << "; NumThreads: " << inj_error_info.num_threads;
+        if(inj_error_info.errorInjected==true) {
+                fout << "; ErrorInjected: True";
+				at_least_one_injected = true;
+		}else{
+                fout << "; ErrorInjected: False"; 
+		}
+        fout << "; injSmID: " << inj_error_info.injSMID
+        << "; injSubSMID: " << inj_error_info.injSubSMID
+		<< "; injLaneID: " << inj_error_info.injLaneID
+		<< "; injRegField: " << inj_error_info.injRegID
+		<< "; injMaskSeed: " << inj_error_info.injMask
+		<< "; injStuck_at: " << inj_error_info.injStuck_at
+		<< "; Instruction: " << instTypeNames[inj_error_info.injInstOpcode]
+		<< "; resMaxRegCount: " << inj_error_info.maxregcount
+		<< "; resNumInstr: " << inj_error_info.TotKerInstr;
+       
+        fout << "; NumErrInstExeBefStop: " << inj_error_info.injInstrIdx
+        << "; LastPCOffset: 0x" << std::hex << inj_error_info.injInstPC  << std::dec
+        << "; LastOpcode: " << instTypeNames[inj_error_info.injInstOpcode]
+        << "; TotErrAct: " << inj_error_info.injNumActivations << endl; 		
+}
+
+void report_summary_results(void){
+fout << "=================================================================================" << endl;
+fout << "Final Report" <<  endl;
+fout << "=================================================================================" << endl;
+fout << "Report_Summary: "
+        << "; DeviceName: " << inj_error_info.DeviceName
+        << "; MaxThreadsPerSM: " << inj_error_info.MaxThreadsPerSM
+        << "; MaxWarpsPerSm: " << inj_error_info.MaxWarpsPerSM
+        << "; MaxThreadsPerWarp: " << inj_error_info.MaxThreadsPerWarp
+        << "; gridDimX: " << inj_error_info.gridDimX
+        << "; gridDimY: " << inj_error_info.gridDimY
+        << "; gridDimZ: " << inj_error_info.gridDimZ
+        << "; blockDimX: " << inj_error_info.blockDimX
+        << "; blockDimY: " << inj_error_info.blockDimY
+        << "; blockDimZ: " << inj_error_info.blockDimZ
+        << "; NumThreads: " << inj_error_info.num_threads;
+        if(at_least_one_injected==true) 
+                fout << "; ErrorInjected: True";
+        else
+                fout << "; ErrorInjected: False"; 
+        fout << "; injSmID: " << inj_error_info.injSMID
+        << "; injSubSMID: " << inj_error_info.injSubSMID
+		<< "; injLaneID: " << inj_error_info.injLaneID
+		<< "; injRegField: " << inj_error_info.injRegID
+		<< "; injMaskSeed: " << inj_error_info.injMask
+		<< "; injStuck_at: " << inj_error_info.injStuck_at
+		<< "; Instruction: " << instTypeNames[inj_error_info.injInstOpcode]
+		<< "; resMaxRegCount: " << inj_error_info.maxregcount
+		<< "; resNumInstr: " << inj_error_info.TotKerInstr;
+       
+        fout << "; NumErrInstExeBefStop: " << inj_error_info.injInstrIdx
+        << "; LastPCOffset: 0x" << std::hex << inj_error_info.injInstPC  << std::dec
+        << "; LastOpcode: " << instTypeNames[inj_error_info.injInstOpcode]
+        << "; TotErrAct: " << inj_error_info.injNumActivAcc << endl; 
+        fout << SimEndRes << endl; 
+}
+
+
+void INThandler(int sig) {
+        signal(sig, SIG_IGN); // disable Ctrl-C
+        fout << "=================================================================================" << endl;
+        fout << "Report for: " << kname << "; kernel Index: "<< kernel_id <<  endl;
+        fout << "=================================================================================" << endl;
+        fout << ":::NVBit-inject-error; ERROR FAIL Detected Singal SIGKILL;" << endl;
+        report_kernel_results();
+		report_thread_injections();
+        SimEndRes="; SimEndRes:::ERROR FAIL Detected Singal SIGKILL::: ";
+        report_summary_results();
+        fout.flush();
+		foutSASS.flush();
+        exit(-1);
 }
 
 
@@ -169,6 +317,13 @@ void nvbit_at_init() {
 				limit = atoi(getenv("INSTRUMENTATION_LIMIT"));
 		} 
 		//inout = atoi(getenv("INPUT_OUTPUT"));
+
+		if(getenv("nvbitPERfi")){
+                inj_mode=getenv("nvbitPERfi");
+        }else{
+                inj_mode="IRA";
+        }
+
 		//GET_VAR_INT(verbose, "TOOL_VERBOSE", 0, "Enable verbosity inside the tool (1, 2, 3,..)");
 
 		initInstTypeNameMap();
@@ -176,6 +331,10 @@ void nvbit_at_init() {
 		signal(SIGINT, INThandler); // install Ctrl-C handler
 
 		open_output_file(injOutputFilename);
+		SASS_filename="Finjection_details_threads.csv";
+		foutSASS.open(SASS_filename.c_str(), std::ifstream::out | std::ifstream::app);
+		foutSASS << "SMID; WarpID; LameID; ThreadID; CTAIDx; CTAIDy; CTAIDz; kindex; kname" << std::endl;
+
 		if (verbose) printf("nvbit_at_init:end\n");
 }
 
@@ -185,7 +344,7 @@ std::unordered_set<CUfunction> already_instrumented;
 
 void instrument_function_if_needed(CUcontext ctx, CUfunction func) {
 
-		parse_params(injInputFilename);  // injParams are updated based on injection seed file
+		//parse_params(injInputFilename);  // injParams are updated based on injection seed file
 		update_verbose();
 		
 		
@@ -205,22 +364,28 @@ void instrument_function_if_needed(CUcontext ctx, CUfunction func) {
 		for (auto f : related_functions) {
 			/* "recording" function was instrumented, if set insertion failed
 				* we have already encountered this function */
+			std::string kname = removeSpaces(nvbit_get_func_name(ctx,f));
 			if (!already_instrumented.insert(f).second) {
 					continue;
 			}
 
-			std::string kname = removeSpaces(nvbit_get_func_name(ctx,f));
+			fout << "=================================================================================" << endl;
+			fout << "The Instrumentation step Begins Here: " << removeSpaces(nvbit_get_func_name(ctx,f)) << endl;
+
+			
 			/* Get the vector of instruction composing the loaded CUFunction "func" */
 			const std::vector<Instr *> &instrs = nvbit_get_instrs(ctx, f);
 
 			int maxregs = get_maxregs(f);
+			inj_error_info.maxregcount=maxregs;
 			assert(fout.good());
 			int k=0;
 			//fout << "Inspecting: " << kname << ";num_static_instrs: " << instrs.size() << ";maxregs: " << maxregs << "(" << maxregs << ")" << std::endl;
+			inj_error_info.TotKerInstr=0;
 			for(auto i: instrs)  {
 				std::string opcode = i->getOpcode(); 
-				//std::string instTypeStr=i->getOpcodeShort();
-				std::string instTypeStr = extractInstType(opcode);
+				std::string instTypeStr=i->getOpcodeShort();
+				// std::string instTypeStr = extractInstType(opcode);
 				bool found = false;
 				for(int h= 0; h< NUM_ISA_INSTRUCTIONS;h++){
 					std::string instName = instTypeNames[h];
@@ -233,9 +398,9 @@ void instrument_function_if_needed(CUcontext ctx, CUfunction func) {
 				if (verbose) printf("index of instType: %d\n", instTypeNameMap[instTypeStr]);
 				
 				
-				if (instType == inj_info.injInstType && found == true) {
-					if (verbose) { printf("instruction selected for instrumentation: "); i->print(); }
-					fout << instType<< std::endl;
+				if (instType == inj_error_info.injInstOpcode && found == true) {
+					
+					inj_error_info.TotKerInstr++;
 					int regi = 0;
 					int reg[12]={-1,-1,-1,-1,-1,-1,-1,-1,-1,-1};
 					
@@ -243,14 +408,21 @@ void instrument_function_if_needed(CUcontext ctx, CUfunction func) {
 					//fout << i->getNumOperands() <<std::endl;
 					fout << i->getSass()<<" " <<i->getOpcode()<<std::endl;
 					for(int index = 0; index < i->getNumOperands(); index ++){				
-					const InstrType::operand_t *op = i->getOperand(index);
-					fout << i->getOperand(index) <<std::endl;
+						const InstrType::operand_t *op = i->getOperand(index);
+					// fout << i->getOperand(index) <<std::endl;
 						if(op->type == InstrType::OperandType::REG){
 							//if (1)  printf("R%d ",op->u.reg.num);
 							fout <<"R"<<op->u.reg.num<<";"<< std::endl;
 							reg[regi]=op->u.reg.num;
 							regi ++;
-						}	
+						}
+						/*if(op->type == InstrType::OperandType::CBANK){
+							fout << "0x" << std::hex << op->u.cbank.has_imm_offset << std::dec <<std::endl;
+							fout << "0x" << std::hex << op->u.cbank.has_reg_offset << std::dec <<std::endl;
+							fout << "0x" << std::hex << op->u.cbank.id << std::dec <<std::endl;
+							fout << "0x" << std::hex << op->u.cbank.imm_offset << std::dec <<std::endl;
+							fout << "0x" << std::hex << op->u.cbank.reg_offset << std::dec <<std::endl;
+						}*/
 					}
 						fout << reg[0]<< " "<<reg[1]<<" "<<reg[2]<<std::endl;
 						// Tokenize the instruction 
@@ -286,20 +458,20 @@ void instrument_function_if_needed(CUcontext ctx, CUfunction func) {
 											numDestGPRs = 2; 
 									}
 							
-							if(inj_info.injReg != 0){
+							if(inj_error_info.injRegID != 0){
 										
-										if((inj_info.injReg == 1 && reg[1] != -1) || (inj_info.injReg == 2 && reg[2] != -1) || (inj_info.injReg == 3 && reg[3] != -1)){
+										if((inj_error_info.injRegID == 1 && reg[1] != -1) || (inj_error_info.injRegID == 2 && reg[2] != -1) || (inj_error_info.injRegID == 3 && reg[3] != -1)){
 										k++;
-										fout <<"Kernel name: "<<kname<<"; kernel Index: "<< kernel_id <<"; Num_Injections: " << k <<";"<< std::endl;
+										fout << "0x" << std::hex << i->getOffset() << "; " << i->getSass() << std::dec << " instrumented intruction; "  << endl;
 										nvbit_insert_call(i, "inject_error_input", IPOINT_BEFORE);
-										nvbit_add_call_arg_const_val64(i, (uint64_t)&inj_info);
+										nvbit_add_call_arg_const_val64(i, (uint64_t)&inj_error_info);
 										nvbit_add_call_arg_const_val64(i, (uint64_t)&verbose_device);
-
-										if(inj_info.injReg == 1 && reg[1] != -1)
+										nvbit_add_call_arg_const_val64(i, (uint64_t)&inj_thread_info);
+										if(inj_error_info.injRegID == 1 && reg[1] != -1)
 											nvbit_add_call_arg_const_val32(i, reg[1]);
-										else if (inj_info.injReg == 2 && reg[2] != -1)
+										else if (inj_error_info.injRegID == 2 && reg[2] != -1)
 											nvbit_add_call_arg_const_val32(i, reg[2]);
-										else if (inj_info.injReg == 3 && reg[3] != -1)
+										else if (inj_error_info.injRegID == 3 && reg[3] != -1)
 											nvbit_add_call_arg_const_val32(i, reg[3]);
 										nvbit_add_call_arg_const_val32(i, destGPRNum); // destination GPR register number
 										if (destGPRNum != -1) {
@@ -312,14 +484,14 @@ void instrument_function_if_needed(CUcontext ctx, CUfunction func) {
 										nvbit_add_call_arg_const_val32(i, compute_cap); // max regs used by the inst info										
 								}
 							}
-							else if(inj_info.injReg == 0){
+							else if(inj_error_info.injRegID == 0){
 							
 								k++;
-								fout <<"Kernel name: "<<kname<<"; kernel Index: "<< kernel_id <<"; Num_Injections: " << k <<";"<< std::endl;
+								fout << "0x" << std::hex << i->getOffset() << "; " << i->getSass() << std::dec << " instrumented intruction; "  << endl;
 								nvbit_insert_call(i, "inject_error_output", IPOINT_AFTER);
-								nvbit_add_call_arg_const_val64(i, (uint64_t)&inj_info);
+								nvbit_add_call_arg_const_val64(i, (uint64_t)&inj_error_info);
 								nvbit_add_call_arg_const_val64(i, (uint64_t)&verbose_device);
-
+								nvbit_add_call_arg_const_val64(i, (uint64_t)&inj_thread_info);
 								nvbit_add_call_arg_const_val32(i, destGPRNum); // destination GPR register number
 								if (destGPRNum != -1) {
 									nvbit_add_call_arg_reg_val(i, destGPRNum); // destination GPR register val
@@ -335,7 +507,12 @@ void instrument_function_if_needed(CUcontext ctx, CUfunction func) {
 					}
 				}
 			}
+			inj_error_info.TotAppInstr+=inj_error_info.TotKerInstr;
+			//fout << "=================================================================================" << endl;
+			fout << "The Instrumentation step Stops Here: " << removeSpaces(nvbit_get_func_name(ctx,f)) << endl;
+			fout << "=================================================================================" << endl;
 		}
+		
 }
 
 /* This call-back is triggered every time a CUDA event is encountered.
@@ -356,15 +533,67 @@ void nvbit_at_cuda_event(CUcontext ctx, int is_exit, nvbit_api_cuda_t cbid,
 				/* cast params to cuLaunch_params since if we are here we know these are
 				 * the right parameters type */
 				cuLaunch_params * p = (cuLaunch_params *) params;
-
+				auto *p1 = (cuLaunchKernel_params *) params;  
+				num_threads  = p1->gridDimX * p1->gridDimY * p1->gridDimZ * p1->blockDimX * p1->blockDimY * p1->blockDimZ; 	
 				if(!is_exit) {
+					if (verbose) printf("is_init\n");	
+					if(read_file==false){
+                        int MaxThreadsPerSM=0;
+                        CUdevice device;
+                        cuDeviceGet(&device, 0);
+                        cuDeviceGetAttribute(&MaxThreadsPerSM,CU_DEVICE_ATTRIBUTE_MAX_THREADS_PER_MULTIPROCESSOR,device);
+                        cuDeviceGetName(inj_error_info.DeviceName,256,device);
+                        inj_error_info.MaxThreadsPerWarp=32;
+                        inj_error_info.MaxThreadsPerSM=MaxThreadsPerSM;
+                        inj_error_info.MaxWarpsPerSM=MaxThreadsPerSM/inj_error_info.MaxThreadsPerWarp;						
+                        if(inj_mode.compare("FUs")==0){
+                            parse_params(injInputFilename);
+                        }else{
+                            assert(1==0);
+                        }                   
+                        if (verbose) printf("read file list done..\n");               
+                        read_file=true;
+                    } 	
+						
 						pthread_mutex_lock(&mutex);
 						if (kernel_id < limit) {
-							instrument_function_if_needed(ctx, p->f);
-							 //cudaDeviceSynchronize();
+							inj_error_info.gridDimX=p1->gridDimX;
+							inj_error_info.gridDimY=p1->gridDimY;
+							inj_error_info.gridDimZ=p1->gridDimZ;
+							inj_error_info.blockDimX=p1->blockDimX;
+							inj_error_info.blockDimY=p1->blockDimY;
+							inj_error_info.blockDimZ=p1->blockDimZ;	
+							inj_error_info.num_threads  = num_threads;						
+							inj_error_info.kernel_id=kernel_id;	
 
-							nvbit_enable_instrumented(ctx, p->f, true); // run the instrumented version
-							cudaDeviceSynchronize();
+							CUDA_SAFECALL(cudaMallocManaged(&(inj_thread_info.ThrdID),(num_threads)*sizeof(uint32_t)));
+							CUDA_SAFECALL(cudaMallocManaged(&(inj_thread_info.SMID),(num_threads)*sizeof(uint32_t)));
+							CUDA_SAFECALL(cudaMallocManaged(&(inj_thread_info.WARPID),(num_threads)*sizeof(uint32_t)));
+							CUDA_SAFECALL(cudaMallocManaged(&(inj_thread_info.LANEID),(num_threads)*sizeof(uint32_t)));
+							CUDA_SAFECALL(cudaMallocManaged(&(inj_thread_info.ctaID_x),(num_threads)*sizeof(uint32_t)));
+							CUDA_SAFECALL(cudaMallocManaged(&(inj_thread_info.ctaID_y),(num_threads)*sizeof(uint32_t)));
+							CUDA_SAFECALL(cudaMallocManaged(&(inj_thread_info.ctaID_z),(num_threads)*sizeof(uint32_t)));
+							CUDA_SAFECALL(cudaMallocManaged(&(inj_thread_info.flag),(num_threads)*sizeof(uint32_t)));
+
+							fflush(stdout);
+							fclose(stdout);
+							freopen("nvbit_stdout.txt", "a", stdout);
+							kname = removeSpaces(nvbit_get_func_name(ctx,p->f));
+							memset(inj_error_info.KName, 0, sizeof inj_error_info.KName);
+							kname.copy(inj_error_info.KName,255);
+							if(inj_mode.compare("FUs")==0) {
+								instrument_function_if_needed(ctx, p->f);
+							}else{                                
+								assert(1==0);
+							}
+							//cudaDeviceSynchronize();
+							fout << "=================================================================================" << endl;
+							fout << "Running instrumented Kernel: " << removeSpaces(nvbit_get_func_name(ctx,p->f)) << "; kernel Index: "<< kernel_id << endl;
+							fout << "..............." << endl;
+							//fout << "=================================================================================" << endl;
+							//if (kname.find(substr)!=std::string::npos){
+							nvbit_enable_instrumented(ctx, p->f, true); // run the instrumented version	
+							//cudaDeviceSynchronize(); 
 						} else {
 							nvbit_enable_instrumented(ctx, p->f, false); // do not use the instrumented version
 						}
@@ -373,38 +602,67 @@ void nvbit_at_cuda_event(CUcontext ctx, int is_exit, nvbit_api_cuda_t cbid,
 						if (kernel_id < limit) {
 								if (verbose) printf("is_exit\n"); 
 								cudaDeviceSynchronize();
+								fflush (stdout);
+								fclose (stdout);
+								freopen ("stdout.txt", "a", stdout);
 
 								cudaError_t le = cudaGetLastError();
+								kname = removeSpaces(nvbit_get_func_name(ctx,p->f));
 
-								std::string kname = removeSpaces(nvbit_get_func_name(ctx,p->f));
 								int num_ctas = 0;
 								int num_threads = 0;//added
 								if ( cbid == API_CUDA_cuLaunchKernel_ptsz ||
 												cbid == API_CUDA_cuLaunchKernel) {
-										cuLaunchKernel_params * p2 = (cuLaunchKernel_params*) params;
-										num_ctas = p2->gridDimX * p2->gridDimY * p2->gridDimZ;
+										/// cuLaunchKernel_params * p2 = (cuLaunchKernel_params*) params;
+										/// num_ctas = p2->gridDimX * p2->gridDimY * p2->gridDimZ;
 										//num_threads = num_ctas * p2->blockDimX * p2->blockDimY * p2->blockDimZ; //added 
 										//printf ("threads %d\n",num_threads);//added
 								}
 								assert(fout.good());
-								
+								//fout << "=================================================================================" << endl;
+								fout << "Report for: " << kname << "; kernel Index: "<< kernel_id <<  endl;
+								//fout << "=================================================================================" << endl;
 
 								if ( cudaSuccess != le ) {
-										assert(fout.good());
-										fout << "ERROR FAIL in kernel execution (" << cudaGetErrorString(le) << "); " <<std::endl;
-										exit(1); // let's exit early 
+									assert(fout.good());                                        
+									std::string cuerr = cudaGetErrorString(le);
+									fout << "ERROR FAIL in kernel execution (" << cuerr << "); " <<std::endl;
+									report_kernel_results(); 
+									report_thread_injections();                                      
+									SimEndRes = "; SimEndRes:::ERROR FAIL in kernel execution (" + cuerr + "):::";                                        
+									exit(1); // let's exit early 
 								}
 								
-								fout << "inspecting: "<< kname<<"; SMID : "<<inj_info.injSMID<<"; SubSMID : "<<inj_info.injSubSMID<< "; LaneID : "<<inj_info.injLaneID<<"; InstType : "<<inj_info.injInstType<<";  Mask : "<<inj_info.injMask<<";  Register : "<<inj_info.injReg<<";  StuckAt : "<<inj_info.injStuckat<<";"<<std::endl;
+								//fout << "inspecting: "<< kname <<"; thread : "<<  inj_info.injThreadID <<"; Register : "<< inj_info.injReg<<";  Mask : "<<inj_info.injMask<<"; SMID : "<<inj_info.injSMID<< "; Stuck at : "<<inj_info.injStuckat  << "; index: " << kernel_id << ";" <<std::endl;
+								report_kernel_results();
+								report_thread_injections();
+								SimEndRes = "; SimEndRes:::PASS without fails:::";
+								inj_error_info.injNumActivAcc+= inj_error_info.injNumActivations;
+								inj_error_info.injNumActivations=0;
+								inj_error_info.errorInjected = false;
+								
+								CUDA_SAFECALL(cudaFree(inj_thread_info.SMID));
+								CUDA_SAFECALL(cudaFree(inj_thread_info.WARPID));
+								CUDA_SAFECALL(cudaFree(inj_thread_info.LANEID));
+								CUDA_SAFECALL(cudaFree(inj_thread_info.ThrdID));
+								CUDA_SAFECALL(cudaFree(inj_thread_info.ctaID_x));
+								CUDA_SAFECALL(cudaFree(inj_thread_info.ctaID_y));
+								CUDA_SAFECALL(cudaFree(inj_thread_info.ctaID_z));
+								CUDA_SAFECALL(cudaFree(inj_thread_info.flag));							
 								
 								if (verbose) printf("\n index: %d; kernel_name: %s; \n", kernel_id, kname.c_str());
 								kernel_id++; // always increment kernel_id on kernel exit
 
-								cudaDeviceSynchronize();
+								// cudaDeviceSynchronize();
 								pthread_mutex_unlock(&mutex);
 						}
 				}
 		}
 }
 
-void nvbit_at_term() { } // nothing to do here. 
+void nvbit_at_term() { 
+    if (verbose) printf("nvbit_at_term:start\n");
+    assert(fout.good());
+    report_summary_results();
+    if (verbose) printf("nvbit_at_term:end\n");
+} 

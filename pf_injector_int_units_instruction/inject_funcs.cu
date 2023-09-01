@@ -23,11 +23,25 @@
 #include "pf_injector.h"
 #include "arch.h"
 
-extern "C" __device__ __noinline__ void inject_error_input(uint64_t piinfo, uint64_t pverbose_device, int sourcereg, int destGPRNum,int regval, int numDestGPRs, int compute_cap) {
+extern "C" __device__ __noinline__ 
+int getGlobalIdx_3D_3D(){
+int blockId = blockIdx.x + blockIdx.y * gridDim.x
+ + gridDim.x * gridDim.y * blockIdx.z;
+int threadId = blockId * (blockDim.x * blockDim.y * blockDim.z)
+ + (threadIdx.z * (blockDim.x * blockDim.y))
+ + (threadIdx.y * blockDim.x) + threadIdx.x;
+return threadId;
+}
 
-				inj_info_t* inj_info = (inj_info_t*)piinfo; 
+extern "C" __device__ __noinline__ void inject_error_input(uint64_t piinfo, uint64_t pverbose_device, uint64_t inj_thread_info, int sourcereg, int destGPRNum,int regval, int numDestGPRs, int compute_cap) {
+
+				inj_info_error_t* inj_info = (inj_info_error_t*)piinfo; 
+				muliple_ptr_t *inj_struct=(muliple_ptr_t *) inj_thread_info;
 				uint32_t verbose_device = *((uint32_t *)pverbose_device);
 				
+				auto i = getGlobalIdx_3D_3D();
+				auto ctaID=get_ctaid();
+
 				//check performed on the Straming Multiprocessor ID
 				uint32_t smid;
 				asm("mov.u32 %0, %smid;" :"=r"(smid));
@@ -43,23 +57,23 @@ extern "C" __device__ __noinline__ void inject_error_input(uint64_t piinfo, uint
 				uint32_t laneid;
 				
 				if (compute_cap == 53){ //MAXWELL 5.
-					if (inj_info->injInstType == 15 || inj_info->injInstType == 16) 
+					if (inj_info->injInstType == MUFU || inj_info->injInstType == RRO) 
 						laneid = (uint32_t)(sublaneid % 8);//8 SFU
 					else
 						laneid = sublaneid; //32 INT and 32 FP	
 				}
 				else if(compute_cap == 70 or compute_cap == 75){ //VOLTA 7.
-					if (inj_info->injInstType == 15 || inj_info->injInstType == 16)
+					if (inj_info->injInstType == MUFU || inj_info->injInstType == RRO)
 						laneid =(uint32_t)(sublaneid % 4);	 //4 SFU
 					else
 						laneid = (uint32_t)(sublaneid % 16);//16 INT and 16 FP	
 				}
 				else if(compute_cap == 86){ //AMPERE 8.
-					if (inj_info->injInstType == 15 || inj_info->injInstType == 16)
+					if (inj_info->injInstType == MUFU || inj_info->injInstType == RRO)
 						laneid = (uint32_t)(sublaneid % 4);	 //4 SFU
-					else if(inj_info->injInstType >= 30 && inj_info->injInstType <= 60) //integer
+					else if(inj_info->injInstType >= BFE && inj_info->injInstType <= XMAD) //integer
 						laneid = (uint32_t)(sublaneid % 16); //16 INT 
-					else if(inj_info->injInstType < 30 && inj_info->injInstType != 15 && inj_info->injInstType != 16)//fp					
+					else //fp					
 						laneid = sublaneid ; //32 FP
 				}
 				
@@ -73,41 +87,43 @@ extern "C" __device__ __noinline__ void inject_error_input(uint64_t piinfo, uint
 				
 								
 				if (DUMMY) {
-								injAfterVal = injBeforeVal;
-								
-				
-				//if(verbose_device)printf("register=%d, before=0x%x, after=0x%x, expected_after=0x%x, mask =0x%x,register=%d, before=0x%x, after=0x%x, expected_after=0x%x, mask =0x%x,register=%d, before=0x%x, after=0x%x, expected_after=0x%x, mask =0x%x, subsmid %d, laneid %d \n", sourcereg0, injBeforeVal0, nvbit_read_reg(sourcereg0), injAfterVal0,inj_info->injMask[0],sourcereg1, injBeforeVal1, nvbit_read_reg(sourcereg1), injAfterVal1,inj_info->injMask[1],sourcereg2, injBeforeVal2, nvbit_read_reg(sourcereg2), injAfterVal2,inj_info->injMask[2],subsmid,laneid);
-				inj_info->errorInjected = true; 
-				atomicAdd((unsigned long long*) &inj_info->injNumActivations, 1LL); 
-				return;
+					injAfterVal = injBeforeVal;
 				}
 				else{
-					if(inj_info->injStuckat == 1){				
-								injAfterVal = injBeforeVal | (inj_info->injMask); //OR
-								nvbit_write_reg(sourcereg, injAfterVal);
+					if(inj_info->injStuck_at == 1){				
+						injAfterVal = injBeforeVal | (inj_info->injMask); //OR
 					}
 					else {	
-								injAfterVal = injBeforeVal & (~inj_info->injMask);//AND			
-								nvbit_write_reg(sourcereg, injAfterVal);		
-								
+						injAfterVal = injBeforeVal & (~inj_info->injMask);//AND																					
 					}
-					//if(verbose_device)printf("register=%d, before=0x%x, after=0x%x, expected_after=0x%x, mask =0x%x,subsmid %d, laneid %d \n", sourcereg, injBeforeVal, nvbit_read_reg(sourcereg), injAfterVal,inj_info->injMask,subsmid,laneid);
-					inj_info->errorInjected = true; 
-					atomicAdd((unsigned long long*) &inj_info->injNumActivations, 1LL); 
-					return;				
+			
 				}
 				
 				inj_info->errorInjected = true; 
-				atomicAdd((unsigned long long*) &inj_info->injNumActivations, 1LL); 
-				return;	
+				inj_struct->ThrdID[i]=i;
+				inj_struct->WARPID[i]=warpid;
+				inj_struct->LANEID[i]=sublaneid;
+				inj_struct->SMID[i]=smid;
+				inj_struct->ctaID_x[i]=ctaID.x;
+				inj_struct->ctaID_y[i]=ctaID.y;
+				inj_struct->ctaID_z[i]=ctaID.z;																				
+				inj_struct->flag[i] = 1;
+				
+				if(injAfterVal!=injBeforeVal){						
+						atomicAdd((unsigned long long*) &inj_info->injNumActivations, 1LL);
+					}
+				nvbit_write_reg(sourcereg, injAfterVal);
+				
 }
 
-extern "C" __device__ __noinline__ void inject_error_output(uint64_t piinfo, uint64_t pverbose_device, int destGPRNum, int regval, int numDestGPRs, int compute_cap) {
+extern "C" __device__ __noinline__ void inject_error_output(uint64_t piinfo, uint64_t pverbose_device, uint64_t inj_thread_info, int destGPRNum, int regval, int numDestGPRs, int compute_cap) {
 
-				inj_info_t* inj_info = (inj_info_t*)piinfo; 
+				inj_info_error_t* inj_info = (inj_info_error_t*)piinfo; 
+				muliple_ptr_t *inj_struct=(muliple_ptr_t *) inj_thread_info;
 				uint32_t verbose_device = *((uint32_t *)pverbose_device);
-				
-				//check performed on the Straming Multiprocessor ID
+				auto i = getGlobalIdx_3D_3D();
+				auto ctaID=get_ctaid();
+				//check performed on the Straming Multiprocessor ID				
 				uint32_t smid;
 				asm("mov.u32 %0, %smid;" :"=r"(smid));
 				if (smid != inj_info->injSMID) return; // This is not the selected SM. No need to proceed.
@@ -121,22 +137,23 @@ extern "C" __device__ __noinline__ void inject_error_output(uint64_t piinfo, uin
 				asm("mov.u32 %0, %laneid;" :"=r"(sublaneid));
 				uint32_t laneid;
 				
+
 				if (compute_cap == 53){ //MAXWELL 5.
-					if (inj_info->injInstType == 15 or inj_info->injInstType == 16) 
+					if (inj_info->injInstType == MUFU || inj_info->injInstType == RRO) 
 						laneid = (uint32_t)(sublaneid % 8);//8 SFU
 					else
 						laneid = sublaneid; //32 INT and 32 FP	
 				}
 				else if(compute_cap == 70 or compute_cap == 75){ //VOLTA 7.
-					if (inj_info->injInstType == 15 or inj_info->injInstType == 16)
+					if (inj_info->injInstType == MUFU || inj_info->injInstType == RRO)
 						laneid =(uint32_t)(sublaneid % 4);	 //4 SFU
 					else
 						laneid = (uint32_t)(sublaneid % 16);//16 INT and 16 FP	
 				}
 				else if(compute_cap == 86){ //AMPERE 8.
-					if (inj_info->injInstType == 15 or inj_info->injInstType == 16)
+					if (inj_info->injInstType == MUFU || inj_info->injInstType == RRO)
 						laneid = (uint32_t)(sublaneid % 4);	 //4 SFU
-					else if(inj_info->injInstType >= 30 and inj_info->injInstType <= 60) //integer
+					else if(inj_info->injInstType >= BFE && inj_info->injInstType <= XMAD) //integer
 						laneid = (uint32_t)(sublaneid % 16); //16 INT 
 					else //fp					
 						laneid = sublaneid ; //32 FP
@@ -152,19 +169,29 @@ extern "C" __device__ __noinline__ void inject_error_output(uint64_t piinfo, uin
 				if (DUMMY) {
 								injAfterVal = injBeforeVal;
 				}else{ 
-					if(inj_info->injStuckat == 1){
-								injAfterVal = injBeforeVal | (inj_info->injMask); //OR
-								nvbit_write_reg(destGPRNum, injAfterVal);
+					if(inj_info->injStuck_at == 1){
+						injAfterVal = injBeforeVal | (inj_info->injMask); //OR						
 					}
 					else {	
-								injAfterVal = injBeforeVal & (~inj_info->injMask);//AND			
-								nvbit_write_reg(destGPRNum, injAfterVal);
+						injAfterVal = injBeforeVal & (~inj_info->injMask);//AND									
 
 					}
 				}
 				if(verbose_device)printf("register=%d, before=0x%x, after=0x%x, expected_after=0x%x, mask =0x%x, subsmid %d, laneid %d \n", destGPRNum, injBeforeVal, nvbit_read_reg(destGPRNum), injAfterVal,inj_info->injMask,subsmid,laneid);
 				
 				inj_info->errorInjected = true; 
-				atomicAdd((unsigned long long*) &inj_info->injNumActivations, 1LL);  
+				inj_struct->ThrdID[i]=i;
+				inj_struct->WARPID[i]=warpid;
+				inj_struct->LANEID[i]=sublaneid;
+				inj_struct->SMID[i]=smid;
+				inj_struct->ctaID_x[i]=ctaID.x;
+				inj_struct->ctaID_y[i]=ctaID.y;
+				inj_struct->ctaID_z[i]=ctaID.z;																				
+				inj_struct->flag[i] = 1;
+				
+				if(injAfterVal!=injBeforeVal){						
+					atomicAdd((unsigned long long*) &inj_info->injNumActivations, 1LL);
+				} 
+				nvbit_write_reg(destGPRNum, injAfterVal);
 }
 

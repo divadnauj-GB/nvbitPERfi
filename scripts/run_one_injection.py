@@ -174,6 +174,9 @@ def create_p_file(p_filename, inj_mode, error_mode):
                 outf.write(fields+"\n")
         else:
             print("Ops... it seems the error descriptor has missing arguments  :(")
+    elif inj_mode=='FUs':
+        for fields in error_mode:
+            outf.write(fields+"\n")
     else:
         print(f"Ops.. the {inj_mode} error model does not exist, perhaps it is a new model you can implement in the future ;)")	
 
@@ -199,7 +202,7 @@ def get_inj_info(inj_mode):
     [value_str, pc, inst_type, tid, injBID] = ["", "", "", -1, -1]
     if os.path.isfile(p.inj_run_log): 
         logf = open(p.inj_run_log, "r")
-        if inj_mode in ['ICOC', 'IRA', 'IR', 'IAT', 'IAW', 'IAC', 'WV', 'IIO', 'IMS', 'IMD', 'IAL', 'REGs']:
+        if inj_mode in p.ERR_MODELS:
             for line in logf:
                 if "Report_Summary:" in line:
                     value_str=line.replace("Report_Summary: ;","").strip()

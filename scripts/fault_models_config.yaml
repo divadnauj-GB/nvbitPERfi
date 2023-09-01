@@ -1,4 +1,4 @@
-number_injections: 10
+number_injections: 10000
 
 hw_targets:
   smid: 0
@@ -33,9 +33,13 @@ config_fm:
     kname: "gemm"
   FUs:
     # mode: "int32", "fp32", "sfu", "tensor"
-    format: "fp32"
-    instrid: "FFMA"
-    coreid: 0
+    igrp: "FP32_INSTR"
+    instrid: ["FADD", "FFMA", "FMUL"]  # if -1 all intructions in the group
+    laneid: 0 # line ID (0,16) if -1 random cores, -2 exaustive
+    portid: 0 # if -1 indicate random port, 0 indicate output, 1,2,3 input ports, -2 exaustive    
+    maskid: -2 # -1 random stuck-at, -2 exhaustive stuck-at, 0 - xxx other extenstions, 
+
+
 
 
 
