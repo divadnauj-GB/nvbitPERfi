@@ -245,7 +245,7 @@ def main():
                 pr = subprocess.Popen(cmd, shell=True, executable='/bin/bash', preexec_fn=os.setsid) # run the injection job
                 StopTime = datetime.datetime.now()
                 print(f"Golden_simulation_Time: {get_seconds(StopTime-BeginTime)} secs")
-                time.sleep(0.5)
+                time.sleep(p.app_time[app])
                 while(pr.poll()==None):
                     os.killpg(os.getpgid(pr.pid), signal.SIGKILL)
                 run_multiple_pf_injections(app, os.environ['nvbitPERfi'], where_to_run)

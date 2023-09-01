@@ -1262,7 +1262,8 @@ def gen_REGs_fault_list(app, inj_mode, num_injections):
 def gen_FUs_fault_list(app, inj_mode, num_injections):
     error_list = []
     smid = int(os.environ["SMID"])
-    schid = int(os.environ["SCHID"])
+    #schid = int(os.environ["SCHID"])
+    schid = p.args.hw_targets.schid
     laneid = p.args.config_fm.FUs.laneid
     target_igrp = p.args.config_fm.FUs.igrp
     target_instr = p.args.config_fm.FUs.instrid
