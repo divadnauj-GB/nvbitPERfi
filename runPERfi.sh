@@ -83,7 +83,7 @@ export SCHID=1
 # Step 0 (3): Build the nvbitfi injector and profiler tools
 ###############################################################################
 printf "\nStep 0 (3): Build the nvbitfi injector and profiler tools\n"
-for buildi in pf_injector_icoc  pf_err_injector pf_injector_register_file profiler profiler_CNN; do
+for buildi in pf_injector_icoc  pf_err_injector pf_injector_register_file pf_injector_int_units_instruction profiler profiler_CNN; do
   echo "Building $buildi"
   cd $buildi;
   #make clean
