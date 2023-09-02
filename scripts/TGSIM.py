@@ -155,5 +155,33 @@ TGSIM = {
         "IAL":3,
         "ICOC": 3,
         "IIO":3
+    },
+    "LeNet_pytorch": {
+        "IAT": 3,
+        "IAW": 3,
+        "IAC": 3,
+        "WV": 3,
+        "IRA": 3,
+        "IMS":3,
+        "IMD":3,
+        "IAL":3,
+        "ICOC": 3,
+        "IIO":3,
+        "FUs":39,
+        "REGs":35
+    },
+    "AlexNet_Conv2D_L0_BS32": {
+        "IAT": 3,
+        "IAW": 3,
+        "IAC": 3,
+        "WV": 3,
+        "IRA": 3,
+        "IMS":3,
+        "IMD":3,
+        "IAL":3,
+        "ICOC": 3,
+        "IIO":3,
+        "FUs":39,
+        "REGs":35
     }
 }

@@ -240,21 +240,21 @@ apps = {
         NVBITFI_HOME + '/test-apps/Pytorch_CNNs',
         'LeNet.py',
         NVBITFI_HOME + '/test-apps/Pytorch_CNNs',
-        60,
+        40,
         "-ln 0 -bs 1"
     ],
     'Conv2D' : [
         NVBITFI_HOME + '/test-apps/Conv2D',
         'LeNet.py',
         NVBITFI_HOME + '/test-apps/Conv2D',
-        60,
+        30,
         "-ln 0 -bs 1"
     ],
     'AlexNet_Conv2D_L0_BS32' : [
         NVBITFI_HOME + '/test-apps/Conv2D/AlexNet_L0_BS32',
         'LeNet.py',
         NVBITFI_HOME + '/test-apps/Conv2D/AlexNet_L0_BS32',
-        30,
+        35,
         "-ln 0 -bs 1"
     ],
     **REAL_WORKLOAD_DICT

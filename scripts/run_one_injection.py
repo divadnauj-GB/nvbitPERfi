@@ -323,9 +323,12 @@ def cmdline(command):
 def is_timeout(app, pr): # check if the process is active every 'factor' sec for timeout threshold 
     factor = 0.5
     retcode = None
-    tt = p.TIMEOUT_THRESHOLD * p.app_time[app] # p.apps[app][2] = expected runtime
+    if p.app_time[app] <= 5:
+        tt = p.TIMEOUT_THRESHOLD * p.app_time[app] # p.apps[app][2] = expected runtime
+    else:
+        tt = p.app_time[app] + 10 # p.apps[app][2] = expected runtime
+    
     if tt < 10: tt = 10
-
     to_th = tt / factor
     while to_th > 0:
         retcode = pr.poll()

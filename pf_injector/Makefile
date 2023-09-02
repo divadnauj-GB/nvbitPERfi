@@ -17,8 +17,10 @@ DUMMY=0
 
 SOURCES=$(wildcard *.cu)
 OBJECTS=$(SOURCES:.cu=.o)
-SMS= 70 86
-$(foreach sm,$(SMS),$(eval ARCH += -gencode arch=compute_$(sm),code=sm_$(sm)))
+ARCH= -gencode arch=compute_70,code=[sm_70,compute_70]
+ARCH+= -gencode arch=compute_35,code=[sm_35,compute_35]
+ARCH+= -gencode arch=compute_86,code=[sm_86,compute_86]
+ARCH+= -gencode arch=compute_53,code=[sm_53,compute_53]
 
 NVBIT_TOOL=pf_injector.so
 

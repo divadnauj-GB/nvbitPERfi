@@ -17,20 +17,23 @@ DUMMY=0
 
 SOURCES=$(wildcard *.cu)
 OBJECTS=$(SOURCES:.cu=.o)
-ARCH=53
+ARCH= -gencode arch=compute_70,code=[sm_70,compute_70]
+ARCH+= -gencode arch=compute_35,code=[sm_35,compute_35]
+ARCH+= -gencode arch=compute_86,code=[sm_86,compute_86]
+ARCH+= -gencode arch=compute_53,code=[sm_53,compute_53]
 
 NVBIT_TOOL=pf_injector.so
 
 all: $(NVBIT_TOOL)
 
 $(NVBIT_TOOL): $(OBJECTS) $(NVBIT_PATH)/libnvbit.a
-	$(NVCC) -arch=sm_$(ARCH) -O3 $(OBJECTS) $(LIBS) $(NVCC_PATH) -lcuda -lcudart_static -shared -o $@
+	$(NVCC) $(ARCH) -O3 $(OBJECTS) $(LIBS) $(NVCC_PATH) -lcuda -lcudart_static -shared -o $@
 
 %.o: %.cu
-	$(NVCC) -dc -c -std=c++11 $(INCLUDES) -Xptxas -cloning=no -Xcompiler -Wall -arch=sm_$(ARCH) -O3 -Xcompiler -fPIC $< -o $@
+	$(NVCC) -dc -c -std=c++11 $(INCLUDES) -Xptxas -cloning=no -Xcompiler -Wall $(ARCH) -O3 -Xcompiler -fPIC $< -o $@
 
 inject_funcs.o: inject_funcs.cu
-	$(NVCC) $(INCLUDES) -maxrregcount=16 -Xptxas -astoolspatch --keep-device-functions -arch=sm_$(ARCH) -DDUMMY=$(DUMMY) -Xcompiler -Wall -Xcompiler -fPIC -c $< -o $@
+	$(NVCC) $(INCLUDES) -maxrregcount=16 -Xptxas -astoolspatch --keep-device-functions $(ARCH) -DDUMMY=$(DUMMY) -Xcompiler -Wall -Xcompiler -fPIC -c $< -o $@
 clean:
 	rm -f *.so *.o
 

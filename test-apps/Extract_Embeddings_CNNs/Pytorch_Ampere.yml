@@ -61,4 +61,5 @@ dependencies:
     - torchmetrics==0.11.4
     - omegaconf
     - h5py
+    - psutil
 prefix: /home/jguerrero/miniconda3/envs/sc2-benchmark-fsim
