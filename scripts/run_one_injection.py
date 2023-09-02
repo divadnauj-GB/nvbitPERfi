@@ -29,6 +29,7 @@ from concurrent.futures import thread
 import os, sys, re, string, operator, math, datetime, time, signal, subprocess, shutil, glob, pkgutil
 import params as p
 import common_functions as cf 
+import psutil
 
 ###############################################################################
 # Basic functions and parameters
@@ -367,15 +368,27 @@ def run_one_injection_job(inj_mode, app, error_model, icount):
     cmd = p.script_dir[app] + "/" + p.run_script + " " + p.app_args[app]
     if p.verbose: print (cmd)
     pr = subprocess.Popen(cmd, shell=True, executable='/bin/bash', preexec_fn=os.setsid) # run the injection job
+    pid_gpu = str(pr.pid+1)
+    ppp = psutil.Process(pr.pid)
+    p_children =[]
+    for child in ppp.children(recursive=True):
+        p_children.append((child.pid,child.name()))
+        # print(child.pid,child.name())
+    #print(pr.pid)
 
     [timeout_flag, retcode] = is_timeout(app, pr)
     if p.verbose: print ("App runtime: " + str(get_seconds(datetime.datetime.now() - start_main)))
-
+    
     # Record kernel error messages (dmesg)
     dmesg_after = cmdline("dmesg")
     dmesg_delta = get_dmesg_delta(dmesg_before, dmesg_after)
     dmesg_delta = dmesg_delta.replace("\n", "; ").replace(":", "-")
-
+    keep_dmesg_delta = False
+    for (c_pid,c_name) in p_children:
+        if (f"pid={c_pid}" in dmesg_delta) and (f"name={c_name}" in dmesg_delta):
+            keep_dmesg_delta = True
+    if keep_dmesg_delta == False:
+        dmesg_delta = ""
     if p.verbose: os.system("cat " + p.stdout_file + " " + p.stderr_file)
     
     value_str = ""

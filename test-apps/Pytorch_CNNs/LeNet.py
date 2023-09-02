@@ -13,7 +13,8 @@ import os, sys
 import argparse
 import nvbitfi_DNN as nvbitDNN
 
-
+def print_stderr(*args, **kwargs):
+    print(*args, file=sys.stderr, **kwargs)
 
 def get_argparser():
     parser = argparse.ArgumentParser(description='DNN models')
@@ -131,7 +132,7 @@ def main(args):
     model = model.to(device)
     model.eval()
     
-    #print(model)
+    #print_stderr(model)
 
     #Embeddings = nvbitDNN.extract_embeddings_nvbit(
     #    model=model, lyr_type=[nn.Conv2d], lyr_num=args.layer_number, batch_size=batch_size
@@ -145,7 +146,7 @@ def main(args):
     with torch.no_grad():
         correct = 0
         total = 0
-        print(f"label; class; pred")
+        print(f"img; idx; label; class; pred")
         for batch, (images, labels) in enumerate(test_loader):
             images = images.to(device, non_blocking=True)
             #labels = labels.to(device)
@@ -159,7 +160,7 @@ def main(args):
             
             for idx,label in enumerate(labels):
                 for pred_top in range(size[0]):
-                    print(f"{label}; {clas[pred_top][idx]}; {pred[pred_top][idx]}")
+                    print(f"{batch*batch_size+idx}; {pred_top}; {label}; {clas[pred_top][idx]}; {pred[pred_top][idx]}")
             Res = clas.eq(labels[None].cpu())
 
             acc1 = Res[:1].sum(dim=0,dtype=torch.float32)
@@ -170,11 +171,11 @@ def main(args):
             if batch*batch_size+batch_size>=100:
                 break
         elapsed = time.time() - t
-        print(
-            "Accuracy of the network on the {} test images: acc1 {} % acc5 {} % in {} sec".format(
-                tot_imgs, 100 * gacc1 / tot_imgs,  100 * gacc5 / tot_imgs, elapsed
-            )
-        )
+        #print_stderr(
+        #    "Accuracy of the network on the {} test images: acc1 {} % acc5 {} % in {} sec".format(
+        #        tot_imgs, 100 * gacc1 / tot_imgs,  100 * gacc5 / tot_imgs, elapsed
+        #    )
+        #)
     """
     t = time.time()
     with torch.no_grad():
