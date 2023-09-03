@@ -107,4 +107,5 @@ def main(args):
 
 if __name__=="__main__":
     argparser = get_argparser()
-    main(argparser.parse_args())
+    args, unknown = argparser.parse_known_args()
+    main(args)
