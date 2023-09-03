@@ -257,6 +257,13 @@ apps = {
         35,
         "-ln 0 -bs 1"
     ],
+    'Conv2D-jetson' : [
+        NVBITFI_HOME + '/test-apps/Conv2D-jetson',
+        'LeNet.py',
+        NVBITFI_HOME + '/test-apps/Conv2D-jetson',
+        40,
+        "-ln 0 -bs 1 -trt -sz 1 16 10 10"
+    ],
     **REAL_WORKLOAD_DICT
 }
 
