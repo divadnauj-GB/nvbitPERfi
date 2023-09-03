@@ -8,7 +8,7 @@ import tensorrt as trt
 import pycuda.driver as cuda
 import pycuda.autoinit
 
-DEBUG=1
+DEBUG=0
 
 torch.backends.cudnn.enabled = True
 # torch.backends.cudnn.enabled = True
