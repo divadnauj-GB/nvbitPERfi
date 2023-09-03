@@ -102,7 +102,10 @@ def record_result(inj_mode, app, error_model, cat, pc, inst_type, tid, injBID, r
         if not os.path.isdir(p.app_log_dir[app] + "/sdcs"): os.system("mkdir -p " + p.app_log_dir[app] + "/sdcs") # create directory to store sdcs 
         full_sdc_dir = p.app_log_dir[app] + "/sdcs/sdc-" + app + "-icount" +  icount
         os.system("mkdir -p " + full_sdc_dir) # create directory to store sdc
-        shutil.copytree(new_directory,full_sdc_dir,dirs_exist_ok=True)
+        if sys.version_info.major==3 and sys.version_info.minor>=8: 
+            shutil.copytree(new_directory,full_sdc_dir,dirs_exist_ok=True)
+        else:
+            os.system(f"cp -TR {new_directory} {full_sdc_dir}")
         shutil.make_archive(full_sdc_dir, 'gztar', full_sdc_dir) # archieve the outputs
         shutil.rmtree(full_sdc_dir, True) # remove the directory
         if p.verbose:

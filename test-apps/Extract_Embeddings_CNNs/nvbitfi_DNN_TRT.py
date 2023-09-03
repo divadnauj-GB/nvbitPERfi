@@ -1,9 +1,12 @@
+import os, sys
 import numpy as np
 import copy
 import torch
 import torch.nn as nn
-import os, sys
 import h5py
+import tensorrt as trt
+import pycuda.driver as cuda
+import pycuda.autoinit
 
 DEBUG=1
 
@@ -152,7 +155,7 @@ class extract_embeddings_nvbit:
 
 
 class load_embeddings:
-    def __init__(self, layer_number, batch_size=1,layer_output_shape=(1,)) -> None:
+    def __init__(self, layer_number, batch_size=1) -> None:
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.batch_size = batch_size
         self.layer_results = []
@@ -310,7 +313,6 @@ class load_embeddings:
                     # if not torch.equal(out, Golden_output):
                     #    print("Not getting the expected result!")
                     # np_out = out.cpu().detach().numpy()
-                    torch.from_numpy
                     self.layer_results.append(torch.from_numpy(output))
 
                     #print(img_tensor.shape)
@@ -320,6 +322,8 @@ class load_embeddings:
                     # print(targets-np_out)
                     # break
             embeddings_outputs = torch.cat(self.layer_results).numpy()
+
+            if DEBUG: print(embeddings_outputs.shape)
 
             current_path = os.path.dirname(__file__)
             log_path_file = os.path.join(
@@ -333,12 +337,8 @@ class load_embeddings:
                 )
 
 
-
 class TRT_load_embeddings:
     def __init__(self, layer_number, batch_size=1, layer_output_shape=(1,)) -> None:
-        import tensorrt as trt
-        import pycuda.driver as cuda
-        import pycuda.autoinit
         self.target_dtype = np.float32
         
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -379,6 +379,9 @@ class TRT_load_embeddings:
             self.d_output = cuda.mem_alloc(1 * self.output.nbytes)
             self.bindings = [int(self.d_input), int(self.d_output)]
             self.stream = cuda.Stream()
+            # warming up
+            # output=self.__TRT_forward_function(sample_image)
+            # end warming up
 
         if (DEBUG): print(len(self.Input_dataset))
         #print(len(self.Output_dataset))
@@ -387,24 +390,30 @@ class TRT_load_embeddings:
         #print((self.Output_dataset.shape))
         # print(self.batch_size)
 
+    def __TRT_forward_function(self,input):
+        cuda.memcpy_htod_async(self.d_input, input, self.stream)
+        # execute model
+        self.context.execute_async_v2(self.bindings, self.stream.handle, None)
+        # transfer predictions back
+        cuda.memcpy_dtoh_async(self.output, self.d_output, self.stream)
+        # syncronize threads
+        self.stream.synchronize()
+        out = self.output
+        return (out)
+
     def TRT_layer_inference(self):
-        import pycuda.driver as cuda
         max_batches = float(float(len(self.Input_dataset)) / float(self.batch_size))
         with torch.no_grad():
             for batch in range(0, int(np.ceil(max_batches))):
                 img = self.Input_dataset[
                     batch * self.batch_size : batch * self.batch_size + self.batch_size
                 ]
-                cuda.memcpy_htod_async(self.d_input, img, self.stream)
-                # execute model
-                self.context.execute_async_v2(self.bindings, self.stream.handle, None)
-                # transfer predictions back
-                cuda.memcpy_dtoh_async(self.output, self.d_output, self.stream)
-                # syncronize threads
-                torch.from_numpy
-                self.layer_results.append(torch.from_numpy(self.output))
+                output=self.__TRT_forward_function(img)
+                self.layer_results.append(torch.from_numpy(output))
 
         embeddings_outputs = torch.cat(self.layer_results).numpy()
+
+        if DEBUG: print(embeddings_outputs.shape)
 
         current_path = os.path.dirname(__file__)
         log_path_file = os.path.join(

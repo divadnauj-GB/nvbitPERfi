@@ -49,14 +49,16 @@ def main(args):
 
     dataset_file = os.path.join(
         current_path,
-        f"Golden_Output_layer.h5")
+        f"Golden_Output_layer.h5",
+    )
 
     with h5py.File(dataset_file, "r") as hf:
         Output_dataset = np.array(hf["layer_output"])
 
     dataset_file = os.path.join(
         current_path,
-        f"Output_layer.h5")
+        f"Output_layer.h5",
+    )
     
     if os.path.isfile(dataset_file):
         with h5py.File(dataset_file, "r") as hf:
