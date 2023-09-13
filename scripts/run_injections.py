@@ -236,7 +236,7 @@ def main():
                 BeginTime = datetime.datetime.now()
                 # cmd = p.bin_dir[app] + "/" + p.app_bin[app] + " " + p.app_args[app]+" > "+ p.app_dir[app]+"/golden_stdout.txt "+"2> "+ p.app_dir[app]+"/golden_stderr.txt"
                 cmd = " && ".join([f"cd {p.app_dir[app]}",
-                                   f"PRELOAD_FLAG= BIN_DIR={p.bin_dir[app]} {p.app_dir[app]}/run.sh {p.app_args[app]}",
+                                   f"PRELOAD_FLAG= GOLDEN_FLAG=1 BIN_DIR={p.bin_dir[app]} APP_BIN={p.app_bin[app]} {p.app_dir[app]}/run.sh {p.app_args[app]}",
                                    f"mv {p.app_dir[app]}/{p.stdout_file} {p.app_dir[app]}/golden_{p.stdout_file}",
                                    f"mv {p.app_dir[app]}/{p.stderr_file} {p.app_dir[app]}/golden_{p.stderr_file}",
                                    "cd -"])

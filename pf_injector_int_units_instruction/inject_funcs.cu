@@ -74,7 +74,7 @@ extern "C" __device__ __noinline__ void inject_error_input(uint64_t piinfo, uint
 					else if(inj_info->injInstType >= BFE && inj_info->injInstType <= XMAD) //integer
 						laneid = (uint32_t)(sublaneid % 16); //16 INT 
 					else //fp					
-						laneid = sublaneid ; //32 FP
+						laneid = sublaneid % 16; //32 FP
 				}
 				
 				
@@ -156,7 +156,7 @@ extern "C" __device__ __noinline__ void inject_error_output(uint64_t piinfo, uin
 					else if(inj_info->injInstType >= BFE && inj_info->injInstType <= XMAD) //integer
 						laneid = (uint32_t)(sublaneid % 16); //16 INT 
 					else //fp					
-						laneid = sublaneid ; //32 FP
+						laneid = sublaneid % 16; //32 FP
 				}
 				
 
