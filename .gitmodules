@@ -1,0 +1,4 @@
+
+[submodule "test-apps/pytorch-DNNs"]
+	path = test-apps/pytorch-DNNs
+	url = https://github.com/divadnauj-GB/pytorch-DNNs.git
