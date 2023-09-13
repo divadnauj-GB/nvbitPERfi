@@ -264,6 +264,27 @@ apps = {
         40,
         "-ln 0 -bs 1 -trt -sz 1 16 10 10"
     ],
+    'LeNet-tensorrt' : [
+        NVBITFI_HOME + '/test-apps/Jetson_TRT_CNNs',
+        'LeNet_tensorRT.py',
+        NVBITFI_HOME + '/test-apps/Jetson_TRT_CNNs',
+        40,
+        "-ln 0 -bs 1 "
+    ],
+    'AlexNet-tensorrt' : [
+        NVBITFI_HOME + '/test-apps/Jetson_TRT_CNNs',
+        'AlexNet_tensorRT.py',
+        NVBITFI_HOME + '/test-apps/Jetson_TRT_CNNs',
+        90,
+        "-ln 0 -bs 1 "
+    ],
+    'transformer-tensorrt' : [
+        NVBITFI_HOME + '/test-apps/Jetson_TRT_CNNs',
+        'visiontransformer_tensorRT.py',
+        NVBITFI_HOME + '/test-apps/Jetson_TRT_CNNs',
+        90,
+        "-ln 0 -bs 1 "
+    ],
     **REAL_WORKLOAD_DICT
 }
 
