@@ -1231,7 +1231,14 @@ def gen_REGs_fault_list(app, inj_mode, num_injections):
                         f.write(error)  # print injection site information
 
     elif p.args.config_fm.REGs.mode == "rnd":
-        # Total_number_faults = len(target_Threads)*Regs_Per_Thread*32*2
+        
+        if p.args.config_fm.REGs.thrid == -1:
+            Total_number_faults = len(target_Threads)*Regs_Per_Thread*32*2
+        else:
+            Total_number_faults = Regs_Per_Thread*32*2
+        if num_injections>Total_number_faults:
+            num_injections = Total_number_faults
+
         with open(fName, "w") as f:
             while num_injections >= 0:
                 if p.args.config_fm.REGs.thrid == -1:
