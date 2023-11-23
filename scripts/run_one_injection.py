@@ -30,7 +30,9 @@ import os, sys, re, string, operator, math, datetime, time, signal, subprocess, 
 import params as p
 import common_functions as cf 
 import psutil
-
+import platform
+if "aarch64" in platform.processor():
+    from jtop import jtop
 ###############################################################################
 # Basic functions and parameters
 ###############################################################################
@@ -320,6 +322,22 @@ def cmdline(command):
     process = subprocess.Popen(args=command, stdout=subprocess.PIPE, shell=True)
     return process.communicate()[0]
 
+def clear_gpu():
+    if "aarch64" in platform.processor():
+        with jtop() as jetson:
+            time.sleep(2)
+            if jetson.ok():
+                for status, message in jetson.restore():
+                    if status:
+                        print(message)
+                    else:
+                        print("Fail",message)           
+
+        with jtop() as jetson:
+            if jetson.ok():
+                jetson.jetson_clocks = True
+                print(jetson.stats)
+
 ###############################################################################
 # Check for timeout and kill the job if it has passed the threshold
 ###############################################################################
@@ -344,6 +362,7 @@ def is_timeout(app, pr): # check if the process is active every 'factor' sec for
         #while(pr.poll()==None):
         os.killpg(pr.pid, signal.SIGINT) # pr.kill()            
         print ("timeout")
+        clear_gpu()
         return [True, pr.poll()]
     else:
         return [False, retcode]
