@@ -1240,7 +1240,7 @@ def gen_REGs_fault_list(app, inj_mode, num_injections):
             num_injections = Total_number_faults
 
         with open(fName, "w") as f:
-            while num_injections >= 0:
+            while num_injections > 0:
                 if p.args.config_fm.REGs.thrid == -1:
                     index_thread = random.randint(0, len(target_Threads) - 1)
                     target_Thread = target_Threads[index_thread][0]
@@ -1254,7 +1254,7 @@ def gen_REGs_fault_list(app, inj_mode, num_injections):
     elif p.args.config_fm.REGs.mode == "stat":
         # Total_number_faults = len(target_Threads)*Regs_Per_Thread*32*2
         with open(fName, "w") as f:
-            while num_injections >= 0:
+            while num_injections > 0:
                 index_thread = random.randint(0, len(target_Threads) - 1)
                 target_Thread = target_Threads[index_thread][0]
                 error = f"{target_Thread} {random.randint(0,Regs_Per_Thread-1)} {2**(random.randint(0,31))} {smid} {random.randint(0,1)} \n"
