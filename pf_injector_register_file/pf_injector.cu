@@ -572,8 +572,9 @@ void nvbit_at_cuda_event(CUcontext ctx, int is_exit, nvbit_api_cuda_t cbid,
 									std::string cuerr = cudaGetErrorString(le);
 									fout << "ERROR FAIL in kernel execution (" << cuerr << "); " <<std::endl;
 									report_kernel_results(); 
-									report_thread_injections();                                      
+									report_thread_injections();        
 									SimEndRes = "; SimEndRes:::ERROR FAIL in kernel execution (" + cuerr + "):::";                                        
+									report_summary_results(); 
 									exit(1); // let's exit early 
 							}
 							//fout << "inspecting: "<< kname <<"; thread : "<<  inj_info.injThreadID <<"; Register : "<< inj_info.injReg<<";  Mask : "<<inj_info.injMask<<"; SMID : "<<inj_info.injSMID<< "; Stuck at : "<<inj_info.injStuckat  << "; index: " << kernel_id << ";" <<std::endl;

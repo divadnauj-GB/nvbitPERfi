@@ -630,6 +630,7 @@ void nvbit_at_cuda_event(CUcontext ctx, int is_exit, nvbit_api_cuda_t cbid,
 									report_kernel_results(); 
 									report_thread_injections();                                      
 									SimEndRes = "; SimEndRes:::ERROR FAIL in kernel execution (" + cuerr + "):::";                                        
+									report_summary_results(); 
 									exit(1); // let's exit early 
 								}
 								
