@@ -34,6 +34,8 @@
 /* provide some __device__ functions */
 #include "utils/utils.h"
 
+using namespace std;
+
 pthread_mutex_t mutex;
 
 int verbose = 0;
@@ -113,6 +115,7 @@ void instrument_function_if_needed(CUcontext ctx, CUfunction func) {
             continue;
         }
 
+        cout << "Kernel: " << removeSpaces(nvbit_get_func_name(ctx,f)) << endl;
         /* Get the vector of instruction composing the loaded CUFunction "f" */
         const std::vector<Instr *> &instrs = nvbit_get_instrs(ctx, f);
 
@@ -127,6 +130,7 @@ void instrument_function_if_needed(CUcontext ctx, CUfunction func) {
         max_regcount=get_maxregs(f);
         /* We iterate on the vector of instruction */
         for (auto i : instrs) {
+            cout << "0x" << std::hex << i->getOffset() << "; " << i->getSass() << std::dec << endl;
             if (verbose==2) {
                 printf("begin..\n");
             }
@@ -211,8 +215,16 @@ void nvbit_at_cuda_event(CUcontext ctx, int is_exit, nvbit_api_cuda_t cbid, cons
             line_buffer = get_profiled_details(kname);
             enable_instrumentation = (line_buffer.compare("") ==
                                       0); // if the kernel is already profiled, we will approximate the new profile to be same as the first one
+            
+            fflush(stdout);
+            fclose(stdout);
+            freopen("kernel_instr_stdout.txt", "a", stdout);
             nvbit_enable_instrumented(ctx, p->f,
                                       enable_instrumentation); // should we run the un-instrumented code? true means skip instrumentation
+            
+            //fflush (stdout);
+            //fclose (stdout);
+            //stdout = fdopen(1,"w");
         } else {
             cudaDeviceSynchronize();
             if (cudaGetLastError() != cudaSuccess) {
