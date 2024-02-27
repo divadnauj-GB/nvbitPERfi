@@ -372,6 +372,7 @@ void instrument_function_if_needed(CUcontext ctx, CUfunction func) {
 			fout << "=================================================================================" << endl;
 			fout << "The Instrumentation step Begins Here: " << removeSpaces(nvbit_get_func_name(ctx,f)) << endl;
 
+			//cout << "Kernel: " << removeSpaces(nvbit_get_func_name(ctx,f)) << endl;
 			
 			/* Get the vector of instruction composing the loaded CUFunction "func" */
 			const std::vector<Instr *> &instrs = nvbit_get_instrs(ctx, f);
@@ -383,6 +384,7 @@ void instrument_function_if_needed(CUcontext ctx, CUfunction func) {
 			//fout << "Inspecting: " << kname << ";num_static_instrs: " << instrs.size() << ";maxregs: " << maxregs << "(" << maxregs << ")" << std::endl;
 			inj_error_info.TotKerInstr=0;
 			for(auto i: instrs)  {
+				//cout << "0x" << std::hex << i->getOffset() << "; " << i->getSass() << std::dec << endl;
 				std::string opcode = i->getOpcode(); 
 				std::string instTypeStr=i->getOpcodeShort();
 				// std::string instTypeStr = extractInstType(opcode);
@@ -412,7 +414,7 @@ void instrument_function_if_needed(CUcontext ctx, CUfunction func) {
 					// fout << i->getOperand(index) <<std::endl;
 						if(op->type == InstrType::OperandType::REG){
 							//if (1)  printf("R%d ",op->u.reg.num);
-							fout <<"R"<<op->u.reg.num<<";"<< std::endl;
+							//fout <<"R"<<op->u.reg.num<<";"<< std::endl;
 							reg[regi]=op->u.reg.num;
 							regi ++;
 						}
