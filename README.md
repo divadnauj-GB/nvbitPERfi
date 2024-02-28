@@ -33,8 +33,9 @@ find . -name "*.sh" | xargs chmod +x
 cd test-apps/
 git clone https://github.com/divadnauj-GB/pytorch-DNNs.git
 cd pytorch-DNNs
-# Follow the instructions inside the README.md file of pytorch-DNNs repository
 ```
+Follow the instructions inside the README.md file of [pytorch-DNNs](https://github.com/divadnauj-GB/pytorch-DNNs/tree/main) repository
+
 # How to use this framework?
 The previous setup configured the framework and generated golden outputs for different DNN models. If you want to perform any fault injection as described in the paper; run the following script. 
 
