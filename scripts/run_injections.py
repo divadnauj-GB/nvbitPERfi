@@ -143,29 +143,32 @@ def run_multiple_injections_igid(app, inj_mode, igid, where_to_run):
 ###############################################################################
 # Run Multiple injection experiments
 ###############################################################################
-def run_multiple_pf_injections(app, inj_mode, where_to_run):
+def run_multiple_pf_injections(app, inj_mode, where_to_run, fid=0):
     #print "App: %s, IGID: %s, EM: %s" %(app, p.IGID_STR[igid], p.EM_STR[bfm])
     total_jobs = 0
     inj_list_filename = p.app_log_dir[app] + "/injection-list/mode" + inj_mode + str(p.NUM_INJECTIONS) + ".txt"
     startTime = datetime.datetime.now()
-    inf = open(inj_list_filename, "r")
-    for linepf in inf: # for each injection site 
-        total_jobs += 1
-        #if total_jobs > p.THRESHOLD_JOBS: 
-            #break; # no need to run more jobs
-        line =linepf.strip()
-        line="\""+line+"\""
+    #inf = open(inj_list_filename, "r")
+    with open(inj_list_filename, "r") as flist_fp:
+        lines = flist_fp.readlines()
+        for idx in range(fid,len(lines)): # for each injection site 
+            linepf = lines[idx]
+            total_jobs += 1
+            #if total_jobs > p.THRESHOLD_JOBS: 
+                #break; # no need to run more jobs
+            line =linepf.strip()
+            line="\""+line+"\""
 
-        if line != "":		
-            cmd = f"{p.PYTHON_P} {p.NVBITFI_HOME}/scripts/run_one_injection.py {app} {inj_mode} {line} {total_jobs}"
-            if p.verbose: print (cmd)
-            os.system(cmd)
-            if p.verbose: 
-                print ("done injection run ")
-        else:
-            print ("Line doesn't have enough params:%s" %line)
-        #print_heart_beat(total_jobs)
-    inf.close()
+            if line != "":		
+                cmd = f"{p.PYTHON_P} {p.NVBITFI_HOME}/scripts/run_one_injection.py {app} {inj_mode} {line} {idx+1}"
+                if p.verbose: print (cmd)
+                os.system(cmd)
+                if p.verbose: 
+                    print ("done injection run ")
+            else:
+                print ("Line doesn't have enough params:%s" %line)
+            #print_heart_beat(total_jobs)
+        #inf.close()
     EndTime=datetime.datetime.now()
     print (f"Total Simulated Errors: {total_jobs}; Simulation Time: {get_seconds(EndTime-startTime)} secs\n")
 
@@ -208,7 +211,7 @@ def run_multiple_injections(app, inj_mode, where_to_run):
 def main(): 
     if len(sys.argv) >= 2: 
         where_to_run = sys.argv[1]
-    
+        fid = 0
         if where_to_run != "standalone":
             if pkgutil.find_loader('lockfile') is None:
                 print ("lockfile module not found. This python module is needed to run injection experiments in parallel." )
@@ -232,6 +235,10 @@ def main():
                             os.system("rm -rf " + sdcs) # delete previous simulation results
                         #os.system("mkdir -p " + p.app_log_dir[app]) # create directory to store summary
                         clear_results_file(app,os.environ['nvbitPERfi'])
+                if len(sys.argv)==4:
+                    if sys.argv[2] == "-fid":
+                        fid = int(sys.argv[3])
+
                 #run the golden application
                 BeginTime = datetime.datetime.now()
                 # cmd = p.bin_dir[app] + "/" + p.app_bin[app] + " " + p.app_args[app]+" > "+ p.app_dir[app]+"/golden_stdout.txt "+"2> "+ p.app_dir[app]+"/golden_stderr.txt"
@@ -248,7 +255,7 @@ def main():
                 time.sleep(p.app_time[app])
                 while(pr.poll()==None):
                     os.killpg(os.getpgid(pr.pid), signal.SIGKILL)
-                run_multiple_pf_injections(app, os.environ['nvbitPERfi'], where_to_run)
+                run_multiple_pf_injections(app, os.environ['nvbitPERfi'], where_to_run, fid)
             
     else:
         print_usage()

@@ -45,7 +45,7 @@ def main():
                 cf.set_env(app, True, "WLOAD") # is profiler run
                 cmd = "cd " + p.script_dir[app] + ";./" + p.run_script + " " + p.app_args[app]+ "; mv " + p.inj_run_log + " " + p.app_log_dir[app] + "/" +"nvbifi-igprogile-workload.txt"  + "; mv *.csv "+p.app_log_dir[app] + "/workload-profile-results"+";cd -;"
                 print ("-" + cmd + "-")
-                os.system(cmd)
+                #os.system(cmd)
 
                 
                 cf.set_env(app, True) # is profiler run

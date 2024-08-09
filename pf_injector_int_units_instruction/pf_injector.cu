@@ -550,6 +550,14 @@ void nvbit_at_cuda_event(CUcontext ctx, int is_exit, nvbit_api_cuda_t cbid,
                         inj_error_info.MaxWarpsPerSM=MaxThreadsPerSM/inj_error_info.MaxThreadsPerWarp;						
                         if(inj_mode.compare("FUs")==0){
                             parse_params(injInputFilename);
+						}else if(inj_mode.compare("TCU")==0){
+                            parse_params(injInputFilename);
+						}else if(inj_mode.compare("INT")==0){
+                            parse_params(injInputFilename);
+						}else if(inj_mode.compare("FP")==0){
+                            parse_params(injInputFilename);
+						}else if(inj_mode.compare("SFU")==0){
+                            parse_params(injInputFilename);
                         }else{
                             assert(1==0);
                         }                   
@@ -584,6 +592,14 @@ void nvbit_at_cuda_event(CUcontext ctx, int is_exit, nvbit_api_cuda_t cbid,
 							memset(inj_error_info.KName, 0, sizeof inj_error_info.KName);
 							kname.copy(inj_error_info.KName,255);
 							if(inj_mode.compare("FUs")==0) {
+								instrument_function_if_needed(ctx, p->f);
+							}else if(inj_mode.compare("TCU")==0) {
+								instrument_function_if_needed(ctx, p->f);
+							}else if(inj_mode.compare("INT")==0) {
+								instrument_function_if_needed(ctx, p->f);
+							}else if(inj_mode.compare("FP")==0) {
+								instrument_function_if_needed(ctx, p->f);
+							}else if(inj_mode.compare("SFU")==0) {
 								instrument_function_if_needed(ctx, p->f);
 							}else{                                
 								assert(1==0);

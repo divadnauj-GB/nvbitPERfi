@@ -796,3 +796,63 @@ int instridx, int InstOffset, int InstOpcode) {
             } 
             
 }
+
+
+extern "C" __device__ __noinline__ void inject_error_PR(uint64_t piinfo, uint64_t Data_arrays, uint64_t pverbose_device, 
+int PredNum, int predval, int predreg, int numDestGPRs, int gridDimm, int instridx, int InstOffset, int InstOpcode) { 
+                
+            muliple_ptr_t *inj_struct=(muliple_ptr_t *) Data_arrays;
+            inj_info_error_t * inj_info = (inj_info_error_t*)piinfo; 
+            uint32_t verbose_device = *((uint32_t *)pverbose_device);
+                        
+
+            int i = getGlobalIdx_3D_3D();
+            auto smid=get_smid();
+            auto ctaID=get_ctaid();
+            auto WID=get_warpid();
+            auto LID=get_laneid();
+           
+            //check performed on the Straming Multiprocessor ID
+            //printf("smid %d %d\n",smid, inj_info->injSMID );
+            assert(numDestGPRs > 0);
+            uint32_t injAfterVal = 0; 
+            uint32_t injBeforeValrep = 0; 
+            //uint32_t injBeforeVal = nvbit_read_reg(destGPRNum); // read the register value
+            uint32_t injBeforeVal = 0; // read the register value
+            int warpID=int(inj_info->injThreadMask/32);
+            int laneID=int(inj_info->injThreadMask%32);
+            if ((smid == inj_info->injSMID) && (WID == warpID) && (LID == laneID)){
+                inj_info->injInstrIdx=instridx;
+                inj_info->injInstOpcode=InstOpcode;
+                inj_info->injInstPC=InstOffset;
+                inj_info->injRegOriginal=PredNum;
+                //injAfterVal=injBeforeVal ^ (inj_info->injMaskSeed); 
+
+                injBeforeVal = nvbit_read_pred_reg();
+                if (DUMMY){ 
+                    injAfterVal = injBeforeVal;
+                } else {                
+                    if(inj_info->injStuck_at==0){
+                        injAfterVal=injBeforeVal & (~inj_info->injMaskSeed);
+                    }else{
+                        injAfterVal=injBeforeVal | (inj_info->injMaskSeed);
+                    }    
+                }                
+                inj_info->errorInjected = true; 
+                if(injAfterVal!=injBeforeVal){
+                    atomicAdd((unsigned long long*) &inj_info->injNumActivations, 1LL);
+                }                                                
+                nvbit_write_pred_reg(injAfterVal);
+                //printf("A:TID: %d; WID: %d; PredNum: %d; PredVal: %d; prev_val: %d; Newval: %d; PredReg: %d\n",i, WID,PredNum, predval, prev_vall, nvbit_read_pred_reg(), predreg);                          
+                //nvbit_write_reg(destGPRNum, injAfterVal);                                        
+                //if(verbose_device)printf("DST: smID=%d, warpID=%d,target_register=%d, before=0x%x, after=0x%x, expected_after=0x%x, ReadReg =0x%x, SMthread %d\n", smid, WID, destGPRNum, injBeforeVal, nvbit_read_reg(destGPRNum), nvbit_read_reg(destGPRNum),destGPRNum,instridx);                                                                                            
+                //__threadfence();
+                /*
+                printf("IAT$ smID: %d; schID: %d; ctaID.x: %d; ctaID.y: %d; ctaID.z: %d; warpID: %d; LaneID: %d; TargOpField: %d; OrgRegID: %d; BlockDim: %d; MskSeed: %d; InstErrID: %d; PCOffset: %d; InstType: %d$ RegID: %d; ValBefore: %d; ValAfter: %d; ExpectAfter: %d$ Kindex: %d\n",
+                    smid,inj_info->injScheduler,ctaID.x,ctaID.y,ctaID.z,WID,LID,0,destGPRNum,blokDimm,0, instridx, InstOffset, InstOpcode, destGPRNum, injBeforeVal, nvbit_read_reg(destGPRNum), injAfterVal,kidx);                    
+                */
+                
+                            
+            } 
+            
+}

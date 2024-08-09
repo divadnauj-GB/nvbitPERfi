@@ -140,13 +140,13 @@ def set_env(app, is_profiler, inj_mode='IRA'):
             os.environ['PRELOAD_FLAG'] = "LD_PRELOAD=" + p.PROFILER_KPROOF
         else:
             os.environ['PRELOAD_FLAG'] = "LD_PRELOAD=" + p.PROFILER_LIB
-    elif inj_mode in ['IRA', 'IR', 'IAT', 'IAW', 'IAC', 'WV', 'IMS', 'IMD', 'IAL']:
+    elif inj_mode in ['IRA', 'IR', 'IAT', 'IAW', 'IAC', 'WV', 'IMS', 'IMD', 'IAL', 'PR']:
         os.environ['PRELOAD_FLAG'] = "LD_PRELOAD=" + p.INJECTOR_PF_RF
     elif inj_mode in ['ICOC', 'IIO']:
         os.environ['PRELOAD_FLAG'] = "LD_PRELOAD=" + p.INJECTOR_PF_ICOC
     elif inj_mode in ['REGs']:        
         os.environ['PRELOAD_FLAG'] = "LD_PRELOAD=" + p.INJECTOR_PF_REGF
-    elif inj_mode in ['FUs']:        
+    elif inj_mode in ['FUs','INT','FP','SFU','TCU']:        
         os.environ['PRELOAD_FLAG'] = "LD_PRELOAD=" + p.INJECTOR_PF_INTFU
 
 

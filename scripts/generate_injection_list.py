@@ -1179,6 +1179,107 @@ def gen_ICOC_fault_list(app, inj_mode_str, num_injections):
 
 
 #################################################################
+# Fault List Generation faults predicate register files
+#################################################################
+
+
+def gen_REG_fault_list(app, inj_mode, num_injections):
+    Regs_Per_Thread = get_MaxRegPerThread(app)
+    PR_per_Thread = getMaxPredReg(app)
+    ThreadsPerCTA = get_ThreadsPerCTA(app)
+    NumSch = 4
+    error_list = []
+
+    if verbose:
+        print("num_injections = %d" % (num_injections))
+    fName = (
+        p.app_log_dir[app]
+        + "/injection-list/mode"
+        + inj_mode
+        + str(num_injections)
+        + ".txt"
+    )
+    print(fName)
+    if os.path.exists(fName):
+        return
+
+    smid = int(os.environ["SMID"])
+    schid = int(os.environ["SCHID"])
+    # Map every thread of a CTA to a warp
+    if ThreadsPerCTA < 128:
+        CTAsize = 128
+    else:
+        CTAsize = ThreadsPerCTA
+
+    threads = [
+        (index, (index // 32), ((index // 32) % NumSch)) for index in range(0, CTAsize)
+    ]
+    # Extract anly those threads that belongs to the target scheduler partition
+    target_Threads = [Thrd for Thrd in threads if Thrd[2] == schid]
+    mode = p.args.config_fm.REGs.mode if inj_mode in ["REGs"] else p.args.config_fm.PR.mode 
+    thrid = p.args.config_fm.REGs.thrid if inj_mode in ["REGs"] else p.args.config_fm.PR.thrid 
+
+    nregs = Regs_Per_Thread if inj_mode in ["REGs"] else PR_per_Thread
+    nbits = 32 if inj_mode in ["REGs"] else 1
+    nthreads = 1
+    if mode == "st":
+        if thrid[0]== -1:
+            index_thread = random.randint(0, len(target_Threads) - 1)
+            target_Thread = target_Threads[index_thread][0]
+            nthreads = 1
+        elif (len(thrid)==2):
+            target_Thread = [tidx for tidx in range(thrid[0],thrid[1]+1)]
+            nthreads = (1+thrid[1])-thrid[0]
+        else:
+            target_Thread = [target_Threads[thrid[0]][0]]
+            nthreads = 1
+            
+        Total_number_faults = nthreads*nregs * nbits * 2   
+
+        with open(fName, "w") as f:
+            for reg in range(nregs):
+                for mask in range(nbits):
+                    for stuckat in range(0, 2):
+                        for thrd in target_Thread:
+                            error = f"{thrd} {reg} {2**(mask)} {smid} {stuckat} \n"
+                            f.write(error)  # print injection site information
+
+    elif mode == "rnd":
+        
+        if thrid[0] == -1:
+            Total_number_faults = len(target_Threads)*nregs*nbits*2
+        else:
+            Total_number_faults = nregs*nbits*2
+        if num_injections>Total_number_faults:
+            num_injections = Total_number_faults
+
+        with open(fName, "w") as f:
+            while num_injections > 0:
+                if thrid[0] == -1:
+                    index_thread = random.randint(0, len(target_Threads) - 1)
+                    target_Thread = target_Threads[index_thread][0]
+                else:
+                    target_Thread = target_Threads[thrid[0]][0]
+                error = f"{target_Thread} {random.randint(0,nregs-1)} {2**(random.randint(0,31))} {smid} {random.randint(0,1)} \n"
+                if error not in error_list:
+                    error_list.append(error)
+                    f.write(error)  # print injection site information
+                    num_injections -= 1
+                    
+    elif mode == "stat":
+        with open(fName, "w") as f:
+            while num_injections > 0:
+                index_thread = random.randint(0, len(target_Threads) - 1)
+                target_Thread = target_Threads[index_thread][0]
+                error = f"{target_Thread} {random.randint(0,nregs-1)} {2**(random.randint(0,31))} {smid} {random.randint(0,1)} \n"
+                if error not in error_list:
+                    error_list.append(error)
+                    f.write(error)  # print injection site information
+                    num_injections -= 1
+
+
+
+#################################################################
 # Fault List Generation faults register files
 #################################################################
 
@@ -1273,12 +1374,41 @@ def gen_FUs_fault_list(app, inj_mode, num_injections):
     error_list = []
     smid = int(os.environ["SMID"])
     #schid = int(os.environ["SCHID"])
-    schid = p.args.hw_targets.schid
-    laneid = p.args.config_fm.FUs.laneid
-    target_igrp = p.args.config_fm.FUs.igrp
-    target_instr = p.args.config_fm.FUs.instrid
-    portid = p.args.config_fm.FUs.portid
-    maskid = p.args.config_fm.FUs.maskid
+    if inj_mode=="INT":
+        schid = p.args.hw_targets.schid
+        laneid = p.args.config_fm.INT.laneid
+        target_igrp = p.args.config_fm.INT.igrp
+        target_instr = p.args.config_fm.INT.instrid
+        portid = p.args.config_fm.INT.portid
+        maskid = p.args.config_fm.INT.maskid
+    elif inj_mode=="FP":
+        schid = p.args.hw_targets.schid
+        laneid = p.args.config_fm.FP.laneid
+        target_igrp = p.args.config_fm.FP.igrp
+        target_instr = p.args.config_fm.FP.instrid
+        portid = p.args.config_fm.FP.portid
+        maskid = p.args.config_fm.FP.maskid
+    elif inj_mode=="TCU":
+        schid = p.args.hw_targets.schid
+        laneid = p.args.config_fm.TCU.laneid
+        target_igrp = p.args.config_fm.TCU.igrp
+        target_instr = p.args.config_fm.TCU.instrid
+        portid = p.args.config_fm.TCU.portid
+        maskid = p.args.config_fm.TCU.maskid
+    elif inj_mode=="SFU":
+        schid = p.args.hw_targets.schid
+        laneid = p.args.config_fm.SFU.laneid
+        target_igrp = p.args.config_fm.SFU.igrp
+        target_instr = p.args.config_fm.SFU.instrid
+        portid = p.args.config_fm.SFU.portid
+        maskid = p.args.config_fm.SFU.maskid
+    else:
+        schid = p.args.hw_targets.schid
+        laneid = p.args.config_fm.FUs.laneid
+        target_igrp = p.args.config_fm.FUs.igrp
+        target_instr = p.args.config_fm.FUs.instrid
+        portid = p.args.config_fm.FUs.portid
+        maskid = p.args.config_fm.FUs.maskid
 
     if laneid == -1 or laneid == -2:
         ncores = 16
@@ -1439,9 +1569,9 @@ def main():
             elif inj_mode == "IAL":
                 gridkDim = get_BlockDim(app)
                 gen_IAL_fault_list(app, inj_mode, p.NUM_INJECTIONS, gridkDim)
-            elif inj_mode == "REGs":
-                gen_REGs_fault_list(app, inj_mode, p.NUM_INJECTIONS)
-            elif inj_mode == "FUs":
+            elif inj_mode in ["REGs","PR"]:
+                gen_REG_fault_list(app, inj_mode, p.NUM_INJECTIONS)
+            elif inj_mode in ["INT","FP","SFU","TCU","FUs"]:
                 gen_FUs_fault_list(app, inj_mode, p.NUM_INJECTIONS)
             else:
                 print(

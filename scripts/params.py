@@ -97,7 +97,7 @@ RF_MODE = "rf"
 INST_VALUE_MODE = "inst_value"
 INST_ADDRESS_MODE = "inst_address"
 
-ERR_MODELS = ['ICOC', 'IRA', 'IR', 'IAT', 'IAW', 'IAC', 'WV', 'IIO', 'IMS', 'IMD', 'IAL', 'REGs', "FUs"]
+ERR_MODELS = ['ICOC', 'IRA', 'IR', 'IAT', 'IAW', 'IAC', 'WV', 'IIO', 'IMS', 'IMD', 'IAL', 'REGs', "FUs","PR", "INT", "FP", "TCU", "SFU"]
 
 #######################################################################
 # Categories of instruction types (IGIDs): This should match the values set in

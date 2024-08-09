@@ -174,13 +174,13 @@ def create_p_file(p_filename, inj_mode, error_mode):
                 outf.write(fields+"\n")
         else:
             print("Ops... it seems the error descriptor has missing arguments  :(")
-    elif inj_mode=='REGs':
+    elif inj_mode in ['REGs',"PR"]:
         if len(error_mode)==5:
             for fields in error_mode:
                 outf.write(fields+"\n")
         else:
             print("Ops... it seems the error descriptor has missing arguments  :(")
-    elif inj_mode=='FUs':
+    elif inj_mode in ["INT","FP","SFU","TCU","FUs"]:
         for fields in error_mode:
             outf.write(fields+"\n")
     else:
